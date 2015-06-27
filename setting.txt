@@ -1,9 +1,0 @@
-#Template
-dr 1
-ID fame0_si1392
-#Test1
-dr 2
-ID fjkl0_sX302
-dr 7
-ID fjhk0 sX302
-

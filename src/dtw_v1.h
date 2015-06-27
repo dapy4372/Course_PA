@@ -16,7 +16,7 @@ class DTW
 {
   public:
   
-    void readFeat(const char *, const bool &);
+    void readFeat(const char *, const int &);
     //void readTest(const char *);
     void buildMap();
     double run();

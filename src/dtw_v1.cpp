@@ -7,9 +7,8 @@
 using namespace std;
 # define INT_MAX 9999.0
 extern int T_0;
-extern bool type; // type 1 or not
 
-void DTW::readFeat(const char *filename, const bool &type)
+void DTW::readFeat(const char *filename, const int &type)
 {
   ifstream fin(filename);
   stringstream ss("");
@@ -18,7 +17,12 @@ void DTW::readFeat(const char *filename, const bool &type)
   
   getline(fin, buf);
   ss << buf;
-  ss >> (type ? _spkTest : _spkTemp); //false for temp
+  
+  if(type == 0)    //0 for template
+    ss >> _spkTemp;
+  if(type == 1)
+    ss >> _spkTest;
+  
   ss.str("");
   ss.clear();
   
@@ -27,13 +31,19 @@ void DTW::readFeat(const char *filename, const bool &type)
     for(size_t i=0; i < DIM; ++i)
       ss >> frame.val[i];
 
-    type ? _dataX.push_back(frame) : _dataY.push_back(frame);
+    if(type == 0)    //0 for template
+      _dataX.push_back(frame);
+    if(type == 1)
+      _dataY.push_back(frame);
   
     ss.str("");
     ss.clear();
   }
-  
-  type ? _xSize = _dataX.size() : _ySize = _dataY.size();
+   
+  if(type == 0)    //0 for template
+    _xSize = _dataX.size();
+  if(type == 1)
+    _ySize = _dataY.size();
   
   fin.close();
 }
@@ -66,9 +76,9 @@ void DTW::buildMap()
   for(size_t x=0; x < _xSize; ++x){
     _costTable[x] = new double [_ySize];
     for(size_t y=0; y < _ySize; ++y){
-      if(constraints(x, y))
-        _costTable[x][y] = INT_MAX;
-      else
+      //if(constraints(x, y))
+        //_costTable[x][y] = INT_MAX;
+      //else
         _costTable[x][y] = distance(x, y);
     }
   }
@@ -144,5 +154,5 @@ double DTW::run(){
   cout<<"run complete, the size of the template is... "<< _ySize <<endl;
   cout<<"the size of the test data is... "<< _xSize <<endl;
   cout<<"the similarity is... ";
-  return _dynamic[_xSize-1][_ySize-1]/_xSize;
+  return _dynamic[_xSize-1][_ySize-1] / (_xSize + _ySize);
 }
