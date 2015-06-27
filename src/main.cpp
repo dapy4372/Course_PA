@@ -23,6 +23,7 @@ int main(int argc, char *argv[])
   dtw.readFeat(argv[2], Test);
   
   dtw.buildMap();
+  dtw.addConstraint();
   //dtw.clear(true);
   //dtw.clear(false);
 

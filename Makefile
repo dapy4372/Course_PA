@@ -1,12 +1,8 @@
 all :
-	cd lib; \
-	make; \
-	cd ../src; \
+	cd src; \
 	make
 
 clean :
-	cd lib; \
-	make clean; \
-	cd ../src; \
+	cd src; \
 	make clean
 

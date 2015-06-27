@@ -6,6 +6,7 @@
 
 using namespace std;
 # define INT_MAX 9999.0
+# define MAX_SHIFT 20
 extern int T_0;
 
 void DTW::readFeat(const char *filename, const int &type)
@@ -82,14 +83,13 @@ void DTW::buildMap()
   
 }
 
-bool DTW::constraints(const int &x, const int &y)
-{
-  //add Maximum allowable absolute time deviation
-  int sub = x-y;
-  if(sub > T_0 || sub < (-1 * T_0))
-    return true;
-  //else if(tpye && sub > ){}
-  return false;
+void DTW::addConstraint(){
+  int dummyX = _xSize;
+  int dummyY = _ySize;
+  for(int i = 0; i < dummyX; i++)
+    for(int j = 0; j < dummyY; j++)
+      if( ((j - i*dummyY/dummyX) < -1*MAX_SHIFT)||((j - i*dummyY/dummyX) > MAX_SHIFT) )
+        _costTable[i][j] = -1 * INT_MAX;
 }
 
 void DTW::clear(const bool &type)
