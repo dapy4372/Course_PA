@@ -17,8 +17,8 @@ int main(int argc, char *argv[])
   
   DTW dtw;
   
-  dtw.readFeat(argv[2], false);
-  dtw.readFeat(argv[3], true);
+  dtw.readFeat(argv[1], false);
+  dtw.readFeat(argv[2], true);
   
   dtw.buildMap();
   //dtw.clear(true);

@@ -66,9 +66,9 @@ void DTW::buildMap()
   for(size_t x=0; x < _xSize; ++x){
     _costTable[x] = new double [_ySize];
     for(size_t y=0; y < _ySize; ++y){
-      if(constraints(x, y))
+      /*if(constraints(x, y))
         _costTable[x][y] = INT_MAX;
-      else
+      else*/
         _costTable[x][y] = distance(x, y);
     }
   }
@@ -144,5 +144,5 @@ double DTW::run(){
   cout<<"run complete, the size of the template is... "<< _ySize <<endl;
   cout<<"the size of the test data is... "<< _xSize <<endl;
   cout<<"the similarity is... ";
-  return _dynamic[_xSize-1][_ySize-1]/_xSize;
+  return _dynamic[_xSize-1][_ySize-1]/(_xSize + _ySize);
 }
