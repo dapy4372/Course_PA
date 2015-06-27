@@ -20,8 +20,6 @@ int main(int argc, char *argv[])
   DTW dtw;
   
   dtw.readFeat(argv[1], Template);
-  
-  
   dtw.readFeat(argv[2], Test);
   
   dtw.buildMap();

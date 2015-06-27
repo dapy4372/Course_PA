@@ -31,8 +31,8 @@ class DTW
     vector<Frame> _dataY;
     string _spkTemp;
     string _spkTest;
-    size_t _xSize;//modified
-    size_t _ySize;//modified
+    int _xSize;//modified
+    int _ySize;//modified
     double **_costTable; //init in readFeat
 
 };
