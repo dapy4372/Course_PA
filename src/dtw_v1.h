@@ -21,6 +21,7 @@ class DTW
     void buildMap();
     double run();
     void clear(const bool &);
+    void addConstraint();
 
   private:
     

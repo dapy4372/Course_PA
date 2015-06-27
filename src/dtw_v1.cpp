@@ -6,6 +6,7 @@
 
 using namespace std;
 # define INT_MAX 9999.0
+# define MAX_SHIFT 20
 extern int T_0;
 extern bool type; // type 1 or not
 
@@ -66,23 +67,22 @@ void DTW::buildMap()
   for(size_t x=0; x < _xSize; ++x){
     _costTable[x] = new double [_ySize];
     for(size_t y=0; y < _ySize; ++y){
-      /*if(constraints(x, y))
-        _costTable[x][y] = INT_MAX;
-      else*/
         _costTable[x][y] = distance(x, y);
     }
   }
   
 }
 
-bool DTW::constraints(const int &x, const int &y)
-{
-  //add Maximum allowable absolute time deviation
-  int sub = x-y;
-  if(sub > T_0 || sub < (-1 * T_0))
-    return true;
-  //else if(tpye && sub > ){}
-  return false;
+void DTW::addConstraint(){
+  int dummyX = _xSize;
+  int dummyY = _ySize;
+  for(int i = 0; i < dummyX; i++){
+    for(int j = 0; j < dummyY; j++){
+      if( ((j - i*dummyY/dummyX) < -1*MAX_SHIFT)||((j - i*dummyY/dummyX) > MAX_SHIFT) ){
+        _costTable[i][j] = -500;
+      }
+    }
+  }
 }
 
 void DTW::clear(const bool &type)
