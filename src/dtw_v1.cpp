@@ -6,6 +6,8 @@
 
 using namespace std;
 # define INT_MAX 9999.0
+extern int T_0;
+extern bool type; // type 1 or not
 
 void DTW::readFeat(const char *filename, const bool &type)
 {
@@ -36,7 +38,7 @@ void DTW::readFeat(const char *filename, const bool &type)
   fin.close();
 }
 
-double DTW::distance(const unsigned &x, const unsigned &y)
+double DTW::distance(const int &x, const int &y)
 {
 	//if( x-y > 50 || x-y < -50)
 	  //return INT_MAX;
@@ -52,12 +54,26 @@ double DTW::distance(const unsigned &x, const unsigned &y)
 void DTW::buildMap()
 {
   _costTable = new double* [_xSize];
-  for(size_t i=0; i < _xSize; ++i){
-    _costTable[i] = new double [_ySize];
-    for(size_t j=0; j < _ySize; ++j){
-      _costTable[i][j] = distance(i, j);
+  for(size_t x=0; x < _xSize; ++x){
+    _costTable[x] = new double [_ySize];
+    for(size_t y=0; y < _ySize; ++y){
+      if(constraints(x, y))
+        _costTable[x][y] = INT_MAX;
+      else
+        _costTable[x][y] = distance(x, y);
     }
   }
+  
+}
+
+bool DTW::constraints(const int &x, const int &y)
+{
+  //add Maximum allowable absolute time deviation
+  int sub = x-y;
+  if(sub > T_0 || sub < (-1 * T_0))
+    return true;
+  //else if(tpye && sub > ){}
+  return false;
 }
 
 void DTW::clear(const bool &type)

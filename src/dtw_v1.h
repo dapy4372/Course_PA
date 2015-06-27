@@ -24,8 +24,9 @@ class DTW
 
   private:
     
-    double distance(const unsigned &, const unsigned &);
-    
+    double distance(const int &, const int &);
+    bool constraints(const int &, const int &);
+
     vector<Frame> _dataX;
     vector<Frame> _dataY;
     string _spkTemp;
