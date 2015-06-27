@@ -76,13 +76,10 @@ void DTW::buildMap()
 void DTW::addConstraint(){
   int dummyX = _xSize;
   int dummyY = _ySize;
-  for(int i = 0; i < dummyX; i++){
-    for(int j = 0; j < dummyY; j++){
-      if( ((j - i*dummyY/dummyX) < -1*MAX_SHIFT)||((j - i*dummyY/dummyX) > MAX_SHIFT) ){
-        _costTable[i][j] = -500;
-      }
-    }
-  }
+  for(int i = 0; i < dummyX; i++)
+    for(int j = 0; j < dummyY; j++)
+      if( ((j - i*dummyY/dummyX) < -1*MAX_SHIFT)||((j - i*dummyY/dummyX) > MAX_SHIFT) )
+        _costTable[i][j] = -1 * INT_MAX;
 }
 
 void DTW::clear(const bool &type)
