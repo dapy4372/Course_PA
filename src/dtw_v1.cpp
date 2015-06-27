@@ -41,12 +41,21 @@ double DTW::distance(const unsigned &x, const unsigned &y)
 	//if( x-y > 50 || x-y < -50)
 	  //return INT_MAX;
 	//else{
-    double tmp = 0;
+    /*double tmp = 0;
     for(size_t i=0; i < DIM; ++i){
       tmp += pow((_dataX[x].val[i] - _dataY[y].val[i]), 2);
     }
     return sqrt(tmp);
-	//}
+	//}*/
+    double temp = 0;
+    double x_temp = 0;
+    double y_temp = 0;
+    for(int i = 0; i < DIM; i++){
+        x_temp += pow(_dataX[x].val[i], 2);
+        y_temp += pow(_dataY[y].val[i], 2);
+        temp   += _dataX[x].val[i] * _dataY[y].val[i];
+    }
+    return (temp/(sqrt(x_temp)*sqrt(y_temp)));
 }
 
 void DTW::buildMap()
@@ -80,47 +89,44 @@ void DTW::clear(const bool &type)
 //content added by Frank
 double DTW::run(){
   double   _dynamic[_xSize][_ySize];
-  //char     _direction[_xSize][_ySize];
-  //_direction: 'D' = down 'L' = left 'T' = tilt
-  //do we need backtracking?
-  for(size_t i = 0; i < _xSize; i++){
-    _dynamic[i][0] = _costTable[i][0];
-  }//initialization of X axis
-  for(size_t i = 0; i < _ySize; i++){
-    _dynamic[0][i] = _costTable[0][i];
-  }//initialization of Y axis
-  for(size_t i = 1; i < _xSize; i++){
-    for(size_t j = 1; j < _ySize; j++){
-      double cost = _costTable[i][j];
-      char dummy;//dummy indicates the minimal cost
-      
-			double minCost = _costTable[i-1][j];
-      if( minCost < _costTable[i-1][j-1]){
-			    
-			}
-
-      if( _costTable[i-1][j] < _costTable[i-1][j-1] )
-        { dummy = 'L'; }
-      else{ dummy = 'T'; }
-
-      if(dummy == 'L'){
-        if( _costTable[i-1][j] < _costTable[i][j-1] ){
-          dummy = 'L'; cost += _costTable[i-1][j];
+  _dynamic[0][0] = _costTable[0][0];
+  //initialization of the _dynamic array
+  for(int i = 1; i < _ySize; i++){
+    _dynamic[0][i] = ( _dynamic[0][i-1] + _costTable[0][i] );
+  }
+  for(int i = 1; i < _xSize; i++){
+    _dynamic[i][0] = ( _dynamic[i-1][0] + _costTable[i][0] );
+  }
+  //running the dynamic programming
+  for(int i = 1; i < _xSize; i++){
+    for(int j = 1; j < _ySize; j++){
+      double L_choice = ( _dynamic[i-1][j] + _costTable[i][j] );//the left path
+      double T_choice = ( _dynamic[i-1][j-1] + 2 * _costTable[i][j] );//the tilt path
+      double D_choice = ( _dynamic[i][j-1] + _costTable[i][j]);
+      double indicator = 'L';
+      if( L_choice > T_choice ){//the left choice is better, further compare it with the down choice
+        if( L_choice > D_choice ){//the left choice is the best
+          _dynamic[i][j] = L_choice;
         }
-        else{
-          dummy = 'D'; cost += _costTable[i][j-1];
+        else{//the down choice is the best
+          _dynamic[i][j] = D_choice;
+          indicator = 'D';
         }
       }
-      else{//dummy == 'T'
-        if( _costTable[i-1][j-1] < _costTable[i][j-1] ){
-          dummy = 'T'; cost += 2 * _costTable[i-1][j-1];
+      else{//the tilt choice is better, further compare it with the down choice
+        if( T_choice > D_choice ){//the tilt choice is the best
+          _dynamic[i][j] = T_choice;
+          indicator = 'T';
         }
-        else{
-          dummy = 'D'; cost += _costTable[i][j-1];
+        else{//the down choice is the best
+          _dynamic[i][j] = D_choice;
+          indicator = 'D';
         }
       }
-      _dynamic[i][j] = cost;
     }
   }
-  return _dynamic[_xSize-1][_ySize-1];
+  cout<<"run complete, the size of the template is... "<< _ySize <<endl;
+  cout<<"the size of the test data is... "<< _xSize <<endl;
+  cout<<"the similarity is... ";
+  return _dynamic[_xSize-1][_ySize-1]/_xSize;
 }
