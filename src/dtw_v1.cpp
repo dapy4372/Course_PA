@@ -6,10 +6,9 @@
 
 using namespace std;
 # define INT_MAX 9999.0
-# define MAX_SHIFT 20
-extern int T_0;
+# define MAX_SHIFT 50
 
-void DTW::readFeat(const char *filename, const int &type)
+void DTW::readFeat(const char *filename, Data &data)
 {
   ifstream fin(filename);
   stringstream ss("");
@@ -18,72 +17,60 @@ void DTW::readFeat(const char *filename, const int &type)
   
   getline(fin, buf);
   ss << buf;
-  
-  if(type == 0)    //0 for template
-    ss >> _spkTemp;
-  if(type == 1)
-    ss >> _spkTest;
+   
+  ss >> data.spkId;
   
   ss.str("");
   ss.clear();
   
   while(getline(fin, buf)){
     ss << buf;
-    for(size_t i=0; i < DIM; ++i)
+    for(int i=0; i < DIM; ++i)
       ss >> frame.val[i];
 
-    if(type == 0)    //0 for template
-      _dataX.push_back(frame);
-    if(type == 1)
-      _dataY.push_back(frame);
+    data.vecFrame.push_back(frame);
   
     ss.str("");
     ss.clear();
   }
    
-  if(type == 0)    //0 for template
-    _xSize = _dataX.size();
-  if(type == 1)
-    _ySize = _dataY.size();
+  data.len = data.vecFrame.size();
   
   fin.close();
 }
 
-double DTW::distance(const int &x, const int &y)
+double DTW::distance(const Data &a, const Data &b, const int &x, const int &y)
 {
-	//if( x-y > 50 || x-y < -50)
-	  //return INT_MAX;
-	//else{
-    /*double tmp = 0;
-    for(size_t i=0; i < DIM; ++i){
-      tmp += pow((_dataX[x].val[i] - _dataY[y].val[i]), 2);
-    }
-    return sqrt(tmp);
-	//}*/
-    double temp = 0;
-    double x_temp = 0;
-    double y_temp = 0;
+    double innerProduct = 0;
+    double x_tmp = 0;
+    double y_tmp = 0;
     for(int i = 0; i < DIM; i++){
-        x_temp += pow(_dataX[x].val[i], 2);
-        y_temp += pow(_dataY[y].val[i], 2);
-        temp   += _dataX[x].val[i] * _dataY[y].val[i];
+      x_tmp += pow(a.vecFrame[x].val[i], 2);
+      y_tmp += pow(b.vecFrame[y].val[i], 2);
+      innerProduct += a.vecFrame[x].val[i] * b.vecFrame[y].val[i];
     }
-    return (temp/(sqrt(x_temp)*sqrt(y_temp)));
+    //cosine similarity
+    return (innerProduct/(sqrt(x_tmp)*sqrt(y_tmp)));
 }
 
-void DTW::buildMap()
+void DTW::buildCostTable(const Data &a, const Data &b)
 {
-  _costTable = new double* [_xSize];
-  for(int x=0; x < _xSize; ++x){
-    _costTable[x] = new double [_ySize];
-    for(int y=0; y < _ySize; ++y){
-        _costTable[x][y] = distance(x, y);
+  _xLen = a.len;
+  _yLen = b.len;
+  int m = _xLen / _yLen; // constraints slope
+  _costTable = new double* [_xLen];
+  for(int x=0; x < _xLen; ++x){
+    _costTable[x] = new double [_yLen];
+    for(int y=0; y < _yLen; ++y){
+      if(m*x - y > MAX_SHIFT || m*x - y < -1*MAX_SHIFT) //add constraints
+        _costTable[x][y] = -1 * INT_MAX;
+      else
+        _costTable[x][y] = distance(a, b, x, y);
     }
-  }
-  
+  } 
 }
-
-void DTW::addConstraint(){
+/*
+void DTW::addConstraint(int slope){
   int dummyX = _xSize;
   int dummyY = _ySize;
   for(int i = 0; i < dummyX; i++)
@@ -91,38 +78,31 @@ void DTW::addConstraint(){
       if( ((j - i*dummyY/dummyX) < -1*MAX_SHIFT)||((j - i*dummyY/dummyX) > MAX_SHIFT) )
         _costTable[i][j] = -1 * INT_MAX;
 }
-
-void DTW::clear(const bool &type)
+*/
+void DTW::clearCostTable()
 {
-  if(type){
-    for(int i=0; i < _xSize; ++i)
+  if(_costTable == NULL){
+    for(int i=0; i < _yLen; ++i)
       delete [] _costTable[i];
     delete [] _costTable;
-    //clear test
-    _spkTest.clear();
-    _dataY.clear();
-  }
-  //clear Temp type=0
-  else if(!type){
-    _spkTemp.clear();
-    _dataX.clear();
+    _costTable = NULL;
   }
 }
 
 //content added by Frank
 double DTW::run(){
-  double   _dynamic[_xSize][_ySize];
+  double   _dynamic[_xLen][_yLen];
   _dynamic[0][0] = _costTable[0][0];
   //initialization of the _dynamic array
-  for(int i = 1; i < _ySize; i++){
+  for(int i = 1; i < _yLen; i++){
     _dynamic[0][i] = ( _dynamic[0][i-1] + _costTable[0][i] );
   }
-  for(int i = 1; i < _xSize; i++){
+  for(int i = 1; i < _xLen; i++){
     _dynamic[i][0] = ( _dynamic[i-1][0] + _costTable[i][0] );
   }
   //running the dynamic programming
-  for(int i = 1; i < _xSize; i++){
-    for(int j = 1; j < _ySize; j++){
+  for(int i = 1; i < _xLen; i++){
+    for(int j = 1; j < _yLen; j++){
       double L_choice = ( _dynamic[i-1][j] + _costTable[i][j] );//the left path
       double T_choice = ( _dynamic[i-1][j-1] + 2 * _costTable[i][j] );//the tilt path
       double D_choice = ( _dynamic[i][j-1] + _costTable[i][j]);
@@ -148,5 +128,5 @@ double DTW::run(){
       }
     }
   }
-  return _dynamic[_xSize-1][_ySize-1] / (_xSize + _ySize);
+  return _dynamic[_xLen-1][_yLen-1] / (_xLen + _yLen);
 }

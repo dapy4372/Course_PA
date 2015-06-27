@@ -11,29 +11,30 @@ typedef struct
   double val[DIM];
 }Frame;
 
+typedef struct
+{
+  string spkId;
+  vector<Frame> vecFrame;
+  int len;
+}Data;
 
 class DTW
 {
   public:
   
-    void readFeat(const char *, const int &);
+    void readFeat(const char *, Data &data);
     //void readTest(const char *);
-    void buildMap();
+    void buildCostTable(const Data &, const Data &);
     double run();
-    void clear(const bool &);
+    void clearCostTable();
     void addConstraint();
 
   private:
     
-    double distance(const int &, const int &);
-    bool constraints(const int &, const int &);
+    double distance(const Data &, const Data &, const int &, const int &);
 
-    vector<Frame> _dataX;
-    vector<Frame> _dataY;
-    string _spkTemp;
-    string _spkTest;
-    int _xSize;//modified
-    int _ySize;//modified
+    int _xLen;//modified
+    int _yLen;//modified
     double **_costTable; //init in readFeat
 
 };

@@ -18,12 +18,12 @@ int main(int argc, char *argv[])
   //myStr2Int(argv[1], T_0);
   
   DTW dtw;
-  
-  dtw.readFeat(argv[1], Template);
-  dtw.readFeat(argv[2], Test);
-  
-  dtw.buildMap();
-  dtw.addConstraint();
+  Data temp;
+  Data test;
+  dtw.readFeat(argv[1], temp);
+  dtw.readFeat(argv[2], test);
+  dtw.buildCostTable(temp, test); 
+  //dtw.addConstraint();
   //dtw.clear(true);
   //dtw.clear(false);
 
