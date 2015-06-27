@@ -1,13 +1,10 @@
 #include <iostream>
 #include <fstream>
-#include "dtw_v1.h"
+#include "dtw.h"
 #include <string>
 #include "../lib/tm_usage.h"
 #include "util.h"
 using namespace std;
-int T_0;
-
-enum type{Template, Test};
 
 int main(int argc, char *argv[])
 {/*
@@ -20,14 +17,17 @@ int main(int argc, char *argv[])
   DTW dtw;
   Data temp;
   Data test;
+  Data cut;
   dtw.readFeat(argv[1], temp);
   dtw.readFeat(argv[2], test);
-  dtw.buildCostTable(temp, test); 
+  Data key;
+  dtw.cutData(temp, key, 27, 50);
+  dtw.search(key, temp);
   //dtw.addConstraint();
   //dtw.clear(true);
   //dtw.clear(false);
 
-  cout << dtw.run() << endl;
+  //cout << dtw.run() << endl;
 /*  
   ifstream fin(argv[2]);
 

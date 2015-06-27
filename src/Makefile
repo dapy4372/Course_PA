@@ -13,9 +13,12 @@ clean :
 ../bin/dtw : main.o dtw.o
 	$(CXX) $^ -o $@
 
-main.o : main.cpp dtw_v1.h
+main.o : main.cpp dtw.h 
 	$(CXX) $(CPPFLAGS) -c $< -o $@
 
-dtw.o : dtw_v1.cpp dtw_v1.h
+dtw.o : dtw.cpp dtw.h
 	$(CXX) $(CPPFLAGS) -c $< -o $@
+
+#word.o : word.cpp word.h
+#	$(CXX) $(CPPFLAGS) -c $< -o $@
 
