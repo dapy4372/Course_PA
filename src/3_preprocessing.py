@@ -21,8 +21,12 @@ def normalization(dataXY, borrow = True):
 """
 def normalizing(dataset, borrow = True):
     for i in xrange(len(dataset)):
-        dataset[i][0] -= np.mean(dataset[i][0], axis = 0)
-        dataset[i][0] -= np.sqrt(np.var(dataX, axis = 0))
+        tmp = np.asarray(dataset[i])
+        tmp = tmp.T[0]
+        print np.mean(tmp,axis=0) 
+#tmppp -= np.mean(tmppp)
+#print np.mean(tmppp)
+#tmp[0] -= np.sqrt(np.var(tmp[0]))
     return dataset
 
 """
@@ -76,6 +80,7 @@ def splice(dataset, borrow = True):
 
 def createValidSet(trainSet):
     npTrainSet = np.asarray(trainSet)
+#npTrainSet = trainSet
     speakerInterval = utils.findSpeakerInterval(npTrainSet.T[2])
     random.shuffle(speakerInterval)
     totalSpeakerNum = len(speakerInterval)

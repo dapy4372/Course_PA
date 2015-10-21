@@ -36,9 +36,10 @@ def covertData(fileArkName, LineNum, fileLabelName = None, existY = True):
         curLine = curLine.strip()
         curLine = curLine.split()
         name, number = namepick(curLine[0])
-        feature = np.ndarray(dim, dtype=float)
+#feature = np.ndarray(dim, dtype=float)
+        feature = []
         for i in xrange(dim):
-            feature[i] = np.float32(curLine[i+1])
+            feature.append(float(curLine[i+1]))
         dataX.append([name, number,feature])
     if fileLabelName is not None:
         dataX = sorted(dataX, key=itemgetter(0,1))  
@@ -54,7 +55,8 @@ def covertData(fileArkName, LineNum, fileLabelName = None, existY = True):
         if existY:
             dataY = sorted(dataY, key=itemgetter(0,1))
     else:
-        dataY = np.zeros((len(dataX), 3))
+        dataY = [[0,'',0]] * len(dataX)
+#dataY = np.zeros((len(dataX), 3))
     dataset = []
     for i in xrange(len(dataX)):
         dataset.append([dataX[i][2], dataY[i][2], dataX[i][0]+'_'+str(dataX[i][1])]) 
