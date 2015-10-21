@@ -31,7 +31,7 @@ resultFilename = '../result/ori_result/' + outputFilename + '.csv'
 
 momentum  = 0.95
 maxEpoch  = 30
-inputDimNum = 40
+inputDimNum = 69
 outputPhoneNum = 48
 seed = 777
 random.seed(seed)
