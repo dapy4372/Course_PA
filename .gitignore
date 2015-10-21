@@ -1,0 +1,10 @@
+data/*
+test.*
+*.pyc
+*.swp
+*.map
+*.model
+*.csv
+*.log
+*.pkl
+
