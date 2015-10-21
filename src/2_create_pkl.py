@@ -5,23 +5,16 @@ from operator import itemgetter, attrgetter
 from numpy import genfromtxt
 from utils import makePkl, namepick
 import gzip
-#from StringIO import StringIO
-DEBUG = False
-NNET = False
+
 random.seed(1234)
-
-featureType     = 'fbank'
-trainArkDir     = '../data/' + featureType + '/train.ark'
-trainLabelDir   = '../data/label/train_int.lab'
-testArkDir      = '../data/' + featureType + '/test.ark'
-datasetFilename = '../pkl/' + featureType + '_dataset_without_preprocessing.pkl'
+dirPath = '../data/fbank_valid/'
+trainArkFilename   = dirPath + 'train.ark'
+trainLabelFilename = dirPath + 'train.lab'
+validArkFilename   = dirPath + 'dev.ark'
+validLabelFilename = dirPath + 'dev.lab'
+testArkFilename    = dirPath + 'test.ark'
+outputPklFilename  = '../pkl/fbank_dataset_without_preprocessing.pkl'
 dim = 69
-
-#trainArkDir     = '../data_for_debug/train_small_x.ark'
-#trainLabelDir   = '../data_for_debug/train_small_int.lab'
-#testArkDir      = '../data_for_debug/train_small_x.ark'
-#datasetFilename = '../pkl/debug.pkl'
-#dim = 39
 
 def countLineNum(fileArkName):
     f = open(fileArkName, 'rb')
@@ -63,7 +56,6 @@ def covertData(fileArkName, LineNum, fileLabelName = None, existY = True):
         dataY = np.zeros((len(dataX), 3))
     dataset = []
     for i in xrange(len(dataX)):
-        #dataset.append([dataX[i][2], dataY[i][2], dataX[i][0]+'_'+str(dataX[i][1])]) 
         npDataX[i] = dataX[i][2]
         npDataY[i] = dataY[i][2]
         dataName[i] = dataX[i][0] + '_' + str(dataX[i][1])
@@ -72,10 +64,13 @@ def covertData(fileArkName, LineNum, fileLabelName = None, existY = True):
 
 if __name__ == '__main__':
     print '... covert training set'
-    trainLineNum = countLineNum(trainArkDir)
-    trainSet = covertData(fileArkName = trainArkDir, fileLabelName = trainLabelDir, LineNum = trainLineNum)
+    trainLineNum = countLineNum(trainArkFilename)
+    trainSet = covertData(fileArkName = trainArkFilename, fileLabelName = trainLabelFilename, LineNum = trainLineNum)
+    print '... covert valid set'
+    validLineNum = countLineNum(validtArkFilename)
+    validSet = covertData(fileArkName = validArkFilename, LineNum = validLineNum, existY = True)
     print '... covert test set'
-    testLineNum = countLineNum(testArkDir)
-    testSet = covertData(fileArkName = testArkDir, LineNum = testLineNum, existY = False)
+    testLineNum = countLineNum(testArkFilename)
+    testSet = covertData(fileArkName = testArkFilename, LineNum = testLineNum, existY = False)
     print '... make pkl file'
-    makePkl([trainSet, testSet], datasetFilename)
+    makePkl([trainSet, validSet, testSet], outputPklFilename)
