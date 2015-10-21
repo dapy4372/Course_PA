@@ -17,6 +17,12 @@ testArkDir      = '../data/' + featureType + '/test.ark'
 datasetFilename = '../pkl/' + featureType + '_dataset_without_preprocessing.pkl'
 dim = 69
 
+#trainArkDir     = '../data_for_debug/train_small_x.ark'
+#trainLabelDir   = '../data_for_debug/train_small_int.lab'
+#testArkDir      = '../data_for_debug/train_small_x.ark'
+#datasetFilename = '../pkl/debug.pkl'
+#dim = 39
+
 def countLineNum(fileArkName):
     f = open(fileArkName, 'rb')
     num = 0
@@ -57,13 +63,12 @@ def covertData(fileArkName, LineNum, fileLabelName = None, existY = True):
         dataY = np.zeros((len(dataX), 3))
     dataset = []
     for i in xrange(len(dataX)):
-        dataset.append([dataX[i][2], dataY[i][2], dataX[i][0]+'_'+str(dataX[i][1])]) 
-        """
+        #dataset.append([dataX[i][2], dataY[i][2], dataX[i][0]+'_'+str(dataX[i][1])]) 
         npDataX[i] = dataX[i][2]
         npDataY[i] = dataY[i][2]
         dataName[i] = dataX[i][0] + '_' + str(dataX[i][1])
-        """
-    return dataset
+
+    return npDataX, npDataY, dataName
 
 if __name__ == '__main__':
     print '... covert training set'
