@@ -75,19 +75,18 @@ def pickResultFilename(resultFilename):
     return tmp[len(tmp)-1]
 
 def findSpeakerInterval(speakerNameList):
-    prevName, dummy = namepick(speakerNameList[0])
-    print "prev"
-    print prevName
+    prevName = speakerNameList[0][1]
     start = 0
     end = 0
     speakerInterval = []
     speakerNameListLen = len(speakerNameList)
     for i in xrange(speakerNameListLen):
-        curName, dummy = namepick(speakerNameList[i])
+        curName = speakerNameList[i][1]
         if (prevName != curName):
-            end = i - 1
-            speakerInterval.append((start, end))
+            end = i
+            name = prevName
+            speakerInterval.append((start, end, name))
             start = i
         prevName = curName
-    speakerInterval.append((start, speakerNameListLen - 1))
+    speakerInterval.append((start, speakerNameListLen, prevName))
     return speakerInterval
