@@ -31,7 +31,7 @@ bestModelFilename = '../model/' + outputFilename + '.model'
 resultFilename = '../result/ori_result/' + outputFilename + '.csv'
 
 #momentum  = 0.98
-maxEpoch  = 30
+maxEpoch  = 40
 inputDimNum = 69
 outputPhoneNum = 48
 seed = 777

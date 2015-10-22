@@ -21,7 +21,7 @@ def pickLabel(f,flag):
     print tmp[5234]
     return tmp
 
-data1 = pickLabel(f1, True)
+data1 = pickLabel(f1, False)
 data2 = pickLabel(f2, False)
 same = [ i for i, j in zip(data1, data2) if i[1] == j[1]]
 samePercent = len(same)*100 / len(data1)

@@ -1,7 +1,7 @@
 from utils import namepick, readFile
 import sys
-preLabelFilename = sys.argv[1]
-correctLabelDir = '../tmp/'
+#preLabelFilename = sys.argv[1]
+#correctLabelFilename = sys.argv[2]
 
 def findEndIndxofGroup(name, label):
     curName = namepick(name[0])
@@ -11,11 +11,11 @@ def findEndIndxofGroup(name, label):
             endIndxGroup.append(i)
     endIndxGroup.append(len(name))
     return endIndxGroup 
-
 def correctLabel(endIndxGroup, name, label):
     indxOfGroup = 0
     curEnd = endIndxGroup[0]
     firstLabelOfcurGroup = True
+    iii=0
     for i in xrange(1, len(name)):
         if firstLabelOfcurGroup:
             firstLabelOfcurGroup = False
@@ -27,6 +27,8 @@ def correctLabel(endIndxGroup, name, label):
                 continue
             if( label[i - 1] == label[i + 1] and label[i - 1] != label[i] ):
                 label[i] = label[i - 1]
+                iii +=1
+                print iii
         if i == len(name) - 2:
             break
     return label
@@ -41,5 +43,5 @@ if __name__ == '__main__':
     name, label = readFile(preLabelFilename)
     endIndxGroup = findEndIndxofGroup(name = name, label = label)
     label = correctLabel(endIndxGroup = endIndxGroup, name = name, label = label)
-    writeFile(filename = findOutputFilename(oriFilename = preLabelFilename), name = name, label = label)
+    writeFile(filename = correctLabelFilename, name = name, label = label)
         
