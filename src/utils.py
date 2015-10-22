@@ -49,10 +49,14 @@ def load_data(filename, totalSetNum):
         dataset[i] = sharedDataset(dataset[i])
     return dataset
 
-def makePkl(dataset, filename):
+def makePkl(pkl, filename):
     f = open(filename, 'wb')
     cPickle.dump(dataset, f, protocol=2)
     f.close()
+
+def makeModelPkl(model, modelfilename, P):
+    modelPkl = [P, params]
+    utils.makePkl(modelPkl, modelFilename)
 
 def readFile(filename):
     f = open(filename, 'r')

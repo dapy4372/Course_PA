@@ -8,7 +8,7 @@ import theano
 from theano import function
 import theano.tensor as T
 import sys
-from utils import load_data, makePkl, readModelPkl
+import utils
 from theano.tensor.shared_randomstreams import RandomStreams
 
 DEBUG = False
@@ -39,6 +39,21 @@ random.seed(seed)
 rng = numpy.random.RandomState(1234)
 
 # TODO RMSprop
+def EvalandResult(Model, indexList, modelType):
+    Result = []
+    Losses = []
+    for i in xrange(len(indexList)):
+        thisLoss, thisResult = validModel(indexList[i][0], indexList[i][1])
+        Result += thisResult.tolist()
+        Losses.append(thisLoss)
+    FER = numpy.mean(Losses)
+    print ((modelType + ' FER,%f') % (FER * 100))
+
+def writeResult(result, filename, setNameList):
+    f = open(fileame)
+    for i in xrange(len(result)):
+        f.write(setNameList[i] + ',' + str(result[i]) + '\n')
+    f.close()
 
 def makeBatch(totalSize, batchSize = 32):
     numBatchSize = totalSize / batchSize
@@ -192,7 +207,6 @@ class DNN(object):
               outputNum = outputNum,
               W = params[2 * dnnDepth],
               b = params[2 * dnnDepth + 1] )
-#self.zz=self.outputLayer.z[0]
         # Weight decay
         # L1 norm ; one regularization option is to enforce L1 norm to be small
         self.L1 = 0
@@ -353,13 +367,10 @@ def trainDNN(datasets, lr = learningRate, L1_reg = 0.00, L2_reg = 0.0002, maxEpo
         # Set the now train model's parameters to valid model
         nowModel = getParamsValue(classifier.params)
         setParamsValue(nowModel, predicter.params)
-        if DEBUG:    
-            startTime1  = timeit.default_timer()        
+        
         validLosses = [validModel(indexForValidList[i][0], indexForValidList[i][1]) for i in xrange(numValidBatches + 1)]
         validFER = numpy.mean(validLosses)
-        if DEBUG:    
-            endTime1 = timeit.default_timer()
-            print (('time %.2fm' % ((endTime1 - startTime1) / 60.)))
+        
         if validFER < prevFER:
             prevFER = validFER
             prevModel = nowModel
@@ -384,6 +395,7 @@ def trainDNN(datasets, lr = learningRate, L1_reg = 0.00, L2_reg = 0.0002, maxEpo
 
 def getResult(bestModel, datasets):
     
+    validSetX, validSetY, validSetName = datasets[1]
     testSetX, testSetY, testSetName = datasets[2]
     
     # allocate symbolic variables for the data
@@ -401,37 +413,40 @@ def getResult(bestModel, datasets):
                   dnnWidth  = dnnWidth,
                   dnnDepth  = dnnDepth,
                   params = bestModel )
-
+    
     testBatchSize = 9192
     totalTestSize = testSetX.get_value(borrow = True).shape[0]
-    numTestBatches = totalTestSize / testBatchSize
-    indexList = makeBatch(totalTestSize, testBatchSize)
+    testIndexList = makeBatch(totalTestSize, testBatchSize)
+    
+    validBatchSize = 9192
+    totalValidSize = validSetX.get_value(borrow = True).shape[0]
+    validIndexList = makeBatch(totalValidSize, validBatchSize)
+    
+    # bulid valid model
+    validModel = theano.function(
+                inputs  = [start, end],
+                outputs = [predicter.errors(y), predicter.yPred],
+                givens  = { x: validSetX[start:end], y: validSetY[start:end] })
     
     # bulid test model
     testModel = theano.function(
                 inputs  = [start, end],
                 outputs = [predicter.errors(y), predicter.yPred],
                 givens  = { x: testSetX[start:end], y: testSetY[start:end] })
-    result = []
-    testLosses = []
-    for i in xrange(numTestBatches + 1):
-        testLoss, thisResult = testModel(indexList[i][0], indexList[i][1])
-        result += thisResult.tolist()
-        testLosses.append(testLoss)
-    testFER = numpy.mean(testLosses)
-    print (('test FER,%f') % (testFER * 100))
 
-    f = open(resultFilename,'w')
-    for i in xrange(len(result)):
-        f.write(testSetName[i] + ',' + str(result[i]) + '\n')
-    f.close()
+    validResult = EvalandResult(validModel, validIndexList, 'valid')    
+    testResult = EvalandResult(testModel, testIndexList, 'test')
+    writeResult = (validResult, validResultFilename, validSetName)
+    writeResult = (testResult, testResultFilename, testSetName)
 
 if __name__ == '__main__':
-    datasets = load_data(filename = datasetFilename, totalSetNum = 3)
+    datasets = utils.load_data(filename = datasetFilename, totalSetNum = 3)
     if not MODELEXIST:
         bestModel = trainDNN(datasets = datasets)
-        makePkl(bestModel, bestModelFilename)
+        utils.makeModelPkl(bestModel, bestModelFilename, P)
         getResult(datasets = datasets, bestModel = bestModel)
     else:
-        model = readModelPkl(modelFilename)
+        model = utils.readModelPkl(modelFilename)
         getResult(datasets = datasets, bestModel = model)
+
+    
