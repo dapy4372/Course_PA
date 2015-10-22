@@ -390,7 +390,7 @@ def trainDNN(datasets, P, L1_reg = 0.00, L2_reg = 0.0002):
             prevFER = validFER
             prevModel = nowModel
         else:
-            if lr > 0.000000001:
+            if lr > 0.00000001:
                 lr = lr/2
                 epoch = epoch - 1
                 setParamsValue(prevModel, classifier.params)
