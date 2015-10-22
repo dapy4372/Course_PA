@@ -8,11 +8,11 @@ specifying_textfile = sys.argv[1]
 import sys
 
 USE_EXIST_MODEL = True
-def smooth(filename):
-    name, label = readFile(filename)
+def smooth(noSmoothedFilename, smoothedFilename):
+    name, label = readFile(noSmoothedFilename)
     endIndxGroup = pf.findEndIndxofGroup(name = name, label = label)
     label = pf.correctLabel(endIndxGroup = endIndxGroup, name = name, label = label)
-    pf.writeFile(filename = P.testSmoothedResultFilename, name = name, label = label)
+    pf.writeFile(filename = smoothedFilename, name = name, label = label)
 
 class Logger(object):
     def __init__(self, logFilename):
@@ -37,6 +37,5 @@ if __name__ == '__main__':
         bestModel = load_pkl(bestModelFilename)
 
     dnn.getResult(datasets = datasets, bestModel = bestModel, P = P)
-    smooth(P.testResultFilename)
-    smooth(P.validResultFilename)
-   
+    smooth(noSmoothedFilename = P.testResultFilename, smoothedFilename = P.testSmoothedResultFilename)
+    smooth(noSmoothedFilename = P.validResultFilename, smoothedFilename = P.validSmoothedResultFilename)
