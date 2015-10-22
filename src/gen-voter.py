@@ -12,14 +12,44 @@ def genWidthList(D, Ws):
         Wlist.append(Ws[i+1])
     return Wlist
 
-def genTree():
+def genVote():
     modelFilename = []
     f1 = open('modelList', 'rb')
     for i in xrange()
         modelFilename.append(f1.readline)
     
-    parent = []
     for i in xrange(3):
-        parent.append(readModel(modelFilename[i]))
-    readModel()
-    genWidthList
+        parentModelFileName = modelFilename[i]
+        model = readModel(parentModelFileName)
+        for j in xrange(1:4):
+          childModelFileName = parentModelFileName + '-' + j
+          childP = model[0]
+          childParams = model[1]
+          if i == 1:
+              childP.dnnWidth[childDeep] *= 2
+          elif i == 3:
+              childP.dnnWidth[childDeep] /= 2
+          childParams[childDeep*2] = None
+          childParams[childDeep*2+1] = None
+          childModel = [childP, childParams]
+          writeModel(childModelFileName, childModel)
+
+          childModelFileName = parentModelFileName + '-' + (j+3)
+          childP = model[0]
+          childParams = model[1]
+          if i == 1:
+              childP.dnnWidth[childDeep].append(childP.dnnWidth[childDeep] *= 2)
+          elif i == 1:
+              childP.dnnWidth[childDeep].append(childP.dnnWidth[childDeep])
+          elif i == 3:
+              childP.dnnWidth[childDeep].append(childP.dnnWidth[childDeep] /= 2)
+          childParams.append(None)
+          childParams.append(None)
+          childModel = [childP, childParams]
+          writeModel(childModelFileName, childModel)
+
+def readModel(fileName):
+    # read model in file, return a list: [P, params]
+
+def writeModel(fileName, model)
+    # write model into a file
