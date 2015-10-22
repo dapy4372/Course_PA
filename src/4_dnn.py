@@ -16,20 +16,21 @@ MODELEXIST = False
 modelFilename = '../model/test_s_1_dw_1024_dd_5_b_32_lr_0.005_dh_0.1_di_0.1.model'
 nowdate = sys.argv[1]
 SHUFFLE = int(sys.argv[2])
-dnnWidth  = int(sys.argv[3])
-dnnDepth  = int(sys.argv[4])
-batchSizeForTrain = int(sys.argv[5])
-learningRate = float(sys.argv[6])
-dropoutHiddenProb = float(sys.argv[7])
-dropoutInputProb  = float(sys.argv[8])
-datasetFilename = sys.argv[9]
+momentum = float(sys.argv[3])
+dnnWidth  = int(sys.argv[4])
+dnnDepth  = int(sys.argv[5])
+batchSizeForTrain = int(sys.argv[6])
+learningRate = float(sys.argv[7])
+dropoutHiddenProb = float(sys.argv[8])
+dropoutInputProb  = float(sys.argv[9])
+datasetFilename = sys.argv[10]
 
 outputFilename = ( nowdate + '_s_' + str(SHUFFLE) + '_dw_' + str(dnnWidth) + '_dd_' + str(dnnDepth) 
                   + '_b_' + str(batchSizeForTrain) + '_lr_' + str(learningRate) + '_dh_' + str(dropoutHiddenProb) + '_di_' + str(dropoutInputProb) )
 bestModelFilename = '../model/' + outputFilename + '.model'
 resultFilename = '../result/ori_result/' + outputFilename + '.csv'
 
-momentum  = 0.95
+#momentum  = 0.98
 maxEpoch  = 30
 inputDimNum = 69
 outputPhoneNum = 48
