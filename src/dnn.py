@@ -170,7 +170,6 @@ class Parameters(object):
        self.inputDimNum           = int(parameter[title.index('inputDimNum')])
        self.outputPhoneNum        = int(parameter[title.index('outputPhoneNum')])
        self.seed                  = int(parameter[title.index('seed')])
-       random.seed(self.seed)
        self.outputFilename = (str(self.datasetType) 
                               + '_s_' + str(self.SHUFFLE)
                               + '_m_' + str(self.momentum)
@@ -361,6 +360,8 @@ def trainDNN(datasets, P, L1_reg = 0.00, L2_reg = 0.0002):
     numValidBatches = totalValidSize / batchSizeForValid
     indexForValidList = makeBatch(totalValidSize, batchSizeForValid)
 
+    random.seed(P.seed)
+    
     while (epoch < P.maxEpoch) and (not doneLooping):
         epoch = epoch + 1
 
