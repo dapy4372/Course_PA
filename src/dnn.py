@@ -14,29 +14,15 @@ from theano.tensor.shared_randomstreams import RandomStreams
 DEBUG = False
 MODELEXIST = False
 modelFilename = '../model/test_s_1_dw_1024_dd_5_b_32_lr_0.005_dh_0.1_di_0.1.model'
-nowdate = sys.argv[1]
-SHUFFLE = int(sys.argv[2])
-momentum = float(sys.argv[3])
-dnnWidth  = int(sys.argv[4])
-dnnDepth  = int(sys.argv[5])
-batchSizeForTrain = int(sys.argv[6])
-learningRate = float(sys.argv[7])
-dropoutHiddenProb = float(sys.argv[8])
-dropoutInputProb  = float(sys.argv[9])
-datasetFilename = sys.argv[10]
+parameterFilename = sys.argv[1]
 
-outputFilename = ( nowdate + '_s_' + str(SHUFFLE) + '_dw_' + str(dnnWidth) + '_dd_' + str(dnnDepth) 
-                  + '_b_' + str(batchSizeForTrain) + '_lr_' + str(learningRate) + '_dh_' + str(dropoutHiddenProb) + '_di_' + str(dropoutInputProb) )
-bestModelFilename = '../model/' + outputFilename + '.model'
-resultFilename = '../result/ori_result/' + outputFilename + '.csv'
+#outputFilename = ( nowdate + '_s_' + str(SHUFFLE) + '_dw_' + str(dnnWidth) + '_dd_' + str(dnnDepth) 
+#                  + '_b_' + str(batchSizeForTrain) + '_lr_' + str(learningRate) + '_dh_' + str(dropoutHiddenProb) + '_di_' + str(dropoutInputProb) )
+#bestModelFilename = '../model/' + outputFilename + '.model'
+#resultFilename = '../result/ori_result/' + outputFilename + '.csv'
 
 #momentum  = 0.98
-maxEpoch  = 40
-inputDimNum = 69
-outputPhoneNum = 48
-seed = 777
-random.seed(seed)
-rng = numpy.random.RandomState(1234)
+#rng = numpy.random.RandomState(1234)
 
 # TODO RMSprop
 def EvalandResult(Model, indexList, modelType):
@@ -79,7 +65,8 @@ def Dropout(rng, input, inputNum, D = None, dropoutProb = 1):
     return input * D
 
 class HiddenLayer(object):
-    def __init__(self, rng, input, inputNum, outputNum, W = None, b = None, dropoutProb = 1.0, DROPOUT = False):
+    def __init__(self, rng, input, inputNum, outputNum, dnnWidth, W = None, b = None, dropoutProb = 1.0, DROPOUT = False):
+    #def __init__(self, input, P, W = None, b = None, DROPOUT = False):
         if DROPOUT == True:
             self.input = Dropout( rng = rng, input = input, inputNum = inputNum, dropoutProb = dropoutProb )
         else:
@@ -113,7 +100,8 @@ class HiddenLayer(object):
 
 class OutputLayer(object):
 
-    def __init__(self, input, inputNum, outputNum, W = None, b = None):
+    def __init__(self, input, inputNum, outputNum, rng, W = None, b = None):
+    #def __init__(self, input, P, W = None, b = None):
         if W is None:
             W_values = numpy.asarray(
                         rng.uniform( low=-numpy.sqrt(6. / (inputNum + outputNum)),
@@ -172,50 +160,79 @@ class OutputLayer(object):
     def getPredit():
          return self.y_pred
 
+class Parameters(object):
+    def __init__(self, filename):
+       title, parameter           = utils.readFile2(filename)
+       self.SHUFFLE               = bool(parameter[title.index('shuffle')])
+       self.momentum              = float(parameter[title.index('momentum')])
+       self.dnnWidth              = int(parameter[title.index('width')])
+       self.dnnDepth              = int(parameter[title.index('depth')])
+       self.batchSizeForTrain     = int(parameter[title.index('batchSize')])
+       self.learningRate          = float(parameter[title.index('learningRate')])
+       self.dropoutHiddenProb     = float(parameter[title.index('hiddenProb')])
+       self.dropoutInputProb      = float(parameter[title.index('inputProb')])
+       self.datasetFilename       = parameter[(title.index('dataSetFilename'))].strip('\n')
+       self.datasetType           = parameter[(title.index('dataSetType'))].strip('\n')
+       self.maxEpoch              = int(parameter[title.index('maxEpoch')])
+       self.inputDimNum           = int(parameter[title.index('inputDimNum')])
+       self.outputPhoneNum        = int(parameter[title.index('outputPhoneNum')])
+       self.seed                  = int(parameter[title.index('seed')])
+       random.seed(self.seed)
+       self.outputFilename = ('s_'+str(self.SHUFFLE)+'_dw_'+str(self.dnnWidth)+'_dd_'+str(self.dnnDepth)+'_type_'+str(self.datasetType))
+       self.bestModelFilename = '../model/' + self.outputFilename + '.model'
+       self.resultFilename = '../result/ori_result/' + self.outputFilename + '.csv'
+
+       self.rng = numpy.random.RandomState(1234)
+
 class DNN(object):
-    def __init__(self, rng, input, inputNum, dnnWidth, dnnDepth, outputNum, params = None, DROPOUT = False):
+    #def __init__(self, rng, input, inputNum, dnnWidth, dnnDepth, outputNum, params = None, DROPOUT = False):
+    def __init__(self, input, P, params = None, DROPOUT = False):
         
         # Create Hidden Layers
         self.hiddenLayerList=[]
         self.hiddenLayerList.append(
             HiddenLayer(
-                rng   = rng,
+                rng = P.rng,
                 input = input,
-                inputNum   = inputNum,
-                outputNum  = dnnWidth,
-                dropoutProb = dropoutInputProb,
+                inputNum = P.inputDimNum,
+                outputNum = P.dnnWidth,
+                dnnWidth = P.dnnWidth,
+                dropoutProb = P.dropoutHiddenProb,
                 W = params[0],
                 b = params[1],
                 DROPOUT = DROPOUT ) )
 
-        for i in xrange (dnnDepth - 1):
+        for i in xrange (P.dnnDepth - 1):
             self.hiddenLayerList.append(
                 HiddenLayer(
-                    rng   = rng,
                     input = self.hiddenLayerList[i].output,
-                    inputNum   = dnnWidth / 2,
-                    outputNum  = dnnWidth,
-                    dropoutProb = dropoutHiddenProb,
+                    rng = P.rng,
+                    inputNum = P.dnnWidth/2,
+                    outputNum = P.dnnWidth,
+                    dnnWidth = P.dnnWidth,
+                    dropoutProb = P.dropoutHiddenProb,
                     W = params[2 * (i + 1)],
-                    b = params[2 * (i + 1) + 1], 
+                    b = params[2 * (i + 1) + 1],
                     DROPOUT = DROPOUT ) )
 
         # Output Layer
         self.outputLayer = OutputLayer(
-              input = self.hiddenLayerList[dnnDepth - 1].output,
-              inputNum  = dnnWidth / 2,
-              outputNum = outputNum,
-              W = params[2 * dnnDepth],
-              b = params[2 * dnnDepth + 1] )
+              input = self.hiddenLayerList[P.dnnDepth - 1].output,
+              inputNum = P.dnnWidth/2, 
+              outputNum = P.outputPhoneNum,
+              rng = P.rng,
+              W = params[2 * P.dnnDepth],
+              b = params[2 * P.dnnDepth + 1])
+        
         # Weight decay
         # L1 norm ; one regularization option is to enforce L1 norm to be small
         self.L1 = 0
-        for i in xrange(dnnDepth):
+        for i in xrange(P.dnnDepth):
              self.L1 += abs(self.hiddenLayerList[i].W).sum()
         self.L1 += abs(self.outputLayer.W).sum()
         # square of L2 norm ; one regularization option is to enforce square of L2 norm to be small
         self.L2_sqr = 0
-        for i in xrange(dnnDepth):
+        for i in xrange(P.dnnDepth):
             self.L2_sqr += (self.hiddenLayerList[i].W ** 2).sum()
         self.L2_sqr += (self.outputLayer.W ** 2).sum()
 
@@ -230,17 +247,19 @@ class DNN(object):
         
         # Parameters of all DNN model
         self.params = self.hiddenLayerList[0].params
-        for i in xrange(1, dnnDepth):
+        for i in xrange(1, P.dnnDepth):
             self.params += self.hiddenLayerList[i].params
         self.params += self.outputLayer.params
 
         # keep track of model input
         self.input = input
 
-def trainDNN(datasets, lr = learningRate, L1_reg = 0.00, L2_reg = 0.0002, maxEpoch = maxEpoch, batchSize = batchSizeForTrain, dnnWidth = dnnWidth):
+def trainDNN(datasets, P, L1_reg = 0.00, L2_reg = 0.0002):
     
     trainSetX, trainSetY, trainSetName = datasets[0]
     validSetX, validSetY, validSetName = datasets[1]
+    
+    lr = P.learningRate
     
     ###############
     # BUILD MODEL #
@@ -253,27 +272,19 @@ def trainDNN(datasets, lr = learningRate, L1_reg = 0.00, L2_reg = 0.0002, maxEpo
     y = T.ivector('y')   # the labels are presented as 1D vector of
                          # [int] labels
 
-    dummyParams = [None] * (2 * (dnnDepth + 1))
+    dummyParams = [None] * (2 * (P.dnnDepth + 1))
     
     # build the DNN object for training
     classifier = DNN(
-                  rng   = rng,
                   input = x,
-                  inputNum  = inputDimNum,
-                  outputNum = outputPhoneNum,
-                  dnnWidth  = dnnWidth,
-                  dnnDepth  = dnnDepth,
                   params    = dummyParams,
+                  P = P,
                   DROPOUT = True )
     
     # build the DNN object for Validation
     predicter = DNN(
-                  rng   = rng,
                   input = x,
-                  inputNum  = inputDimNum,
-                  outputNum = outputPhoneNum,
-                  dnnWidth  = dnnWidth,
-                  dnnDepth  = dnnDepth,
+                  P = P,
                   params    = dummyParams )
     # valid model
     validModel = theano.function(
@@ -290,13 +301,13 @@ def trainDNN(datasets, lr = learningRate, L1_reg = 0.00, L2_reg = 0.0002, maxEpo
     # Momentum        
     def initialVelocitys():
         v = []
-        v.append(theano.shared(numpy.zeros( (inputDimNum, dnnWidth), dtype = theano.config.floatX ), borrow = True))
-        v.append(theano.shared(numpy.zeros( (dnnWidth,), dtype = theano.config.floatX ), borrow = True) )
-        for i in xrange(dnnDepth - 1):
-           v.append(theano.shared(numpy.zeros( (dnnWidth/2,dnnWidth), dtype = theano.config.floatX ), borrow = True) )
-           v.append(theano.shared(numpy.zeros( (dnnWidth,), dtype = theano.config.floatX ), borrow = True) )
-        v.append(theano.shared(numpy.zeros( (dnnWidth/2, outputPhoneNum), dtype = theano.config.floatX ), borrow = True) )
-        v.append(theano.shared(numpy.zeros( (outputPhoneNum,), dtype = theano.config.floatX ), borrow = True) )
+        v.append(theano.shared(numpy.zeros( (P.inputDimNum, P.dnnWidth), dtype = theano.config.floatX ), borrow = True))
+        v.append(theano.shared(numpy.zeros( (P.dnnWidth,), dtype = theano.config.floatX ), borrow = True) )
+        for i in xrange(P.dnnDepth - 1):
+           v.append(theano.shared(numpy.zeros( (P.dnnWidth/2,P.dnnWidth), dtype = theano.config.floatX ), borrow = True) )
+           v.append(theano.shared(numpy.zeros( (P.dnnWidth,), dtype = theano.config.floatX ), borrow = True) )
+        v.append(theano.shared(numpy.zeros( (P.dnnWidth/2, P.outputPhoneNum), dtype = theano.config.floatX ), borrow = True) )
+        v.append(theano.shared(numpy.zeros( (P.outputPhoneNum,), dtype = theano.config.floatX ), borrow = True) )
         return v
     flag = True
     grads = [T.grad(cost, param) for param in classifier.params]
@@ -305,7 +316,7 @@ def trainDNN(datasets, lr = learningRate, L1_reg = 0.00, L2_reg = 0.0002, maxEpo
             velocitys = [velocity - lr * grad for velocity, grad in zip(velocitys, grads)]
             flag = False
         else:
-            velocitys = [ momentum * velocity - lr * (1 - momentum) * grad for velocity, grad in zip(velocitys, grads) ]
+            velocitys = [ P.momentum * velocity - lr * (1 - P.momentum) * grad for velocity, grad in zip(velocitys, grads) ]
         params_update = [ (param, param + velocity) for param, velocity in zip(params, velocitys) ]
         return params_update
     
@@ -339,17 +350,17 @@ def trainDNN(datasets, lr = learningRate, L1_reg = 0.00, L2_reg = 0.0002, maxEpo
     totalValidSize = validSetX.get_value(borrow=True).shape[0]
     
     # make batch list
-    numTrainBatches = totalTrainSize / batchSizeForTrain
-    indexForTrainList = makeBatch(totalTrainSize, batchSizeForTrain)
+    numTrainBatches = totalTrainSize / P.batchSizeForTrain
+    indexForTrainList = makeBatch(totalTrainSize, P.batchSizeForTrain)
      
     batchSizeForValid = 9192
     numValidBatches = totalValidSize / batchSizeForValid
     indexForValidList = makeBatch(totalValidSize, batchSizeForValid)
 
-    while (epoch < maxEpoch) and (not doneLooping):
+    while (epoch < P.maxEpoch) and (not doneLooping):
         epoch = epoch + 1
 
-        if SHUFFLE:
+        if P.SHUFFLE:
             random.shuffle(indexForTrainList)
 
         trainLosses = []
@@ -393,7 +404,7 @@ def trainDNN(datasets, lr = learningRate, L1_reg = 0.00, L2_reg = 0.0002, maxEpo
     
     return prevModel
 
-def getResult(bestModel, datasets):
+def getResult(bestModel, datasets, P):
     
     validSetX, validSetY, validSetName = datasets[1]
     testSetX, testSetY, testSetName = datasets[2]
@@ -406,12 +417,8 @@ def getResult(bestModel, datasets):
 
     # bulid best DNN model
     predicter = DNN(
-                  rng   = rng,
                   input = x,
-                  inputNum  = inputDimNum,
-                  outputNum = outputPhoneNum,
-                  dnnWidth  = dnnWidth,
-                  dnnDepth  = dnnDepth,
+                  P = P,
                   params = bestModel )
     
     testBatchSize = 9192

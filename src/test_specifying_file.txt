@@ -1,0 +1,14 @@
+shuffle:True
+momentum:0.9
+width:1024
+depth:5
+batchSize:1024
+learningRate:0.1
+hiddenProb:1
+inputProb:1
+dataSetFilename:../pkl/fbank_dataset.pkl
+dataSetType:fbank
+maxEpoch:3
+inputDimNum:69
+outputPhoneNum:48
+seed:777

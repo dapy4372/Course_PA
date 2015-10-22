@@ -69,6 +69,17 @@ def readFile(filename):
     f.close()
     return name, label
 
+def readFile2(filename):
+    f = open(filename, 'r')
+    title = []
+    parameter = []
+    for i in f:
+        part = i.split(':')
+        title.append(part[0])
+        parameter.append(part[1])
+    f.close()
+    return title, parameter
+
 def readModelPkl(filename):
     f = open(filename, 'rb')
     bestModel = cPickle.load(f)
