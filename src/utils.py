@@ -51,7 +51,7 @@ def load_data(filename, totalSetNum):
 
 def makePkl(pkl, filename):
     f = open(filename, 'wb')
-    cPickle.dump(dataset, f, protocol=2)
+    cPickle.dump(pkl, f, protocol=2)
     f.close()
 
 def makeModelPkl(model, modelfilename, P):

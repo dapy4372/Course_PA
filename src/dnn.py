@@ -16,27 +16,20 @@ MODELEXIST = False
 modelFilename = '../model/test_s_1_dw_1024_dd_5_b_32_lr_0.005_dh_0.1_di_0.1.model'
 parameterFilename = sys.argv[1]
 
-#outputFilename = ( nowdate + '_s_' + str(SHUFFLE) + '_dw_' + str(dnnWidth) + '_dd_' + str(dnnDepth) 
-#                  + '_b_' + str(batchSizeForTrain) + '_lr_' + str(learningRate) + '_dh_' + str(dropoutHiddenProb) + '_di_' + str(dropoutInputProb) )
-#bestModelFilename = '../model/' + outputFilename + '.model'
-#resultFilename = '../result/ori_result/' + outputFilename + '.csv'
-
-#momentum  = 0.98
-#rng = numpy.random.RandomState(1234)
-
 # TODO RMSprop
 def EvalandResult(Model, indexList, modelType):
-    Result = []
+    result = []
     Losses = []
     for i in xrange(len(indexList)):
-        thisLoss, thisResult = validModel(indexList[i][0], indexList[i][1])
-        Result += thisResult.tolist()
+        thisLoss, thisResult = Model(indexList[i][0], indexList[i][1])
+        result += thisResult.tolist()
         Losses.append(thisLoss)
     FER = numpy.mean(Losses)
     print ((modelType + ' FER,%f') % (FER * 100))
+    return result
 
 def writeResult(result, filename, setNameList):
-    f = open(fileame)
+    f = open(filename, 'w')
     for i in xrange(len(result)):
         f.write(setNameList[i] + ',' + str(result[i]) + '\n')
     f.close()
@@ -178,10 +171,21 @@ class Parameters(object):
        self.outputPhoneNum        = int(parameter[title.index('outputPhoneNum')])
        self.seed                  = int(parameter[title.index('seed')])
        random.seed(self.seed)
-       self.outputFilename = ('s_'+str(self.SHUFFLE)+'_dw_'+str(self.dnnWidth)+'_dd_'+str(self.dnnDepth)+'_type_'+str(self.datasetType))
-       self.bestModelFilename = '../model/' + self.outputFilename + '.model'
-       self.resultFilename = '../result/ori_result/' + self.outputFilename + '.csv'
-
+       self.outputFilename = (str(self.datasetType) 
+                              + '_s_' + str(self.SHUFFLE)
+                              + '_m_' + str(self.momentum)
+                              + '_dw_'+ str(self.dnnWidth)
+                              + '_dd_'+ str(self.dnnDepth)
+                              + '_b_' + str(self.batchSizeForTrain)
+                              + '_lr_'+ str(self.learningRate)
+                              + '_di_'+ str(self.dropoutInputProb)
+                              + '_dh_'+ str(self.dropoutHiddenProb) )
+       self.bestModelFilename = '../model/' + self.outputFilename
+       self.testResultFilename = '../result/test_result/' + self.outputFilename + '.csv'
+       self.validResultFilename = '../result/valid_result/' + self.outputFilename + '.csv'
+       self.validSmoothedResultFilename = '../result/smoothed_valid_result/' + self.outputFilename + '.csv' 
+       self.testSmoothedResultFilename = '../result/smoothed_test_result/' + self.outputFilename + '.csv' 
+       self.logFilename = '../log/' + self.outputFilename + '.log'
        self.rng = numpy.random.RandomState(1234)
 
 class DNN(object):
@@ -386,7 +390,7 @@ def trainDNN(datasets, P, L1_reg = 0.00, L2_reg = 0.0002):
             prevFER = validFER
             prevModel = nowModel
         else:
-            if lr > 0.00000001:
+            if lr > 0.000000001:
                 lr = lr/2
                 epoch = epoch - 1
                 setParamsValue(prevModel, classifier.params)
@@ -443,8 +447,8 @@ def getResult(bestModel, datasets, P):
 
     validResult = EvalandResult(validModel, validIndexList, 'valid')    
     testResult = EvalandResult(testModel, testIndexList, 'test')
-    writeResult = (validResult, validResultFilename, validSetName)
-    writeResult = (testResult, testResultFilename, testSetName)
+    writeResult(validResult, P.validResultFilename, validSetName)
+    writeResult(testResult, P.testResultFilename, testSetName)
 
 if __name__ == '__main__':
     datasets = utils.load_data(filename = datasetFilename, totalSetNum = 3)
