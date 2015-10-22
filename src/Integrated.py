@@ -2,7 +2,7 @@ import dnn
 import os
 import sys
  
-from utils import readFile2, load_data
+from utils import readFile2, load_data, makePkl
 
 specifying_textfile = sys.argv[1]
 
@@ -13,5 +13,5 @@ if __name__ == '__main__':
    bestModel = dnn.trainDNN(datasets = datasets, P=P)
 
    bestModelFilename = '../model/' + P.outputFilename + '.model'
-   makePkl(bestModel, bestModeFilename)
-   getResults(datasets = datasets, bestModel = bestModel)
+   makePkl(bestModel, P.bestModelFilename)
+   dnn.getResult(datasets = datasets, bestModel = bestModel, P = P)

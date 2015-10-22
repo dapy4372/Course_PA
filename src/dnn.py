@@ -14,16 +14,6 @@ from theano.tensor.shared_randomstreams import RandomStreams
 DEBUG = False
 MODELEXIST = False
 modelFilename = '../model/test_s_1_dw_1024_dd_5_b_32_lr_0.005_dh_0.1_di_0.1.model'
-#nowdate = sys.argv[1]
-#SHUFFLE = int(sys.argv[2])
-#momentum = float(sys.argv[3])
-#dnnWidth  = int(sys.argv[4])
-#dnnDepth  = int(sys.argv[5])
-#batchSizeForTrain = int(sys.argv[6])
-#learningRate = float(sys.argv[7])
-#dropoutHiddenProb = float(sys.argv[8])
-#dropoutInputProb  = float(sys.argv[9])
-#datasetFilename = sys.argv[10]
 parameterFilename = sys.argv[1]
 
 #outputFilename = ( nowdate + '_s_' + str(SHUFFLE) + '_dw_' + str(dnnWidth) + '_dd_' + str(dnnDepth) 
@@ -60,24 +50,24 @@ def Dropout(rng, input, inputNum, D = None, dropoutProb = 1):
     return input * D
 
 class HiddenLayer(object):
-    #def __init__(self, rng, input, inputNum, outputNum, W = None, b = None, dropoutProb = 1.0, DROPOUT = False):
-    def __init__(self, input, P, W = None, b = None, DROPOUT = False):
+    def __init__(self, rng, input, inputNum, outputNum, dnnWidth, W = None, b = None, dropoutProb = 1.0, DROPOUT = False):
+    #def __init__(self, input, P, W = None, b = None, DROPOUT = False):
         if DROPOUT == True:
-            self.input = Dropout( rng = P.rng, input = input, inputNum = P.inputDimNum, dropoutProb = P.dropoutHiddenProb )
+            self.input = Dropout( rng = rng, input = input, inputNum = inputNum, dropoutProb = dropoutProb )
         else:
-            self.input = input * P.dropoutHiddenProb
+            self.input = input * dropoutProb
         if W is None:
             W_values = numpy.asarray(
-                        P.rng.uniform( low=-numpy.sqrt(6. / (P.inputDimNum + P.outputPhoneNum)),
-                        high = numpy.sqrt(6. / (P.inputDimNum + P.outputPhoneNum)),
-                        size = (P.inputDimNum, P.outputPhoneNum) ), dtype=theano.config.floatX )
+                        rng.uniform( low=-numpy.sqrt(6. / (inputNum + outputNum)),
+                        high = numpy.sqrt(6. / (inputNum + outputNum)),
+                        size = (inputNum, outputNum) ), dtype=theano.config.floatX )
             W = theano.shared(value = W_values, name = 'W', borrow = True)
         else:
             W = theano.shared( value = numpy.array(W, dtype = theano.config.floatX), name='W', borrow = True )
 
         if b is None:
             #b_values = numpy.ones( (outputNum,), dtype=theano.config.floatX)
-            b_values = numpy.asarray( P.rng.uniform( low = -1, high = 1, size = (P.outputPhoneNum,)), dtype=theano.config.floatX)
+            b_values = numpy.asarray( rng.uniform( low = -1, high = 1, size = (outputNum,)), dtype=theano.config.floatX)
             b = theano.shared(value = b_values, name = 'b', borrow = True)
         else:
             b = theano.shared( value = numpy.array(b, dtype = theano.config.floatX), name='b', borrow = True )
@@ -88,26 +78,26 @@ class HiddenLayer(object):
         
         # Maxout
         zT= z.dimshuffle(1,0)
-        self.output = T.maximum(zT[0:P.dnnWidth/2],zT[P.dnnWidth/2:]).dimshuffle(1,0)
+        self.output = T.maximum(zT[0:dnnWidth/2],zT[dnnWidth/2:]).dimshuffle(1,0)
         
         # parameters of the model
         self.params = [self.W, self.b]
 
 class OutputLayer(object):
 
-    #def __init__(self, input, inputNum, outputNum, W = None, b = None):
-    def __init__(self, input, P, W = None, b = None):
+    def __init__(self, input, inputNum, outputNum, rng, W = None, b = None):
+    #def __init__(self, input, P, W = None, b = None):
         if W is None:
             W_values = numpy.asarray(
-                        P.rng.uniform( low=-numpy.sqrt(6. / (P.inputDimNum + P.outputPhoneNum)),
-                        high = numpy.sqrt(6. / (P.inputDimNum + P.outputPhoneNum)),
-                        size = (P.inputDimNum, P.outputPhoneNum) ), dtype=theano.config.floatX )
+                        rng.uniform( low=-numpy.sqrt(6. / (inputNum + outputNum)),
+                        high = numpy.sqrt(6. / (inputNum + outputNum)),
+                        size = (inputNum, outputNum) ), dtype=theano.config.floatX )
             W = theano.shared(value = W_values, name = 'W', borrow = True)
         else:
             W = theano.shared( value = numpy.array(W, dtype = theano.config.floatX), name='W', borrow=True )
 
         if b is None:
-            b_values = numpy.asarray( P.rng.uniform( low = -1, high = 1, size = (P.outputPhoneNum,)), dtype=theano.config.floatX)
+            b_values = numpy.asarray( rng.uniform( low = -1, high = 1, size = (outputNum,)), dtype=theano.config.floatX)
             b = theano.shared(value = b_values, name = 'b', borrow = True)
             #b = theano.shared( value = numpy.ones( (outputNum,), dtype=theano.config.floatX ), name='b', borrow=True )
         else:
@@ -187,27 +177,37 @@ class DNN(object):
         self.hiddenLayerList=[]
         self.hiddenLayerList.append(
             HiddenLayer(
+                rng = P.rng,
                 input = input,
+                inputNum = P.inputDimNum,
+                outputNum = P.dnnWidth,
+                dnnWidth = P.dnnWidth,
+                dropoutProb = P.dropoutHiddenProb,
                 W = params[0],
                 b = params[1],
-                P = P,
                 DROPOUT = DROPOUT ) )
 
         for i in xrange (P.dnnDepth - 1):
             self.hiddenLayerList.append(
                 HiddenLayer(
                     input = self.hiddenLayerList[i].output,
+                    rng = P.rng,
+                    inputNum = P.dnnWidth/2,
+                    outputNum = P.dnnWidth,
+                    dnnWidth = P.dnnWidth,
+                    dropoutProb = P.dropoutHiddenProb,
                     W = params[2 * (i + 1)],
                     b = params[2 * (i + 1) + 1],
-                    P = P, 
                     DROPOUT = DROPOUT ) )
 
         # Output Layer
         self.outputLayer = OutputLayer(
               input = self.hiddenLayerList[P.dnnDepth - 1].output,
+              inputNum = P.dnnWidth/2, 
+              outputNum = P.outputPhoneNum,
+              rng = P.rng,
               W = params[2 * P.dnnDepth],
-              b = params[2 * P.dnnDepth + 1],
-              P = P )
+              b = params[2 * P.dnnDepth + 1])
 #self.zz=self.outputLayer.z[0]
         # Weight decay
         # L1 norm ; one regularization option is to enforce L1 norm to be small
@@ -392,7 +392,7 @@ def trainDNN(datasets, P, L1_reg = 0.00, L2_reg = 0.0002):
     
     return prevModel
 
-def getResult(bestModel, datasets):
+def getResult(bestModel, datasets, P):
     
     testSetX, testSetY, testSetName = datasets[2]
     
