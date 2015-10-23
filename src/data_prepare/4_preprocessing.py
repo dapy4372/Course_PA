@@ -1,9 +1,9 @@
-import theano
 import cPickle
 import numpy as np
-import utils
 import random
 import sys
+import utils
+
 random.seed(1234)
 NORMALIZE = True
 SPLICE = True

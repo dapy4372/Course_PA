@@ -1,18 +1,17 @@
 import numpy as np
 import random
 import cPickle
-from operator import itemgetter, attrgetter
-from numpy import genfromtxt
-from utils import makePkl, namepick
 import gzip
+import utils
+from operator import itemgetter, attrgetter
 
 random.seed(1234)
-dirPath = '../data/fbank_valid/'
+dirPath = '../fbank_valid/'
 trainArkFilename   = dirPath + 'train.ark'
 trainLabelFilename = dirPath + 'train.lab'
 validArkFilename   = dirPath + 'valid.ark'
 validLabelFilename = dirPath + 'valid.lab'
-testArkFilename    = dirPath + 'test.ark'
+testArkFilename    = '../data/fbank/' + 'test.ark'
 outputPklFilename  = '../pkl/fbank_dataset_without_preprocessing.pkl'
 dim = 69
 
@@ -34,7 +33,7 @@ def covertData(fileArkName, LineNum, fileLabelName = None, existY = True):
     for curLine in fileForX:
         curLine = curLine.strip()
         curLine = curLine.split()
-        name, number = namepick(curLine[0])
+        name, number = utils.namepick(curLine[0])
         feature = []
         for i in xrange(dim):
             feature.append(float(curLine[i+1]))
@@ -47,7 +46,7 @@ def covertData(fileArkName, LineNum, fileLabelName = None, existY = True):
         for curLine in fileForY:
             curLine = curLine.strip()
             curLine = curLine.split(',')
-            name, number = namepick(curLine[0])
+            name, number = utils.namepick(curLine[0])
             label = int(curLine[1])
             dataY.append([name, number, label])
         if existY:
@@ -73,4 +72,4 @@ if __name__ == '__main__':
     testLineNum = countLineNum(testArkFilename)
     testSet = covertData(fileArkName = testArkFilename, LineNum = testLineNum, existY = False)
     print '... make pkl file'
-    makePkl([trainSet, validSet, testSet], outputPklFilename)
+    utils.makePkl([trainSet, validSet, testSet], outputPklFilename)

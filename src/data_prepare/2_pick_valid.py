@@ -1,28 +1,28 @@
 from operator import itemgetter, attrgetter
 import utils
-featureType     = 'fbank'
-trainArkDir     = '../data/' + featureType + '/train.ark'
-trainLabelDir   = '../data/label/train_int.lab'
-#trainArkDir     = '../data_for_debug/train_small_x.ark'
-#trainLabelDir   = '../data_for_debug/train_small_int.lab'
-RATIO = 10
-trainXName = '../data/fbank_valid/train.ark'
-trainYName = '../data/fbank_valid/train.lab'
-validXName = '../data/fbank_valid/valid.ark'
-validYName = '../data/fbank_valid/valid.lab'
 
-f1 = open(trainArkDir, 'rb')
+RATIO = 10
+
+trainArkDir     = '../data/fbank/train.ark'
+trainLabelDir   = '../data/label/train_int.lab'
+trainXName      = '../fbank_valid/train.ark'
+trainYName      = '../fbank_valid/train.lab'
+validXName      = '../fbank_valid/valid.ark'
+validYName      = '../fbank_valid/valid.lab'
+
+f1 = open(trainArkDir,   'rb')
 f2 = open(trainLabelDir, 'rb')
-f3 = open(trainXName, 'wb')
-f4 = open(trainYName, 'wb')
-f5 = open(validXName, 'wb')
-f6 = open(validYName, 'wb')
+f3 = open(trainXName,    'wb')
+f4 = open(trainYName,    'wb')
+f5 = open(validXName,    'wb')
+f6 = open(validYName,    'wb')
 
 print '...open file'
 
 maleNum = 0
 femaleNum = 0
 prevName = ''
+
 x = []
 for i in f1:
     i = i.strip()
