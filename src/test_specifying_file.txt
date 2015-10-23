@@ -1,9 +1,9 @@
 shuffle:True
 momentum:0.9
 width:2048
-depth:2
-batchSize:32
-learningRate:0.003
+depth:3
+batchSize:64
+learningRate:0.005
 hiddenProb:1.
 inputProb:1.
 dataSetFilename:../pkl/fbank_dataset.pkl
@@ -11,4 +11,4 @@ dataSetType:fbank
 maxEpoch:30
 inputDimNum:69
 outputPhoneNum:48
-seed:777
+seed:1111

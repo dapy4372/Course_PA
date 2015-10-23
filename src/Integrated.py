@@ -7,7 +7,7 @@ from utils import readFile2, load_data, makePkl, readFile, load_pkl
 specifying_textfile = sys.argv[1]
 import sys
 
-USE_EXIST_MODEL = True
+USE_EXIST_MODEL = False
 def smooth(noSmoothedFilename, smoothedFilename):
     name, label = readFile(noSmoothedFilename)
     endIndxGroup = pf.findEndIndxofGroup(name = name, label = label)
