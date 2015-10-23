@@ -123,7 +123,7 @@ def trainDNN(datasets, P):
             random.shuffle(indexForTrainList)
     
         # Training
-        trainLosses = [trainModel(indexForTrainList[i][0], indexForTrainList[i][1]) for i in xrange(len(indexForValidList))]
+        trainLosses = [trainModel(indexForTrainList[i][0], indexForTrainList[i][1]) for i in xrange(len(indexForTrainList))]
         # Evaluate training FER 
         trainFER = numpy.mean(trainLosses)
 
