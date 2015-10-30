@@ -19,8 +19,15 @@ def trainDNN(datasets, P):
     
     trainSetX, trainSetY, trainSetName = splice(datasets[0], 4)
     validSetX, validSetY, validSetName = splice(datasets[1], 4)
-    shareTrainSetX, shareTrainSetY, castSharedTrainSetY = sharedDataXY(trainSetX, trainSetY)
-    shareValidSetX, shareValidSetY, castSharedValidSetY = sharedDataXY(validSetX, validSetY)
+    sharedTrainSetX = theano.shared(numpy.asarray(trainSetX, dtype=theano.config.floatX), borrow=True) 
+    sharedTrainSetY = theano.shared(numpy.asarray(trainSetY, dtype=theano.config.floatX), borrow=True)
+    castSharedTrainSetY = T.cast(sharedTrainSetY, 'int32')
+    sharedValidSetX = theano.shared(numpy.asarray(validSetX, dtype=theano.config.floatX), borrow=True) 
+    sharedValidSetY = theano.shared(numpy.asarray(validSetY, dtype=theano.config.floatX), borrow=True) 
+    castSharedValidSetY = T.cast(sharedValidSetY, 'int32')
+
+#shareTrainSetX, shareTrainSetY, castSharedTrainSetY = sharedDataXY(trainSetX, trainSetY)
+#shareValidSetX, shareValidSetY, castSharedValidSetY = sharedDataXY(validSetX, validSetY)
 
     ###############
     # BUILD MODEL #
@@ -45,7 +52,7 @@ def trainDNN(datasets, P):
     validModel = theano.function(
                  inputs  = [start, end],
                  outputs = predicter.errors(y),
-                 givens  = { x: shareValidSetX[start : end], y: castSharedValidSetY[start : end] } )
+                 givens  = { x: sharedValidSetX[start : end], y: castSharedValidSetY[start : end] } )
     
     # Cost function 1.cross entropy 2.weight decay
     cost = ( classifier.crossEntropy(y) + P.L1Reg * classifier.L1 + P.L2Reg * classifier.L2_sqr )
@@ -59,7 +66,7 @@ def trainDNN(datasets, P):
                 inputs  = [start, end],
                 outputs = classifier.errors(y),
                 updates = activation.momentum(grads, classifier.params, velocitys, P.learningRate, flag),
-                givens={ x: shareTrainSetX[start : end], y: castSharedTrainSetY[start : end] } )
+                givens={ x: sharedTrainSetX[start : end], y: castSharedTrainSetY[start : end] } )
 
     ###################
     # TRAIN DNN MODEL #
@@ -92,8 +99,11 @@ def trainDNN(datasets, P):
     while (epoch < P.maxEpoch) and (not doneLooping):
         epoch = epoch + 1
 
-#if P.SHUFFLE:
-#p = numpy.random.permutation(totalTrainSize)
+        if P.SHUFFLE:
+            p = numpy.random.permutation(totalTrainSize)
+            sharedTrainSetX.set_value(trainSetX[p])
+            sharedTrainSetY.set_value(trainSetY[p])
+            castSharedTrainSetY = T.cast(sharedTrainSetY, 'int32')
 #shareTrainSetX.set_value([[]])
             #shareTrainSetY.set_value([])
 #shareTrainSetX, shareTrainSetY, castSharedTrainSetY = setSharedDataXY(shareTrainSetX, shareTrainSetY, trainSetX[p], trainSetY[p])

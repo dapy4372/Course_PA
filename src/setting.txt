@@ -1,7 +1,7 @@
 shuffle:True
 momentum:0.9
-width:1024
-depth:4
+width:256
+depth:1
 batchSize:1024
 learningRate:0.003
 hiddenProb:1.
