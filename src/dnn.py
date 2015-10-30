@@ -40,6 +40,7 @@ def trainDNN(datasets, P):
     
     # build the DNN object for Validation
     predicter = DNN( input = x, P = P, params = dummyParams )
+
     # validation model
     validModel = theano.function(
                  inputs  = [start, end],

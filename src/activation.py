@@ -1,3 +1,4 @@
+import math
 # Momentum        
 def initialVelocitys(P):
     v = []
@@ -10,7 +11,7 @@ def initialVelocitys(P):
     v.append(theano.shared(numpy.zeros( (P.outputPhoneNum,), dtype = theano.config.floatX ), borrow = True) )
     return v
 
-def momentum(grads, params, velocitys, flag):
+def momentum(grads, params, velocitys, lr, flag):
     if(flag[0]):
         velocitys = [velocity - lr * grad for velocity, grad in zip(velocitys, grads)]
         flag[0] = [False]
@@ -18,4 +19,12 @@ def momentum(grads, params, velocitys, flag):
         velocitys = [ P.momentum * velocity - lr * (1 - P.momentum) * grad for velocity, grad in zip(velocitys, grads) ]
     params_update = [ (param, param + velocity) for param, velocity in zip(params, velocitys) ]
     return params_update
+
+def RMSProp(grads, params, sigma, lr, flag):
+    if(flag[0]):
+        sigma = grads.sum()
+    else:
+        sigma = math.sqrt(alpha * (sigma ** 2) - (1 - alpha)(grads.sum() ** 2) )
+    params_update = [(param, param - (lr/sigma) * grad) for param, grad in zip(params, grads)]
+    return params_update, sigma
 
