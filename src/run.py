@@ -27,7 +27,8 @@ class Logger(object):
 
 if __name__ == '__main__':
     P = dnnUtils.Parameters(setting)
-    datasets  = utils.load_data(filename = P.datasetFilename, totalSetNum=3)
+    datasets  = utils.loadDataset(filename = P.datasetFilename, totalSetNum=3)
+
     if not USE_EXIST_MODEL: 
         sys.stdout = Logger(P.logFilename)
         bestModel = dnn.trainDNN(datasets = datasets, P=P)

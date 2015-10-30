@@ -6,6 +6,21 @@ import timeit
 import numpy
 import theano
 import theano.tensor as T
+import preprocessing
+
+def loadDataset(filename, totalSetNum):
+    print '... loading data'
+    # Load the dataset
+    f = open(filename, 'rb')
+    datasets = cPickle.load(f)
+    f.close()
+    return datasets
+
+def sharedDataXY(dataX, dataY, borrow=True):
+    sharedX = theano.shared(numpy.asarray(dataX, dtype=theano.config.floatX), borrow=True)
+    #TODO does't work in GPU for sharedY
+    sharedY = theano.shared(numpy.asarray(dataY, dtype=theano.config.floatX), borrow=True)
+    return sharedX, T.cast(sharedY, 'int32')
 
 def load_pkl(filename):
     f = open(filename, 'rb')
@@ -28,26 +43,6 @@ def findEndIndxGroup(dataName):
             curName = nextName
     endIndxGroup.append(dataLen)
     return endIndxGroup
-
-def load_data(filename, totalSetNum):
-
-    print '... loading data'
-    # Load the dataset
-    f = open(filename, 'rb')
-    dataset = cPickle.load(f)
-    f.close()
-    dataset = numpy.asarray(dataset)
-    
-    def sharedDataset(data, borrow=True):
-        dataX, dataY, dataName = data.T
-        sharedX = theano.shared(numpy.asarray(dataX, dtype=theano.config.floatX), borrow=borrow)
-        #TODO does't work in GPU for sharedY
-        sharedY = theano.shared(numpy.asarray(dataY, dtype=theano.config.floatX), borrow=borrow)
-        return (sharedX, T.cast(sharedY, 'int32'), dataName)
-    
-    for i in xrange(totalSetNum):
-        dataset[i] = sharedDataset(dataset[i])
-    return dataset
 
 def makePkl(pkl, filename):
     f = open(filename, 'wb')

@@ -13,7 +13,7 @@ python ./data_prepare/2_pick_valid.py
 echo '... make pkl file'
 python ./data_prepare/3_make_pkl.py
 
-echo '... preprocessing pkl file'
-python ./data_prepare/4_preprocessing.py
+#echo '... preprocessing pkl file'
+#python ./data_prepare/4_preprocessing.py
 
 echo 'done'

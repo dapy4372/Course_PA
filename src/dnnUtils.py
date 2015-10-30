@@ -41,6 +41,31 @@ def Dropout(rng, input, inputNum, D = None, dropoutProb = 1):
     D = theano.shared( value=D_values, name='D', borrow=True )
     return input * D
 
+def findSpliceIdxList(dataY):
+    spliceIdxList = []
+    for i in xrange(len(dataY)):
+        if dataY[i] == -1:
+            continue
+        else:
+            spliceIdxList.append(i)
+    return spliceIdxList
+
+def splice(dataset, w):
+    dataX, dataY, dataName = dataset
+    spliceIdxList = findSpliceList(dataY)
+#x = T.fmatrix('x')
+#i = T.lscalar('i')
+#s = T.concatenate([x[j] for j in xrange(2*w+1)], axis = 0)
+#c = T.theano.shared(numpy.array(([[0,0],[1,1],[2,2],[3,3],[4,4],[5,5],[6,6],[7,7],[8,8],[9,9]]),dtype=theano.config.floatX))
+    spliceDataX = []
+    spliceDataY = []
+    spliceDataName = []
+    for j in spliceIdxList:
+        spliceDataX.appned(numpy.concatenate( [dataX[j+i] for i in xrange(-w, w+1)], axis = 0)
+        spliceDataY.appned(dataY[j])
+        spliceDataName.appned(dataName[j])
+    return spliceDataX, spliceDataY, spliceDataName
+
 class Parameters(object):
     def __init__(self, filename):
        title, parameter           = utils.readFile2(filename)
@@ -77,4 +102,5 @@ class Parameters(object):
        self.testSmoothedResultFilename  = '../result/smoothed_test_result/' + self.outputFilename + '.csv' 
        self.logFilename = '../log/' + self.outputFilename + '.log'
        self.rng = numpy.random.RandomState(self.seed)
+
 

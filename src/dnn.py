@@ -11,17 +11,17 @@ import sys
 import utils
 from theano.tensor.shared_randomstreams import RandomStreams
 from dnnArchitecture import HiddenLayer, OutputLayer, DNN
-from dnnUtils import EvalandResult, writeResult, makeBatch, getParamsValue,setParamsValue, Dropout, Parameters
+from dnnUtils import EvalandResult, writeResult, makeBatch, getParamsValue,setParamsValue, Dropout, Parameters, splice, shareDataXY
+from activation import initialVelocitys, momentum
 parameterFilename = sys.argv[1]
 
-# TODO RMSprop
 def trainDNN(datasets, P):
     
-    trainSetX, trainSetY, trainSetName = datasets[0]
-    validSetX, validSetY, validSetName = datasets[1]
-    
-    lr = P.learningRate
-    
+    trainSetX, trainSetY, trainSetName = splice(datasets[0])
+    validSetX, validSetY, validSetName = splice(datasets[1])
+    shareTrainSetX, shareTrainSetY = shareDataXY(trainSetX, trainSetY)
+    shareValidSetX, shareValidSetY = shareDataXY(validSetX, validSetY)
+
     ###############
     # BUILD MODEL #
     ###############
@@ -36,58 +36,29 @@ def trainDNN(datasets, P):
     dummyParams = [None] * (2 * (P.dnnDepth + 1))
     
     # build the DNN object for training
-    classifier = DNN(
-                  input  = x,
-                  params = dummyParams,
-                  P = P,
-                  DROPOUT = True )
+    classifier = DNN( input = x, params = dummyParams, P = P, DROPOUT = True )
     
     # build the DNN object for Validation
-    predicter = DNN(
-                  input = x,
-                  P = P,
-                  params = dummyParams )
-    # valid model
+    predicter = DNN( input = x, P = P, params = dummyParams )
+    # validation model
     validModel = theano.function(
                  inputs  = [start, end],
                  outputs = predicter.errors(y),
-                 givens  = { x: validSetX[start : end], y: validSetY[start : end] } )
+                 givens  = { x: shareValidSetX[start : end], y: shareValidSetY[start : end] } )
     
     # Cost function 1.cross entropy 2.weight decay
-    cost = (
-          classifier.crossEntropy(y)
-            + P.L1Reg * classifier.L1
-            + P.L2Reg * classifier.L2_sqr )
-    
-    # Momentum        
-    def initialVelocitys():
-        v = []
-        v.append(theano.shared(numpy.zeros( (P.inputDimNum, P.dnnWidth), dtype = theano.config.floatX ), borrow = True))
-        v.append(theano.shared(numpy.zeros( (P.dnnWidth,), dtype = theano.config.floatX ), borrow = True) )
-        for i in xrange(P.dnnDepth - 1):
-           v.append(theano.shared(numpy.zeros( (P.dnnWidth/2,P.dnnWidth), dtype = theano.config.floatX ), borrow = True) )
-           v.append(theano.shared(numpy.zeros( (P.dnnWidth,), dtype = theano.config.floatX ), borrow = True) )
-        v.append(theano.shared(numpy.zeros( (P.dnnWidth/2, P.outputPhoneNum), dtype = theano.config.floatX ), borrow = True) )
-        v.append(theano.shared(numpy.zeros( (P.outputPhoneNum,), dtype = theano.config.floatX ), borrow = True) )
-        return v
-    flag = True
-    grads = [T.grad(cost, param) for param in classifier.params]
-    def myUpdates(grads, params, velocitys, first = flag):
-        if(first):
-            velocitys = [velocity - lr * grad for velocity, grad in zip(velocitys, grads)]
-            flag = False
-        else:
-            velocitys = [ P.momentum * velocity - lr * (1 - P.momentum) * grad for velocity, grad in zip(velocitys, grads) ]
-        params_update = [ (param, param + velocity) for param, velocity in zip(params, velocitys) ]
-        return params_update
+    cost = ( clssifier.crossEntropy(y) + P.L1Reg * classifier.L1 + P.L2Reg * classifier.L2_sqr )
     
     #training model
-    velocitys = initialVelocitys()
+    flag = [True] # for first momentum or not
+    grads = [T.grad(cost, param) for param in classifier.params]
+    velocitys = activation.initialVelocitys(P)
+
     trainModel = theano.function(
                 inputs  = [start, end],
                 outputs = classifier.errors(y),
-                updates = myUpdates(grads = grads, params = classifier.params, velocitys = velocitys),
-                givens={ x: trainSetX[start : end], y: trainSetY[start : end] } )
+                updates = activation.momentum(grads, classifier.params, velocitys, flag),
+                givens={ x: shareTrainSetX[start : end], y: shareTrainSetY[start : end] } )
 
     ###################
     # TRAIN DNN MODEL #
@@ -95,35 +66,38 @@ def trainDNN(datasets, P):
 
     print '... start training'
     print ('epoch,\ttrain,\tvalid')
-    validFrequency = 1000
-    prevFER = numpy.inf
+
+    # Training parameter
+    epoch = 0
     prevModel = None
     nowModel = None
-
-    startTime  = timeit.default_timer()
-
-    epoch = 0
+    curEarlyStop = 0
+    prevFER = numpy.inf
+    validFrequency = 1000
+    lr = P.learningRate
     doneLooping = False
+    random.seed(P.seed)
     
     # Total data size
     totalTrainSize = trainSetX.get_value(borrow=True).shape[0]
     totalValidSize = validSetX.get_value(borrow=True).shape[0]
     
-    # make training  batch list
-    indexForTrainList = makeBatch(totalTrainSize, P.batchSizeForTrain)
-    # make validation batch list 
-    indexForValidList = makeBatch(totalValidSize, 18348)
-
-    random.seed(P.seed)
-    curEarlyStop = 0
+    # make training and validation batch list
+    trainBatchIdxList = makeBatch(totalTrainSize, P.batchSizeForTrain)
+    validBatchIdxList = makeBatch(totalValidSize, 16384)
+    
+    startTime  = timeit.default_timer()
     while (epoch < P.maxEpoch) and (not doneLooping):
         epoch = epoch + 1
 
         if P.SHUFFLE:
-            random.shuffle(indexForTrainList)
-    
+            p = numpy.random.permutation(totalTrainSize)
+            shareTrainSetX.set_value([[]])
+            shareTrainSetY.set_value([[]])
+            shareTrainSetX, shareTrainSetY = shareDataXY(trainSetX[p], trainSetY[p])
+         
         # Training
-        trainLosses = [trainModel(indexForTrainList[i][0], indexForTrainList[i][1]) for i in xrange(len(indexForTrainList))]
+        trainLosses = [trainModel(trainBatchIdxList[i][0], trainBatchIdxList[i][1]) for i in xrange(len(trainIdxList))]
         # Evaluate training FER 
         trainFER = numpy.mean(trainLosses)
 
@@ -132,7 +106,7 @@ def trainDNN(datasets, P):
         setParamsValue(nowModel, predicter.params)
         
         # Evaluate validation FER
-        validLosses = [validModel(indexForValidList[i][0], indexForValidList[i][1]) for i in xrange(len(indexForValidList))]
+        validLosses = [validModel(validBatchIdxList[i][0], validBatchIdxList[i][1]) for i in xrange(len(validIdxList))]
         validFER = numpy.mean(validLosses)
         
         if validFER < prevFER:
@@ -174,13 +148,11 @@ def getResult(bestModel, datasets, P):
                   P = P,
                   params = bestModel )
     
-    testBatchSize = 9192
     totalTestSize = testSetX.get_value(borrow = True).shape[0]
-    testIndexList = makeBatch(totalTestSize, testBatchSize)
-    
-    validBatchSize = 9192
     totalValidSize = validSetX.get_value(borrow = True).shape[0]
-    validIndexList = makeBatch(totalValidSize, validBatchSize)
+    
+    testBatchIdxList = makeBatch(totalTestSize, 16384)
+    validBatchIdxList = makeBatch(totalValidSize, 16384)
     
     # bulid valid model
     validModel = theano.function(
@@ -194,7 +166,7 @@ def getResult(bestModel, datasets, P):
                 outputs = [predicter.errors(y), predicter.yPred],
                 givens  = { x: testSetX[start:end], y: testSetY[start:end] })
 
-    validResult = EvalandResult(validModel, validIndexList, 'valid')    
-    testResult = EvalandResult(testModel, testIndexList, 'test')
+    validResult = EvalandResult(validModel, validBatchIdxList, 'valid')    
+    testResult = EvalandResult(testModel, testBatchIdxList, 'test')
     writeResult(validResult, P.validResultFilename, validSetName)
     writeResult(testResult, P.testResultFilename, testSetName)
