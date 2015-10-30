@@ -30,7 +30,7 @@ def normalization(dataXYN):
 def prepareSplice(dataXYN, SpliceRange = 4):
     dataX, dataY, dataName = dataXYN
     endIndxList = findEndIndx(dataName)
-
+    GroupNum = len(endIndxList)
     newDataX = []
     newDataY = []
     newDataName = []
@@ -42,15 +42,13 @@ def prepareSplice(dataXYN, SpliceRange = 4):
         else:
             curFirst = endIndxList[i-1]
             curEnd = endIndxList[i]
-
         curGroupDataX = dataX[curFirst:curEnd]
         curGroupDataY = dataY[curFirst:curEnd]
         curGroupDataName = dataName[curFirst:curEnd]
         for j in xrange(SpliceRange):
-            curGroupDataX = dataX[curFirst] + curGroupDataX + dataX[curEnd]
-            curGroupDataY = dataY[curFirst] + curGroupDataY + dataY[curEnd]
-            curGroupDataName = dataName[curFirst] + curGroupDataName + dataName[curEnd]
-
+            curGroupDataX = numpy.insert(numpy.append(curGroupDataX, dataX[curEnd-1]), 0, dataX[curFirst])
+            curGroupDataY = numpy.insert(numpy.append(curGroupDataY, -1), 0 ,-1)
+            curGroupDataName = [dataName[curFirst]] + curGroupDataName + [dataName[curEnd-1]]
         newDataX.append(curGroupDataX)
         newDataY.append(curGroupDataY)
         newDataName.append(curGroupDataName)

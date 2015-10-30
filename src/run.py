@@ -31,7 +31,7 @@ if __name__ == '__main__':
 
     if not USE_EXIST_MODEL: 
         sys.stdout = Logger(P.logFilename)
-        bestModel = dnn.trainDNN(datasets = datasets, P=P)
+        bestModel = dnn.trainDNN(datasets, P)
         bestModelFilename = '../model/' + P.outputFilename + '.model'
         utils.makePkl(bestModel, P.bestModelFilename)
     else:
@@ -39,7 +39,7 @@ if __name__ == '__main__':
         bestModelFilename = sys.argv[2]
         bestModel = utils.load_pkl(bestModelFilename)
 
-    dnn.getResult(datasets = datasets, bestModel = bestModel, P = P)
+    dnn.getResult(datasets, bestModel, P)
     smooth(noSmoothedFilename = P.testResultFilename, smoothedFilename = P.testSmoothedResultFilename)
     smooth(noSmoothedFilename = P.validResultFilename, smoothedFilename = P.validSmoothedResultFilename)
     t.transform(beforeTransformFilename = P.testSmoothedResultFilename, afterTransformFilename = '../result/final_result/' + P.outputFilename + '_smoothed.csv')
