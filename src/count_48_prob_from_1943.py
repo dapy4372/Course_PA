@@ -22,7 +22,7 @@ def mapping(inputMap, inputVector, outputDim)
             output.append(int(0))
 
         for i in xrange(len(inputVector))
-            output[int(inputMap[i])] += vector[i]
+            output[int(inputMap[i])] += inputVector[i]
         return output
         
     else:
