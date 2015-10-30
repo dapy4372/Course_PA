@@ -1,4 +1,6 @@
 import math
+import theano
+import numpy
 # Momentum        
 def initialVelocitys(P):
     v = []

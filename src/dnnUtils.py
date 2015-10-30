@@ -43,6 +43,7 @@ def Dropout(rng, input, inputNum, D = None, dropoutProb = 1):
 
 def findSpliceIdxList(dataY):
     spliceIdxList = []
+    print dataY
     for i in xrange(len(dataY)):
         if dataY[i] == -1:
             continue
@@ -52,7 +53,7 @@ def findSpliceIdxList(dataY):
 
 def splice(dataset, w):
     dataX, dataY, dataName = dataset
-    spliceIdxList = findSpliceList(dataY)
+    spliceIdxList = findSpliceIdxList(dataY)
 #x = T.fmatrix('x')
 #i = T.lscalar('i')
 #s = T.concatenate([x[j] for j in xrange(2*w+1)], axis = 0)
@@ -61,9 +62,11 @@ def splice(dataset, w):
     spliceDataY = []
     spliceDataName = []
     for j in spliceIdxList:
-        spliceDataX.appned(numpy.concatenate( [dataX[j+i] for i in xrange(-w, w+1)], axis = 0)
-        spliceDataY.appned(dataY[j])
-        spliceDataName.appned(dataName[j])
+        spliceDataX.append(numpy.concatenate( [dataX[j+i] for i in xrange(-w, w+1)], axis = 0))
+        spliceDataY.append(dataY[j])
+        spliceDataName.append(dataName[j])
+    spliceDataX = numpy.array(spliceDataX, dtype=theano.config.floatX)
+    spliceDataY = numpy.array(spliceDataY, dtype=theano.config.floatX)
     return spliceDataX, spliceDataY, spliceDataName
 
 class Parameters(object):

@@ -34,6 +34,8 @@ def prepareSplice(dataXYN, SpliceRange = 4):
     newDataX = []
     newDataY = []
     newDataName = []
+    dataX = dataX.tolist()
+    dataY = dataY.tolist()
 
     for i in xrange(GroupNum):
         if i == 0:
@@ -46,13 +48,17 @@ def prepareSplice(dataXYN, SpliceRange = 4):
         curGroupDataY = dataY[curFirst:curEnd]
         curGroupDataName = dataName[curFirst:curEnd]
         for j in xrange(SpliceRange):
-            curGroupDataX = numpy.insert(numpy.append(curGroupDataX, dataX[curEnd-1]), 0, dataX[curFirst])
-            curGroupDataY = numpy.insert(numpy.append(curGroupDataY, -1), 0 ,-1)
+            curGroupDataX = [dataX[curFirst]] + curGroupDataX + [dataX[curEnd-1]]
+            curGroupDataY = [-1] + curGroupDataY + [-1]
             curGroupDataName = [dataName[curFirst]] + curGroupDataName + [dataName[curEnd-1]]
-        newDataX.append(curGroupDataX)
-        newDataY.append(curGroupDataY)
-        newDataName.append(curGroupDataName)
-
+            # curGroupDataX = numpy.insert(numpy.append(curGroupDataX, dataX[curEnd-1]), 0, dataX[curFirst])
+            # curGroupDataY = numpy.insert(numpy.append(curGroupDataY, -1), 0 ,-1)
+            # curGroupDataName = [dataName[curFirst]] + curGroupDataName + [dataName[curEnd-1]]
+        newDataX += curGroupDataX
+        newDataY += curGroupDataY
+        newDataName += curGroupDataName
+    newDataX = numpy.array(newDataX)
+    newDataY = numpy.array(newDataY)
     newDataXYN = [newDataX, newDataY, newDataName]
     return newDataXYN
 

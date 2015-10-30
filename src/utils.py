@@ -20,7 +20,13 @@ def sharedDataXY(dataX, dataY, borrow=True):
     sharedX = theano.shared(numpy.asarray(dataX, dtype=theano.config.floatX), borrow=True)
     #TODO does't work in GPU for sharedY
     sharedY = theano.shared(numpy.asarray(dataY, dtype=theano.config.floatX), borrow=True)
-    return sharedX, T.cast(sharedY, 'int32')
+    return [sharedX, sharedY, T.cast(sharedY,'int32')]
+
+def setSharedDataXY(sharedX, sharedY, dataX, dataY):        
+    sharedX.set_value(numpy.asarray(dataX, dtype=theano.config.floatX))
+    #TODO does't work in GPU for sharedY
+    sharedY.set_value(numpy.asarray(dataY, dtype=theano.config.floatX))
+    return [sharedX, sharedY, T.cast(sharedY,'int32')]
 
 def load_pkl(filename):
     f = open(filename, 'rb')

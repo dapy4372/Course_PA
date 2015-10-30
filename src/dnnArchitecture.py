@@ -100,13 +100,13 @@ class OutputLayer(object):
 class DNN(object):
     #def __init__(self, rng, input, inputNum, dnnWidth, dnnDepth, outputNum, params = None, DROPOUT = False):
     def __init__(self, input, P, params = None, DROPOUT = False):
-        self.input = theano.shared(input, dtype = theano.config.floatX)        
+#self.input = theano.shared(input, dtype = theano.config.floatX)        
         # Create Hidden Layers
         self.hiddenLayerList=[]
         self.hiddenLayerList.append(
             HiddenLayer(
                 rng = P.rng,
-                input = self.input,
+                input = input,
                 inputNum = P.inputDimNum,
                 outputNum = P.dnnWidth,
                 dnnWidth = P.dnnWidth,

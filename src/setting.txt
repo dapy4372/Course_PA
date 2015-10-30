@@ -2,11 +2,11 @@ shuffle:True
 momentum:0.9
 width:1024
 depth:4
-batchSize:32
+batchSize:1024
 learningRate:0.003
 hiddenProb:1.
 inputProb:1.
-dataSetFilename:../pkl/fbank_dataset_without_preprocessing.pkl
+dataSetFilename:../pkl/fbank_dataset.pkl
 dataSetType:fbank
 maxEpoch:30
 inputDimNum:621
