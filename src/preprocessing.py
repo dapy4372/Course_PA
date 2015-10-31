@@ -2,8 +2,8 @@ import numpy
 import utils
 from data_prepare import datahandler
 
-datasetFilename = '../pkl/fbank_dataset_without_preprocessing.pkl'
-outputFilename = '../pkl/fbank_dataset.pkl'
+datasetFilename = '../pkl/fbank_1943_dataset_without_preprocessing.pkl'
+outputFilename = '../pkl/fbank_1943_dataset.pkl'
 
 if __name__ == '__main__':
     trainSet, validSet, testSet = utils.load_pkl(datasetFilename)

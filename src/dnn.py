@@ -11,7 +11,7 @@ import sys
 from utils import sharedDataXY, setSharedDataXY
 from theano.tensor.shared_randomstreams import RandomStreams
 from dnnArchitecture import HiddenLayer, OutputLayer, DNN
-from dnnUtils import EvalandResult, writeResult, makeBatch, getParamsValue,setParamsValue, Dropout, Parameters, splice
+from dnnUtils import EvalandResult, writeResult, makeBatch, getParamsValue,setParamsValue, Dropout, Parameters, splice, getProb, writeProb
 import activation
 parameterFilename = sys.argv[1]
 
@@ -88,8 +88,6 @@ def trainDNN(datasets, P):
     random.seed(P.seed)
     
     # Total data size
-#totalTrainSize = trainSetX.get_value(borrow=True).shape[0]
-#totalValidSize = validSetX.get_value(borrow=True).shape[0]
     totalTrainSize = len(trainSetX)
     totalValidSize = len(validSetX)
     # make training and validation batch list
@@ -142,12 +140,24 @@ def trainDNN(datasets, P):
     endTime = timeit.default_timer()
     print (('time %.2fm' % ((endTime - startTime) / 60.)))
     
+    sharedValidSetX.set_value([[]])
+    sharedValidSetY.set_value([]) 
+    sharedTrainSetX.set_value([[]])
+    sharedTrainSetY.set_value([]) 
     return prevModel
 
 def getResult(bestModel, datasets, P):
     
-    validSetX, validSetY, validSetName = datasets[1]
-    testSetX, testSetY, testSetName = datasets[2]
+    validSetX, validSetY, validSetName = splice(datasets[1], 4)
+    testSetX, testSetY, testSetName = splice(datasets[2], 4)
+
+    sharedValidSetX = theano.shared(numpy.asarray(validSetX, dtype=theano.config.floatX), borrow=True) 
+    sharedValidSetY = theano.shared(numpy.asarray(validSetY, dtype=theano.config.floatX), borrow=True) 
+    castSharedValidSetY = T.cast(sharedValidSetY, 'int32')
+    
+    sharedTestSetX = theano.shared(numpy.asarray(testSetX, dtype=theano.config.floatX), borrow=True) 
+    sharedTestSetY = theano.shared(numpy.asarray(testSetY, dtype=theano.config.floatX), borrow=True)
+    castSharedTestSetY = T.cast(sharedTestSetY, 'int32')
     
     # allocate symbolic variables for the data
     start = T.lscalar()  # index to a [mini]batch
@@ -156,30 +166,58 @@ def getResult(bestModel, datasets, P):
     y = T.ivector('y')   # the labels are presented as 1D vector of
 
     # bulid best DNN model
-    predicter = DNN(
-                  input = x,
-                  P = P,
-                  params = bestModel )
+    predicter = DNN( input = x, P = P, params = bestModel )
     
-    totalTestSize = testSetX.get_value(borrow = True).shape[0]
-    totalValidSize = validSetX.get_value(borrow = True).shape[0]
+    # Total data size
+    totalTestSize = len(testSetX)
+    totalValidSize = len(validSetX)
+    
+#totalTestSize = testSetX.get_value(borrow = True).shape[0]
+#totalValidSize = validSetX.get_value(borrow = True).shape[0]
     
     testBatchIdxList = makeBatch(totalTestSize, 16384)
     validBatchIdxList = makeBatch(totalValidSize, 16384)
     
-    # bulid valid model
+    # validation model
     validModel = theano.function(
-                inputs  = [start, end],
-                outputs = [predicter.errors(y), predicter.yPred],
-                givens  = { x: validSetX[start:end], y: validSetY[start:end] })
+                 inputs  = [start, end],
+                 outputs = [predicter.errors(y), predicter.yPred],
+                 givens  = { x: sharedValidSetX[start : end], y: castSharedValidSetY[start : end] } )
     
     # bulid test model
     testModel = theano.function(
                 inputs  = [start, end],
                 outputs = [predicter.errors(y), predicter.yPred],
-                givens  = { x: testSetX[start:end], y: testSetY[start:end] })
+                givens  = { x: sharedTestSetX[start:end], y: castSharedTestSetY[start:end] })
 
     validResult = EvalandResult(validModel, validBatchIdxList, 'valid')    
     testResult = EvalandResult(testModel, testBatchIdxList, 'test')
+    
     writeResult(validResult, P.validResultFilename, validSetName)
     writeResult(testResult, P.testResultFilename, testSetName)
+    
+    sharedValidSetX.set_value([[]])
+    sharedValidSetY.set_value([]) 
+    sharedTestSetX.set_value([[]])
+    sharedTestSetY.set_value([])
+
+    # For getting prob
+    trainSetX, trainSetY, trainSetName = splice(datasets[0], 4)
+    sharedTrainSetX = theano.shared(numpy.asarray(trainSetX, dtype=theano.config.floatX), borrow=True) 
+    sharedTrainSetY = theano.shared(numpy.asarray(trainSetY, dtype=theano.config.floatX), borrow=True)
+    castSharedTrainSetY = T.cast(sharedTrainSetY, 'int32')
+    
+    # training model
+    trainModel = theano.function(
+                inputs  = [start, end],
+                outputs = predicter.p_y_given_x,
+                givens={ x: sharedTrainSetX[start : end], y: castSharedTrainSetY[start : end] }, on_unused_input='warn')
+    
+    totalTrainSize = len(trainSetX)
+    trainBatchIdxList = makeBatch(totalTrainSize, P.batchSizeForTrain)
+
+    trainProb = getProb(trainModel, trainBatchIdxList) 
+    writeProb(trainProb, P.trainProbFilename, trainSetName)
+    
+    sharedTrainSetX.set_value([[]])
+    sharedTrainSetY.set_value([]) 

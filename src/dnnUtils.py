@@ -18,6 +18,17 @@ def writeResult(result, filename, setNameList):
         f.write(setNameList[i] + ',' + str(result[i]) + '\n')
     f.close()
 
+def getProb(Model, indexList):
+    prob = []
+    for i in xrange(len(indexList)):
+        prob += Model(indexList[i][0], indexList[i][1]).tolist()
+    return prob
+
+def writeProb(prob, filename, setNameList):
+    f = open(filename, 'w')
+    for i in xrange(len(prob)):
+        f.write( setNameList[i] + ' ' + " ".join(map(str, prob[i])) + '\n')
+
 def makeBatch(totalSize, batchSize = 32):
     numBatchSize = totalSize / batchSize
     indexList = [[i * batchSize, (i + 1) * batchSize] for i in xrange(numBatchSize)]
@@ -43,7 +54,6 @@ def Dropout(rng, input, inputNum, D = None, dropoutProb = 1):
 
 def findSpliceIdxList(dataY):
     spliceIdxList = []
-    print dataY
     for i in xrange(len(dataY)):
         if dataY[i] == -1:
             continue
@@ -54,10 +64,6 @@ def findSpliceIdxList(dataY):
 def splice(dataset, w):
     dataX, dataY, dataName = dataset
     spliceIdxList = findSpliceIdxList(dataY)
-#x = T.fmatrix('x')
-#i = T.lscalar('i')
-#s = T.concatenate([x[j] for j in xrange(2*w+1)], axis = 0)
-#c = T.theano.shared(numpy.array(([[0,0],[1,1],[2,2],[3,3],[4,4],[5,5],[6,6],[7,7],[8,8],[9,9]]),dtype=theano.config.floatX))
     spliceDataX = []
     spliceDataY = []
     spliceDataName = []
@@ -99,6 +105,7 @@ class Parameters(object):
                               + '_di_'+ str(self.dropoutInputProb)
                               + '_dh_'+ str(self.dropoutHiddenProb) )
        self.bestModelFilename   = '../model/' + self.outputFilename
+       self.trainProbFilename  = '../prob/' + self.outputFilename + '.ark'
        self.testResultFilename  = '../result/test_result/' + self.outputFilename + '.csv'
        self.validResultFilename = '../result/valid_result/' + self.outputFilename + '.csv'
        self.validSmoothedResultFilename = '../result/smoothed_valid_result/' + self.outputFilename + '.csv' 

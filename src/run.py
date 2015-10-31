@@ -6,7 +6,6 @@ import postprocessing as pp
 import utils
 import transformIntToLabel as t
 import sys
-
 setting = sys.argv[1]
 USE_EXIST_MODEL = False
 
@@ -38,8 +37,8 @@ if __name__ == '__main__':
         # TODO use filename to build P
         bestModelFilename = sys.argv[2]
         bestModel = utils.load_pkl(bestModelFilename)
-
-    dnn.getResult(datasets, bestModel, P)
+    
+    dnn.getResult(bestModel, datasets, P)
     smooth(noSmoothedFilename = P.testResultFilename, smoothedFilename = P.testSmoothedResultFilename)
     smooth(noSmoothedFilename = P.validResultFilename, smoothedFilename = P.validSmoothedResultFilename)
     t.transform(beforeTransformFilename = P.testSmoothedResultFilename, afterTransformFilename = '../result/final_result/' + P.outputFilename + '_smoothed.csv')

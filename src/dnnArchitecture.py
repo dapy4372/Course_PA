@@ -158,6 +158,9 @@ class DNN(object):
         # Get the predict int for test set output
         self.yPred = self.outputLayer.y_pred
         
+        # Get the probability
+        self.p_y_given_x = self.outputLayer.p_y_given_x
+
         # Parameters of all DNN model
         self.params = self.hiddenLayerList[0].params
         for i in xrange(1, P.dnnDepth):
