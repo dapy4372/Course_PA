@@ -24,9 +24,10 @@ def momentum(grads, params, velocitys, lr, flag):
 
 def RMSProp(grads, params, sigma, lr, flag):
     if(flag[0]):
-        sigma = grads.sum()
+        sigma[0] = sum(grads)
+        flag[0] = False
     else:
-        sigma = math.sqrt(alpha * (sigma ** 2) - (1 - alpha)(grads.sum() ** 2) )
-    params_update = [(param, param - (lr/sigma) * grad) for param, grad in zip(params, grads)]
-    return params_update, sigma
+        sigma = math.sqrt(alpha * (sigma[0] ** 2) - (1 - alpha)(sum(grads) ** 2) )
+    params_update = [(param, param - (lr/sigma[0]) * grad) for param, grad in zip(params, grads)]
+    return params_update
 
