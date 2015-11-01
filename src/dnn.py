@@ -5,20 +5,19 @@ import random
 import numpy
 import math
 import theano
-from theano import function
 import theano.tensor as T
-import sys
-from utils import sharedDataXY, setSharedDataXY
-from theano.tensor.shared_randomstreams import RandomStreams
-from dnnArchitecture import HiddenLayer, OutputLayer, DNN
-from dnnUtils import EvalandResult, writeResult, makeBatch, getParamsValue,setParamsValue, Dropout, Parameters, splice, getProb, writeProb
 import activation
+import settings
+import dnnUtils
+from utils import sharedDataXY, setSharedDataXY
+from dnnArchitecture import HiddenLayer, OutputLayer, DNN
+from dnnUtils import Parameters
 parameterFilename = sys.argv[1]
 
 def trainDNN(datasets, P):
     
-    trainSetX, trainSetY, trainSetName = splice(datasets[0], 4)
-    validSetX, validSetY, validSetName = splice(datasets[1], 4)
+    trainSetX, trainSetY, trainSetName = dnnUtils.splice(datasets[0], 4)
+    validSetX, validSetY, validSetName = dnnUtils.splice(datasets[1], 4)
     sharedTrainSetX = theano.shared(numpy.asarray(trainSetX, dtype=theano.config.floatX), borrow=True) 
     sharedTrainSetY = theano.shared(numpy.asarray(trainSetY, dtype=theano.config.floatX), borrow=True)
     castSharedTrainSetY = T.cast(sharedTrainSetY, 'int32')
@@ -61,11 +60,12 @@ def trainDNN(datasets, P):
     flag = [True] # for first momentum or not
     grads = [T.grad(cost, param) for param in classifier.params]
     velocitys = activation.initialVelocitys(P)
+    settings.initGlobalLearningRate(P)
 
     trainModel = theano.function(
                 inputs  = [start, end],
                 outputs = classifier.errors(y),
-                updates = activation.momentum(grads, classifier.params, velocitys, P.learningRate, flag),
+                updates = activation.momentum(grads, classifier.params, velocitys, flag),
 #updates = activation.RMSProp(grads, classifier.params, sigma, P.learningRate, flag),
                 givens={ x: sharedTrainSetX[start : end], y: castSharedTrainSetY[start : end] } )
 
@@ -83,7 +83,6 @@ def trainDNN(datasets, P):
     curEarlyStop = 0
     prevFER = numpy.inf
     validFrequency = 1000
-    lr = P.learningRate
     doneLooping = False
     random.seed(P.seed)
     
@@ -91,8 +90,8 @@ def trainDNN(datasets, P):
     totalTrainSize = len(trainSetX)
     totalValidSize = len(validSetX)
     # make training and validation batch list
-    trainBatchIdxList = makeBatch(totalTrainSize, P.batchSizeForTrain)
-    validBatchIdxList = makeBatch(totalValidSize, 16384)
+    trainBatchIdxList = dnnUtils.makeBatch(totalTrainSize, P.batchSizeForTrain)
+    validBatchIdxList = dnnUtils.makeBatch(totalValidSize, 16384)
     
     startTime  = timeit.default_timer()
     while (epoch < P.maxEpoch) and (not doneLooping):
@@ -113,8 +112,8 @@ def trainDNN(datasets, P):
         trainFER = numpy.mean(trainLosses)
 
         # Set the now train model's parameters to valid model
-        nowModel = getParamsValue(classifier.params)
-        setParamsValue(nowModel, predicter.params)
+        nowModel = dnnUtils.getParamsValue(classifier.params)
+        dnnUtils.setParamsValue(nowModel, predicter.params)
         
         # Evaluate validation FER
         validLosses = [validModel(validBatchIdxList[i][0], validBatchIdxList[i][1]) for i in xrange(len(validBatchIdxList))]
@@ -126,9 +125,10 @@ def trainDNN(datasets, P):
             curEarlyStop = 0
         else:
             if curEarlyStop < P.earlyStop:
-                P.learningRate = P.learningRate/2
+#P.learningRate = P.learningRate/2
+                settings.lr = settings.lr/2
                 epoch -= 1
-                setParamsValue(prevModel, classifier.params)
+                dnnUtils.setParamsValue(prevModel, classifier.params)
                 print (('== half ==,%i,\t%f,\t%f') % (epoch, trainFER * 100, validFER * 100. ))
                 curEarlyStop += 1
                 continue
@@ -148,8 +148,8 @@ def trainDNN(datasets, P):
 
 def getResult(bestModel, datasets, P):
     
-    validSetX, validSetY, validSetName = splice(datasets[1], 4)
-    testSetX, testSetY, testSetName = splice(datasets[2], 4)
+    validSetX, validSetY, validSetName = dnnUtils.splice(datasets[1], 4)
+    testSetX, testSetY, testSetName = dnnUtils.splice(datasets[2], 4)
 
     sharedValidSetX = theano.shared(numpy.asarray(validSetX, dtype=theano.config.floatX), borrow=True) 
     sharedValidSetY = theano.shared(numpy.asarray(validSetY, dtype=theano.config.floatX), borrow=True) 
@@ -175,8 +175,8 @@ def getResult(bestModel, datasets, P):
 #totalTestSize = testSetX.get_value(borrow = True).shape[0]
 #totalValidSize = validSetX.get_value(borrow = True).shape[0]
     
-    testBatchIdxList = makeBatch(totalTestSize, 16384)
-    validBatchIdxList = makeBatch(totalValidSize, 16384)
+    testBatchIdxList = dnnUtils.makeBatch(totalTestSize, 16384)
+    validBatchIdxList = dnnUtils.makeBatch(totalValidSize, 16384)
     
     # validation model
     validModel = theano.function(
@@ -190,11 +190,11 @@ def getResult(bestModel, datasets, P):
                 outputs = [predicter.errors(y), predicter.yPred],
                 givens  = { x: sharedTestSetX[start:end], y: castSharedTestSetY[start:end] })
 
-    validResult = EvalandResult(validModel, validBatchIdxList, 'valid')    
-    testResult = EvalandResult(testModel, testBatchIdxList, 'test')
+    validResult = dnnUtils.EvalandResult(validModel, validBatchIdxList, 'valid')    
+    testResult = dnnUtils.EvalandResult(testModel, testBatchIdxList, 'test')
     
-    writeResult(validResult, P.validResultFilename, validSetName)
-    writeResult(testResult, P.testResultFilename, testSetName)
+    dnnUtils.writeResult(validResult, P.validResultFilename, validSetName)
+    dnnUtils.writeResult(testResult, P.testResultFilename, testSetName)
     
     sharedValidSetX.set_value([[]])
     sharedValidSetY.set_value([]) 
@@ -202,7 +202,7 @@ def getResult(bestModel, datasets, P):
     sharedTestSetY.set_value([])
 
     # For getting prob
-    trainSetX, trainSetY, trainSetName = splice(datasets[0], 4)
+    trainSetX, trainSetY, trainSetName = dnnUtils.splice(datasets[0], 4)
     sharedTrainSetX = theano.shared(numpy.asarray(trainSetX, dtype=theano.config.floatX), borrow=True) 
     sharedTrainSetY = theano.shared(numpy.asarray(trainSetY, dtype=theano.config.floatX), borrow=True)
     castSharedTrainSetY = T.cast(sharedTrainSetY, 'int32')
@@ -214,10 +214,10 @@ def getResult(bestModel, datasets, P):
                 givens={ x: sharedTrainSetX[start : end], y: castSharedTrainSetY[start : end] }, on_unused_input='warn')
     
     totalTrainSize = len(trainSetX)
-    trainBatchIdxList = makeBatch(totalTrainSize, P.batchSizeForTrain)
+    trainBatchIdxList = dnnUtils.makeBatch(totalTrainSize, P.batchSizeForTrain)
 
-    trainProb = getProb(trainModel, trainBatchIdxList) 
-    writeProb(trainProb, P.trainProbFilename, trainSetName)
+    trainProb = dnnUtils.getProb(trainModel, trainBatchIdxList) 
+    dnnUtils.writeProb(trainProb, P.trainProbFilename, trainSetName)
     
     sharedTrainSetX.set_value([[]])
     sharedTrainSetY.set_value([]) 
