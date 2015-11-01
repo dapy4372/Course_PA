@@ -2,26 +2,37 @@ import math
 import theano
 import theano.tensor as T
 import numpy
-import settings
+import globalParam
 
 # Momentum        
-def momentum(grads, params):
-    if(settings.flag):
-        settings.velocitys = [ -settings.lr * grad for grad in grads ]
-        settings.flag = False
+def momentum(grads, params, P):
+    if(globalParam.flag):
+        globalParam.velocitys = [ -globalParam.lr * grad for grad in grads ]
+        globalParam.flag = False
     else:
-        settings.velocitys = [ P.momentum * velocity - settings.lr * (1 - P.momentum) * grad for velocity, grad in zip(settings.velocitys, grads) ]
-    params_update = [ (param, param + velocity) for param, velocity in zip(params, settings.velocitys) ]
-    return params_update
+        globalParam.velocitys = [ P.momentum * velocity - globalParam.lr * (1 - P.momentum) * grad for velocity, grad in zip(globalParam.velocitys, grads) ]
+    paramsUpdate = [ (param, param + velocity) for param, velocity in zip(params, globalParam.velocitys) ]
+    return paramsUpdate
 
-#RMSProp        
+# RMSProp        
 def RMSProp(grads, params):
     alpha = 0.9
-    if(settings.flag):
-        settings.sigmas = [ grad for grad in grads ]
-        settings.flag = False
+    epsilon = 1e-6
+    if(globalParam.flag):
+        globalParam.sigmas = [ g  for g in grads ]
+        globalParam.flag = False
     else:
-        settings.sigmas = [ T.sqrt( ( alpha * T.sqr(sigma) ) - ( (1 - alpha) * T.sqr(grad) ) ) for sigma, grad in zip(settings.sigmas, grads) ]
-    params_update = [( param, T.clip( ( param - (settings.lr) * (grad / sigma) ), -0.5, 0.5 ) ) for param, grad, sigma in zip(params, grads, settings.sigmas)]
-    return params_update
+        globalParam.sigmas = [ T.sqrt( ( alpha * T.sqr(s) ) + ( (1 - alpha) * T.sqr(g) ) ) for s, g in zip(globalParam.sigmas, grads) ]
+    paramsUpdate = [( p, p - ( globalParam.lr * g ) / ( s + epsilon ) ) for p, g, s in zip(params, grads, globalParam.sigmas)]
+    return paramsUpdate
 
+# Adagrad
+def Adagrad(grads, params):
+    epsilon = 1e-6
+    if(globalParam.flag):
+        globalParam.gradSqrs = [ g * g for g in grads ]
+        globalParam.flag = False
+    else:
+        globalParam.gradSqrs = [ s + g * g for s, g in globalParam.gradSqrs, grads ]
+    paramsUpdate = [ (p, p - ( globalParam.lr * g ) / (T.sqrt(s) + epsilon) ) for p, g, s in zip(params, grads, globalParam.gradSqrs) ]
+    return paramsUpdate

@@ -11,17 +11,15 @@ class HiddenLayer(object):
         else:
             self.input = input * dropoutProb
         if W is None:
-            W_values = numpy.asarray(
-                        rng.uniform( low=-numpy.sqrt(6. / (inputNum + outputNum)),
-                        high = numpy.sqrt(6. / (inputNum + outputNum)),
-                        size = (inputNum, outputNum) ), dtype=theano.config.floatX )
+            W_values = rng.uniform( low = -1, high = 1, size = (inputNum, outputNum) ).astype( dtype=theano.config.floatX )
+#W_values = rng.uniform( low = -numpy.sqrt(6./(inputNum+outputNum)), high = numpy.sqrt(6./(inputNum+outputNum)),
+#size = (inputNum, outputNum) ).astype( dtype=theano.config.floatX )
             W = theano.shared(value = W_values, name = 'W', borrow = True)
         else:
             W = theano.shared( value = numpy.array(W, dtype = theano.config.floatX), name='W', borrow = True )
 
         if b is None:
-            #b_values = numpy.ones( (outputNum,), dtype=theano.config.floatX)
-            b_values = numpy.asarray( rng.uniform( low = -1, high = 1, size = (outputNum,)), dtype=theano.config.floatX)
+            b_values = rng.uniform( low = -1, high = 1, size = (outputNum,)).astype(dtype=theano.config.floatX)
             b = theano.shared(value = b_values, name = 'b', borrow = True)
         else:
             b = theano.shared( value = numpy.array(b, dtype = theano.config.floatX), name='b', borrow = True )
@@ -42,18 +40,16 @@ class OutputLayer(object):
     def __init__(self, input, inputNum, outputNum, rng, W = None, b = None):
     #def __init__(self, input, P, W = None, b = None):
         if W is None:
-            W_values = numpy.asarray(
-                        rng.uniform( low=-numpy.sqrt(6. / (inputNum + outputNum)),
-                        high = numpy.sqrt(6. / (inputNum + outputNum)),
-                        size = (inputNum, outputNum) ), dtype=theano.config.floatX )
+            W_values = rng.uniform( low = -1, high = 1, size = (inputNum, outputNum) ).astype( dtype=theano.config.floatX )
+#W_values = rng.uniform( low = -numpy.sqrt(6./(inputNum+outputNum)), high = numpy.sqrt(6./(inputNum+outputNum)),
+#                                    size = (inputNum, outputNum) ).astype(dtype=theano.config.floatX )
             W = theano.shared(value = W_values, name = 'W', borrow = True)
         else:
             W = theano.shared( value = numpy.array(W, dtype = theano.config.floatX), name='W', borrow=True )
 
         if b is None:
-            b_values = numpy.asarray( rng.uniform( low = -1, high = 1, size = (outputNum,)), dtype=theano.config.floatX)
+            b_values = rng.uniform( low = -1, high = 1, size = (outputNum,)).astype(dtype=theano.config.floatX)
             b = theano.shared(value = b_values, name = 'b', borrow = True)
-            #b = theano.shared( value = numpy.ones( (outputNum,), dtype=theano.config.floatX ), name='b', borrow=True )
         else:
             b = theano.shared( value = numpy.array(b, dtype = theano.config.floatX), name='b', borrow=True )
         self.W = W

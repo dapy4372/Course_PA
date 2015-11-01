@@ -7,12 +7,13 @@ import math
 import theano
 import theano.tensor as T
 import activation
-import settings
+import globalParam
 import dnnUtils
 from utils import sharedDataXY, setSharedDataXY
 from dnnArchitecture import HiddenLayer, OutputLayer, DNN
 from dnnUtils import Parameters
 parameterFilename = sys.argv[1]
+numpy.set_printoptions(threshold=numpy.nan)
 
 def trainDNN(datasets, P):
     
@@ -57,16 +58,20 @@ def trainDNN(datasets, P):
     cost = ( classifier.crossEntropy(y) + P.L1Reg * classifier.L1 + P.L2Reg * classifier.L2_sqr )
     
     #training model
-    settings.initGlobalLearningRate(P)
-    settings.initGlobalFlag()
-    settings.initGlobalVelocitys()
-
+    globalParam.initGlobalLearningRate(P)
+    globalParam.initGlobalFlag()
+    globalParam.initGlobalVelocitys()
+    globalParam.initGlobalSigmas()
+    globalParam.initGlobalgradSqrs()
+    
     grads = [T.grad(cost, param) for param in classifier.params]
+    myOutputs = [classifier.errors(y)] + grads + classifier.params
     trainModel = theano.function(
                 inputs  = [start, end],
-                outputs = classifier.errors(y),
-                updates = activation.momentum(grads, classifier.params),
-#updates = activation.RMSProp(grads, classifier.params, sigma, P.learningRate, flag),
+                outputs = myOutputs,
+#updates = activation.momentum(grads, classifier.params, P),
+#updates = activation.RMSProp(grads, classifier.params),
+                updates = activation.Adagrad(grads, classifier.params),
                 givens={ x: sharedTrainSetX[start : end], y: castSharedTrainSetY[start : end] } )
 
     ###################
@@ -78,17 +83,17 @@ def trainDNN(datasets, P):
 
     # Training parameter
     epoch = 0
+    curEarlyStop = 0
     prevModel = None
     nowModel = None
-    curEarlyStop = 0
-    prevFER = numpy.inf
-    validFrequency = 1000
     doneLooping = False
+    prevFER = numpy.inf
     random.seed(P.seed)
     
     # Total data size
     totalTrainSize = len(trainSetX)
     totalValidSize = len(validSetX)
+
     # make training and validation batch list
     trainBatchIdxList = dnnUtils.makeBatch(totalTrainSize, P.batchSizeForTrain)
     validBatchIdxList = dnnUtils.makeBatch(totalValidSize, 16384)
@@ -102,12 +107,19 @@ def trainDNN(datasets, P):
             sharedTrainSetX.set_value(trainSetX[p])
             sharedTrainSetY.set_value(trainSetY[p])
             castSharedTrainSetY = T.cast(sharedTrainSetY, 'int32')
-#shareTrainSetX.set_value([[]])
-            #shareTrainSetY.set_value([])
-#shareTrainSetX, shareTrainSetY, castSharedTrainSetY = setSharedDataXY(shareTrainSetX, shareTrainSetY, trainSetX[p], trainSetY[p])
 
         # Training
-        trainLosses = [trainModel(trainBatchIdxList[i][0], trainBatchIdxList[i][1]) for i in xrange(len(trainBatchIdxList))]
+        trainLosses=[]
+        s = 2*(P.dnnDepth+1)
+        for i in xrange(len(trainBatchIdxList)):
+            out = trainModel(trainBatchIdxList[i][0], trainBatchIdxList[i][1])
+            trainLosses.append(out[0])
+            """
+            if i == 0:
+                for j in [0,2]:
+                    print ('grad %d' % (j+1) )
+                    print numpy.array_str(out[j+1])
+            """
         # Evaluate training FER 
         trainFER = numpy.mean(trainLosses)
 
@@ -125,8 +137,7 @@ def trainDNN(datasets, P):
             curEarlyStop = 0
         else:
             if curEarlyStop < P.earlyStop:
-#P.learningRate = P.learningRate/2
-                settings.lr = settings.lr/2
+                globalParam.lr = globalParam.lr/2
                 epoch -= 1
                 dnnUtils.setParamsValue(prevModel, classifier.params)
                 print (('== half ==,%i,\t%f,\t%f') % (epoch, trainFER * 100, validFER * 100. ))
@@ -134,6 +145,7 @@ def trainDNN(datasets, P):
                 continue
             else:
                 doneLooping = True
+                continue
         print (('%i,\t%f,\t%f') % (epoch, trainFER * 100, validFER * 100. ))
     # end of training
         

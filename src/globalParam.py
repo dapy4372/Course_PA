@@ -11,3 +11,6 @@ def initGlobalSigmas():
 
 def initGlobalVelocitys():
     global velocitys
+
+def initGlobalgradSqrs():
+    global gradSqrs
