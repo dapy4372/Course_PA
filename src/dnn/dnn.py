@@ -3,31 +3,22 @@ import sys
 import timeit
 import random
 import numpy
-import math
 import theano
 import theano.tensor as T
-import activation
-import globalParam
 import dnnUtils
-from utils import sharedDataXY, setSharedDataXY
+import globalParam
+import activation
 from dnnArchitecture import HiddenLayer, OutputLayer, DNN
-from dnnUtils import Parameters
+from dnnUtils import Parameters, sharedDataXY, setSharedDataXY, clearSharedDataXY
 parameterFilename = sys.argv[1]
-numpy.set_printoptions(threshold=numpy.nan)
+numpy.set_printoptions(threshold=numpy.nan) # for print numpy array
 
 def trainDNN(datasets, P):
-    
+
     trainSetX, trainSetY, trainSetName = dnnUtils.splice(datasets[0], 4)
     validSetX, validSetY, validSetName = dnnUtils.splice(datasets[1], 4)
-    sharedTrainSetX = theano.shared(numpy.asarray(trainSetX, dtype=theano.config.floatX), borrow=True) 
-    sharedTrainSetY = theano.shared(numpy.asarray(trainSetY, dtype=theano.config.floatX), borrow=True)
-    castSharedTrainSetY = T.cast(sharedTrainSetY, 'int32')
-    sharedValidSetX = theano.shared(numpy.asarray(validSetX, dtype=theano.config.floatX), borrow=True) 
-    sharedValidSetY = theano.shared(numpy.asarray(validSetY, dtype=theano.config.floatX), borrow=True) 
-    castSharedValidSetY = T.cast(sharedValidSetY, 'int32')
-
-#shareTrainSetX, shareTrainSetY, castSharedTrainSetY = sharedDataXY(trainSetX, trainSetY)
-#shareValidSetX, shareValidSetY, castSharedValidSetY = sharedDataXY(validSetX, validSetY)
+    sharedTrainSetX, sharedTrainSetY, castSharedTrainSetY = sharedDataXY(trainSetX, trainSetY)
+    sharedValidSetX, sharedValidSetY, castSharedValidSetY = sharedDataXY(validSetX, validSetY)
 
     ###############
     # BUILD MODEL #
@@ -104,9 +95,7 @@ def trainDNN(datasets, P):
 
         if P.SHUFFLE:
             p = numpy.random.permutation(totalTrainSize)
-            sharedTrainSetX.set_value(trainSetX[p])
-            sharedTrainSetY.set_value(trainSetY[p])
-            castSharedTrainSetY = T.cast(sharedTrainSetY, 'int32')
+            sharedTrainSetX, sharedTrainSetY, castSharedTrainSetY = setSharedDataXY(sharedTrainSetX, sharedTrainSetY, trainSetX[p], trainSetY[p])
 
         # Training
         trainLosses=[]
@@ -114,6 +103,7 @@ def trainDNN(datasets, P):
         for i in xrange(len(trainBatchIdxList)):
             out = trainModel(trainBatchIdxList[i][0], trainBatchIdxList[i][1])
             trainLosses.append(out[0])
+            # print value
             """
             if i == 0:
                 for j in [0,2]:
@@ -151,25 +141,21 @@ def trainDNN(datasets, P):
         
     endTime = timeit.default_timer()
     print (('time %.2fm' % ((endTime - startTime) / 60.)))
-    
-    sharedValidSetX.set_value([[]])
-    sharedValidSetY.set_value([]) 
-    sharedTrainSetX.set_value([[]])
-    sharedTrainSetY.set_value([]) 
+
+    clearSharedDataXY(sharedTrainSetX, sharedTrainSetY)
+    clearSharedDataXY(sharedValidSetX, sharedValidSetY)
+
     return prevModel
 
 def getResult(bestModel, datasets, P):
-    
+
+    print "...getting result"
+
     validSetX, validSetY, validSetName = dnnUtils.splice(datasets[1], 4)
     testSetX, testSetY, testSetName = dnnUtils.splice(datasets[2], 4)
 
-    sharedValidSetX = theano.shared(numpy.asarray(validSetX, dtype=theano.config.floatX), borrow=True) 
-    sharedValidSetY = theano.shared(numpy.asarray(validSetY, dtype=theano.config.floatX), borrow=True) 
-    castSharedValidSetY = T.cast(sharedValidSetY, 'int32')
-    
-    sharedTestSetX = theano.shared(numpy.asarray(testSetX, dtype=theano.config.floatX), borrow=True) 
-    sharedTestSetY = theano.shared(numpy.asarray(testSetY, dtype=theano.config.floatX), borrow=True)
-    castSharedTestSetY = T.cast(sharedTestSetY, 'int32')
+    sharedValidSetX, sharedValidSetY, castSharedValidSetY = sharedDataXY(validSetX, validSetY)
+    sharedTestSetX, sharedTestSetY, castSharedTestSetY = sharedDataXY(testSetX, testSetY)
     
     # allocate symbolic variables for the data
     start = T.lscalar()  # index to a [mini]batch
@@ -183,9 +169,6 @@ def getResult(bestModel, datasets, P):
     # Total data size
     totalTestSize = len(testSetX)
     totalValidSize = len(validSetX)
-    
-#totalTestSize = testSetX.get_value(borrow = True).shape[0]
-#totalValidSize = validSetX.get_value(borrow = True).shape[0]
     
     testBatchIdxList = dnnUtils.makeBatch(totalTestSize, 16384)
     validBatchIdxList = dnnUtils.makeBatch(totalValidSize, 16384)
@@ -208,22 +191,20 @@ def getResult(bestModel, datasets, P):
     dnnUtils.writeResult(validResult, P.validResultFilename, validSetName)
     dnnUtils.writeResult(testResult, P.testResultFilename, testSetName)
     
-    sharedValidSetX.set_value([[]])
-    sharedValidSetY.set_value([]) 
-    sharedTestSetX.set_value([[]])
-    sharedTestSetY.set_value([])
+    clearSharedDataXY(sharedTestSetX, sharedTestSetY)
+    clearSharedDataXY(sharedValidSetX, sharedValidSetY)
+
+    print "...getting probability"
 
     # For getting prob
     trainSetX, trainSetY, trainSetName = dnnUtils.splice(datasets[0], 4)
-    sharedTrainSetX = theano.shared(numpy.asarray(trainSetX, dtype=theano.config.floatX), borrow=True) 
-    sharedTrainSetY = theano.shared(numpy.asarray(trainSetY, dtype=theano.config.floatX), borrow=True)
-    castSharedTrainSetY = T.cast(sharedTrainSetY, 'int32')
+    sharedTrainSetX, sharedTrainSetY, castSharedTrainSetY = sharedDataXY(trainSetX, trainSetY)
     
     # training model
     trainModel = theano.function(
                 inputs  = [start, end],
                 outputs = predicter.p_y_given_x,
-                givens={ x: sharedTrainSetX[start : end], y: castSharedTrainSetY[start : end] }, on_unused_input='warn')
+                givens={ x: sharedTrainSetX[start : end], y: castSharedTrainSetY[start : end] }, on_unused_input='ignore')
     
     totalTrainSize = len(trainSetX)
     trainBatchIdxList = dnnUtils.makeBatch(totalTrainSize, P.batchSizeForTrain)
@@ -231,5 +212,4 @@ def getResult(bestModel, datasets, P):
     trainProb = dnnUtils.getProb(trainModel, trainBatchIdxList) 
     dnnUtils.writeProb(trainProb, P.trainProbFilename, trainSetName)
     
-    sharedTrainSetX.set_value([[]])
-    sharedTrainSetY.set_value([]) 
+    clearSharedDataXY(sharedTrainSetX, sharedTrainSetY)

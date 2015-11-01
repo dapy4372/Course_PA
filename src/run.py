@@ -1,11 +1,10 @@
-import dnn
-import dnnUtils
 import os
 import sys
-import postprocessing as pp 
 import utils
-import transformIntToLabel as t
-import sys
+import nn.dnn as dnn
+import nn.dnnUtils as dnnUtils
+import postprocessing as pp 
+import transformIntToLabel as tfit
 setting = sys.argv[1]
 USE_EXIST_MODEL = False
 
@@ -26,6 +25,7 @@ class Logger(object):
 
 if __name__ == '__main__':
     P = dnnUtils.Parameters(setting)
+    print P.outputFilename
     datasets  = utils.loadDataset(filename = P.datasetFilename, totalSetNum=3)
 
     if not USE_EXIST_MODEL: 
@@ -36,9 +36,10 @@ if __name__ == '__main__':
     else:
         # TODO use filename to build P
         bestModelFilename = sys.argv[2]
-        bestModel = utils.load_pkl(bestModelFilename)
+        bestModel = utils.loadPkl(bestModelFilename)
     
     dnn.getResult(bestModel, datasets, P)
+
     smooth(noSmoothedFilename = P.testResultFilename, smoothedFilename = P.testSmoothedResultFilename)
     smooth(noSmoothedFilename = P.validResultFilename, smoothedFilename = P.validSmoothedResultFilename)
-    t.transform(beforeTransformFilename = P.testSmoothedResultFilename, afterTransformFilename = '../result/final_result/' + P.outputFilename + '_smoothed.csv')
+    tfit.transform(beforeTransformFilename = P.testSmoothedResultFilename, afterTransformFilename = '../result/final_result/' + P.outputFilename + '_smoothed.csv')

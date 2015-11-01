@@ -1,6 +1,24 @@
 import utils
 import numpy
 import theano
+import theano.tensor as T
+
+def sharedDataXY(dataX, dataY, borrow=True):
+    sharedX = theano.shared(numpy.asarray(dataX, dtype=theano.config.floatX), borrow=True)
+    #TODO does't work in GPU for sharedY
+    sharedY = theano.shared(numpy.asarray(dataY, dtype=theano.config.floatX), borrow=True)
+    return [sharedX, sharedY, T.cast(sharedY,'int32')]
+
+def setSharedDataXY(sharedX, sharedY, dataX, dataY):        
+    sharedX.set_value(numpy.asarray(dataX, dtype=theano.config.floatX))
+    #TODO does't work in GPU for sharedY
+    sharedY.set_value(numpy.asarray(dataY, dtype=theano.config.floatX))
+    return [sharedX, sharedY, T.cast(sharedY,'int32')]
+
+def clearSharedDataXY(sharedX, sharedY):
+    sharedX.set_value([[]])
+    sharedY.set_value([])
+
 def EvalandResult(Model, indexList, modelType):
     result = []
     Losses = []
