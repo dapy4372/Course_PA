@@ -7,7 +7,7 @@ def initGlobalFlag():
     flag = True
 
 def initGlobalSigmas():
-    global sigmas
+    global sigmaSqrs
 
 def initGlobalVelocitys():
     global velocitys

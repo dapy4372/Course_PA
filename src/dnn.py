@@ -70,8 +70,8 @@ def trainDNN(datasets, P):
                 inputs  = [start, end],
                 outputs = myOutputs,
 #updates = activation.momentum(grads, classifier.params, P),
-#updates = activation.RMSProp(grads, classifier.params),
-                updates = activation.Adagrad(grads, classifier.params),
+                updates = activation.RMSProp(grads, classifier.params),
+#updates = activation.Adagrad(grads, classifier.params),
                 givens={ x: sharedTrainSetX[start : end], y: castSharedTrainSetY[start : end] } )
 
     ###################
@@ -137,10 +137,10 @@ def trainDNN(datasets, P):
             curEarlyStop = 0
         else:
             if curEarlyStop < P.earlyStop:
-                globalParam.lr = globalParam.lr/2
+#globalParam.lr = globalParam.lr/2
                 epoch -= 1
                 dnnUtils.setParamsValue(prevModel, classifier.params)
-                print (('== half ==,%i,\t%f,\t%f') % (epoch, trainFER * 100, validFER * 100. ))
+                print (('====,%i,\t%f,\t%f') % (epoch, trainFER * 100, validFER * 100. ))
                 curEarlyStop += 1
                 continue
             else:

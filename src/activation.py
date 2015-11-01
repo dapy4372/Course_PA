@@ -19,11 +19,11 @@ def RMSProp(grads, params):
     alpha = 0.9
     epsilon = 1e-6
     if(globalParam.flag):
-        globalParam.sigmas = [ g  for g in grads ]
+        globalParam.sigmaSqrs = [ g * g for g in grads ]
         globalParam.flag = False
     else:
-        globalParam.sigmas = [ T.sqrt( ( alpha * T.sqr(s) ) + ( (1 - alpha) * T.sqr(g) ) ) for s, g in zip(globalParam.sigmas, grads) ]
-    paramsUpdate = [( p, p - ( globalParam.lr * g ) / ( s + epsilon ) ) for p, g, s in zip(params, grads, globalParam.sigmas)]
+        globalParam.sigmaSqrs = [ ( ( alpha * s ) + ( (1 - alpha) * (g * g) ) ) for s, g in zip(globalParam.sigmaSqrs, grads) ]
+    paramsUpdate = [( p, p - ( globalParam.lr * g ) / ( T.sqrt(s) + epsilon ) ) for p, g, s in zip(params, grads, globalParam.sigmaSqrs)]
     return paramsUpdate
 
 # Adagrad
