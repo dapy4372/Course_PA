@@ -1,8 +1,8 @@
 import os
 import sys
 import utils
-import nn.dnn as dnn
-import nn.dnnUtils as dnnUtils
+import dnn.dnn as dnn
+import dnn.dnnUtils as dnnUtils
 import postprocessing as pp 
 import transformIntToLabel as tfit
 setting = sys.argv[1]
