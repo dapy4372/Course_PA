@@ -57,15 +57,15 @@ def trainDNN(datasets, P):
     cost = ( classifier.crossEntropy(y) + P.L1Reg * classifier.L1 + P.L2Reg * classifier.L2_sqr )
     
     #training model
-    flag = [True] # for first momentum or not
-    grads = [T.grad(cost, param) for param in classifier.params]
-    velocitys = activation.initialVelocitys(P)
     settings.initGlobalLearningRate(P)
+    settings.initGlobalFlag()
+    settings.initGlobalVelocitys()
 
+    grads = [T.grad(cost, param) for param in classifier.params]
     trainModel = theano.function(
                 inputs  = [start, end],
                 outputs = classifier.errors(y),
-                updates = activation.momentum(grads, classifier.params, velocitys, flag),
+                updates = activation.momentum(grads, classifier.params),
 #updates = activation.RMSProp(grads, classifier.params, sigma, P.learningRate, flag),
                 givens={ x: sharedTrainSetX[start : end], y: castSharedTrainSetY[start : end] } )
 
