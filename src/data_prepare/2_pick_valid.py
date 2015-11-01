@@ -3,12 +3,12 @@ import utils
 
 RATIO = 10
 
-trainArkDir     = '../data/fbank/train.ark'
-trainLabelDir   = '../data/label/train_int.lab'
-trainXName      = '../fbank_valid/train.ark'
-trainYName      = '../fbank_valid/train.lab'
-validXName      = '../fbank_valid/valid.ark'
-validYName      = '../fbank_valid/valid.lab'
+trainArkDir     = '../../data/fbank/train.ark'
+trainLabelDir   = '../../data/state_label/train.lab'
+trainXName      = '../../fbank_valid/train.ark'
+trainYName      = '../../fbank_valid/train.lab'
+validXName      = '../../fbank_valid/valid.ark'
+validYName      = '../../fbank_valid/valid.lab'
 
 f1 = open(trainArkDir,   'rb')
 f2 = open(trainLabelDir, 'rb')

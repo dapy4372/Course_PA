@@ -6,7 +6,7 @@ datasetFilename = '../pkl/fbank_1943_dataset_without_preprocessing.pkl'
 outputFilename = '../pkl/fbank_1943_dataset.pkl'
 
 if __name__ == '__main__':
-    trainSet, validSet, testSet = utils.load_pkl(datasetFilename)
+    trainSet, validSet, testSet = utils.loadPkl(datasetFilename)
     print '...normalization'
     trainSet = datahandler.normalization(trainSet)
     validSet = datahandler.normalization(validSet)

@@ -1,8 +1,8 @@
-phone_48_int_map = '../map/phone_48_int.map'
-state_lab = '../data/state_label/train.lab'
-phone_lab = '../data/label/train.lab'
-state_int_lab = '../data/state_label/train_int.lab'
-phone_int_lab = '../data/label/train_int.lab'
+phone_48_int_map = '../../map/phone_48_int.map'
+state_lab = '../../data/state_label/train.lab'
+phone_lab = '../../data/label/train.lab'
+state_int_lab = '../../data/state_label/train_int.lab'
+phone_int_lab = '../../data/label/train_int.lab'
 
 f1 = open(phone_48_int_map, 'r')
 f2 = open(state_lab, 'r')

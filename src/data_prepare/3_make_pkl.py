@@ -6,13 +6,13 @@ import utils
 from operator import itemgetter, attrgetter
 
 random.seed(1234)
-dirPath = '../fbank_valid/'
+dirPath = '../../fbank_valid/'
 trainArkFilename   = dirPath + 'train.ark'
 trainLabelFilename = dirPath + 'train.lab'
 validArkFilename   = dirPath + 'valid.ark'
 validLabelFilename = dirPath + 'valid.lab'
-testArkFilename    = '../data/fbank/' + 'test.ark'
-outputPklFilename  = '../pkl/fbank_1943_dataset_without_preprocessing.pkl'
+testArkFilename    = '../../data/fbank/' + 'test.ark'
+outputPklFilename  = '../../pkl/fbank_1943_dataset_without_preprocessing.pkl'
 dim = 69
 
 def countLineNum(fileArkName):

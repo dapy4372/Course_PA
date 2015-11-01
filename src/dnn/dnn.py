@@ -7,7 +7,7 @@ import theano
 import theano.tensor as T
 import dnnUtils
 import globalParam
-import activation
+import method
 from dnnArchitecture import HiddenLayer, OutputLayer, DNN
 from dnnUtils import Parameters, sharedDataXY, setSharedDataXY, clearSharedDataXY
 parameterFilename = sys.argv[1]
@@ -60,9 +60,9 @@ def trainDNN(datasets, P):
     trainModel = theano.function(
                 inputs  = [start, end],
                 outputs = myOutputs,
-#updates = activation.momentum(grads, classifier.params, P),
-                updates = activation.RMSProp(grads, classifier.params),
-#updates = activation.Adagrad(grads, classifier.params),
+#updates = method.momentum(grads, classifier.params, P),
+                updates = method.RMSProp(grads, classifier.params),
+#updates = method.Adagrad(grads, classifier.params),
                 givens={ x: sharedTrainSetX[start : end], y: castSharedTrainSetY[start : end] } )
 
     ###################
@@ -127,7 +127,7 @@ def trainDNN(datasets, P):
             curEarlyStop = 0
         else:
             if curEarlyStop < P.earlyStop:
-#globalParam.lr = globalParam.lr/2
+                globalParam.lr = globalParam.lr * 0.9
                 epoch -= 1
                 dnnUtils.setParamsValue(prevModel, classifier.params)
                 print (('====,%i,\t%f,\t%f') % (epoch, trainFER * 100, validFER * 100. ))
