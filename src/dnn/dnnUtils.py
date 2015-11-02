@@ -2,6 +2,7 @@ import utils
 import numpy
 import theano
 import theano.tensor as T
+import updateMethod
 
 def sharedDataXY(dataX, dataY, borrow=True):
     sharedX = theano.shared(numpy.asarray(dataX, dtype=theano.config.floatX), borrow=True)
@@ -19,6 +20,14 @@ def clearSharedDataXY(sharedX, sharedY):
     sharedX.set_value([[]])
     sharedY.set_value([])
 
+def chooseUpdateMethod(grads, params, P):
+    if P.updateMethod == 'Momentum':
+        return updateMethod.Momentum(grads, params, P.momentum)
+    if P.updateMethod == 'RMSProp':
+        return updateMethod.RMSProp(grads, params)
+    if P.updateMethod == 'Adagrad':
+        return updateMethod.Adagrad(grads, params)
+    
 def EvalandResult(Model, indexList, modelType):
     result = []
     Losses = []
@@ -102,10 +111,12 @@ class Parameters(object):
        self.dnnDepth              = int(parameter[title.index('depth')])
        self.batchSizeForTrain     = int(parameter[title.index('batchSize')])
        self.learningRate          = float(parameter[title.index('learningRate')])
+       self.learningRateDecay     = float(parameter[title.index('learningRateDecay')])
        self.dropoutHiddenProb     = float(parameter[title.index('hiddenProb')])
        self.dropoutInputProb      = float(parameter[title.index('inputProb')])
        self.datasetFilename       = parameter[(title.index('dataSetFilename'))].strip('\n')
        self.datasetType           = parameter[(title.index('dataSetType'))].strip('\n')
+       self.updateMethod          = parameter[(title.index('updateMethod'))].strip('\n')
        self.maxEpoch              = int(parameter[title.index('maxEpoch')])
        self.inputDimNum           = int(parameter[title.index('inputDimNum')])
        self.outputPhoneNum        = int(parameter[title.index('outputPhoneNum')])
@@ -113,13 +124,14 @@ class Parameters(object):
        self.earlyStop             = int(parameter[title.index('earlyStop')])
        self.L1Reg                 = float(parameter[title.index('L1Reg')])
        self.L2Reg                 = float(parameter[title.index('L2Reg')])
-       self.outputFilename = (str(self.datasetType) 
+       self.outputFilename = (str(self.datasetType) + '_' + (str(self.updateMethod))
                               + '_s_' + str(self.SHUFFLE)
                               + '_m_' + str(self.momentum)
                               + '_dw_'+ str(self.dnnWidth)
                               + '_dd_'+ str(self.dnnDepth)
                               + '_b_' + str(self.batchSizeForTrain)
                               + '_lr_'+ str(self.learningRate)
+                              + '_lrd_' + str(self.learningRateDecay)
                               + '_di_'+ str(self.dropoutInputProb)
                               + '_dh_'+ str(self.dropoutHiddenProb) )
        self.bestModelFilename   = '../model/' + self.outputFilename

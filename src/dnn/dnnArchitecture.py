@@ -5,13 +5,11 @@ import numpy
 
 class HiddenLayer(object):
     def __init__(self, rng, input, inputNum, outputNum, dnnWidth, W = None, b = None, dropoutProb = 1.0, DROPOUT = False):
-    #def __init__(self, input, P, W = None, b = None, DROPOUT = False):
         if DROPOUT == True:
             self.input = Dropout( rng = rng, input = input, inputNum = inputNum, dropoutProb = dropoutProb )
         else:
             self.input = input * dropoutProb
         if W is None:
-#W_values = rng.uniform( low = -1, high = 1, size = (inputNum, outputNum) ).astype( dtype=theano.config.floatX )
             W_values = rng.uniform( low = -numpy.sqrt(6./(inputNum+outputNum)), high = numpy.sqrt(6./(inputNum+outputNum)),
             size = (inputNum, outputNum) ).astype( dtype=theano.config.floatX )
             W = theano.shared(value = W_values, name = 'W', borrow = True)
@@ -36,11 +34,8 @@ class HiddenLayer(object):
         self.params = [self.W, self.b]
 
 class OutputLayer(object):
-
     def __init__(self, input, inputNum, outputNum, rng, W = None, b = None):
-    #def __init__(self, input, P, W = None, b = None):
         if W is None:
-#W_values = rng.uniform( low = -1, high = 1, size = (inputNum, outputNum) ).astype( dtype=theano.config.floatX )
             W_values = rng.uniform( low = -numpy.sqrt(6./(inputNum+outputNum)), high = numpy.sqrt(6./(inputNum+outputNum)),
                                     size = (inputNum, outputNum) ).astype(dtype=theano.config.floatX )
             W = theano.shared(value = W_values, name = 'W', borrow = True)
@@ -94,9 +89,7 @@ class OutputLayer(object):
             raise NotImplementedError()
 
 class DNN(object):
-    #def __init__(self, rng, input, inputNum, dnnWidth, dnnDepth, outputNum, params = None, DROPOUT = False):
     def __init__(self, input, P, params = None, DROPOUT = False):
-#self.input = theano.shared(input, dtype = theano.config.floatX)        
         # Create Hidden Layers
         self.hiddenLayerList=[]
         self.hiddenLayerList.append(

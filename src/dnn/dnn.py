@@ -7,7 +7,6 @@ import theano
 import theano.tensor as T
 import dnnUtils
 import globalParam
-import method
 from dnnArchitecture import HiddenLayer, OutputLayer, DNN
 from dnnUtils import Parameters, sharedDataXY, setSharedDataXY, clearSharedDataXY
 parameterFilename = sys.argv[1]
@@ -26,44 +25,41 @@ def trainDNN(datasets, P):
     print '... building the model'
 
     start = T.lscalar()  # index to a [mini]batch
-    end = T.lscalar()  # index to a [mini]batch
+    end = T.lscalar()    # index to a [mini]batch
     x = T.matrix('x')    # the data is presented as rasterized images
     y = T.ivector('y')   # the labels are presented as 1D vector of
                          # [int] labels
 
+    # For create a new model
     dummyParams = [None] * (2 * (P.dnnDepth + 1))
     
-    # build the DNN object for training
+    # Build the DNN object for training
     classifier = DNN( input = x, params = dummyParams, P = P, DROPOUT = True )
     
-    # build the DNN object for Validation
+    # Build the DNN object for Validation
     predicter = DNN( input = x, P = P, params = dummyParams )
 
-    # validation model
-    validModel = theano.function(
-                 inputs  = [start, end],
-                 outputs = predicter.errors(y),
-                 givens  = { x: sharedValidSetX[start : end], y: castSharedValidSetY[start : end] } )
+    # Validation model
+    validModel = theano.function( inputs = [start, end], outputs = predicter.errors(y),
+                                  givens = { x: sharedValidSetX[start:end], y: castSharedValidSetY[start:end] } )
     
     # Cost function 1.cross entropy 2.weight decay
     cost = ( classifier.crossEntropy(y) + P.L1Reg * classifier.L1 + P.L2Reg * classifier.L2_sqr )
-    
-    #training model
+   
+    # Global parameters setting
     globalParam.initGlobalLearningRate(P)
     globalParam.initGlobalFlag()
     globalParam.initGlobalVelocitys()
     globalParam.initGlobalSigmas()
     globalParam.initGlobalgradSqrs()
     
+    # Training model
     grads = [T.grad(cost, param) for param in classifier.params]
     myOutputs = [classifier.errors(y)] + grads + classifier.params
-    trainModel = theano.function(
-                inputs  = [start, end],
-                outputs = myOutputs,
-#updates = method.momentum(grads, classifier.params, P),
-                updates = method.RMSProp(grads, classifier.params),
-#updates = method.Adagrad(grads, classifier.params),
-                givens={ x: sharedTrainSetX[start : end], y: castSharedTrainSetY[start : end] } )
+    myUpdates = dnnUtils.chooseUpdateMethod(grads, classifier.params, P)
+
+    trainModel = theano.function( inputs = [start, end], outputs = myOutputs, updates = myUpdates,
+                                  givens = { x: sharedTrainSetX[start:end], y: castSharedTrainSetY[start:end] } )
 
     ###################
     # TRAIN DNN MODEL #
@@ -85,7 +81,7 @@ def trainDNN(datasets, P):
     totalTrainSize = len(trainSetX)
     totalValidSize = len(validSetX)
 
-    # make training and validation batch list
+    # Make mini-Batch
     trainBatchIdxList = dnnUtils.makeBatch(totalTrainSize, P.batchSizeForTrain)
     validBatchIdxList = dnnUtils.makeBatch(totalValidSize, 16384)
     
@@ -127,7 +123,7 @@ def trainDNN(datasets, P):
             curEarlyStop = 0
         else:
             if curEarlyStop < P.earlyStop:
-                globalParam.lr = globalParam.lr * 0.9
+                globalParam.lr = globalParam.lr * P.learningRateDecay
                 epoch -= 1
                 dnnUtils.setParamsValue(prevModel, classifier.params)
                 print (('====,%i,\t%f,\t%f') % (epoch, trainFER * 100, validFER * 100. ))

@@ -5,12 +5,12 @@ import numpy
 import globalParam
 
 # Momentum        
-def momentum(grads, params, P):
+def Momentum(grads, params, m):
     if(globalParam.flag):
         globalParam.velocitys = [ -globalParam.lr * grad for grad in grads ]
         globalParam.flag = False
     else:
-        globalParam.velocitys = [ P.momentum * velocity - globalParam.lr * (1 - P.momentum) * grad for velocity, grad in zip(globalParam.velocitys, grads) ]
+        globalParam.velocitys = [ m * velocity - globalParam.lr * (1 - m) * grad for velocity, grad in zip(globalParam.velocitys, grads) ]
     paramsUpdate = [ (param, param + velocity) for param, velocity in zip(params, globalParam.velocitys) ]
     return paramsUpdate
 

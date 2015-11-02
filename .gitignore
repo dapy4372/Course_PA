@@ -1,4 +1,8 @@
 data/*
+model/*
+result/*
+fbank_valid/*
+prob/*
 test.*
 *.pyc
 *.swp
