@@ -1,19 +1,19 @@
 import utils
-import numpy
+import numpy as np
 import theano
 import theano.tensor as T
 import updateMethod
 
 def sharedDataXY(dataX, dataY, borrow=True):
-    sharedX = theano.shared(numpy.asarray(dataX, dtype=theano.config.floatX), borrow=True)
+    sharedX = theano.shared(np.asarray(dataX, dtype=theano.config.floatX), borrow=True)
     #TODO does't work in GPU for sharedY
-    sharedY = theano.shared(numpy.asarray(dataY, dtype=theano.config.floatX), borrow=True)
+    sharedY = theano.shared(np.asarray(dataY, dtype=theano.config.floatX), borrow=True)
     return [sharedX, sharedY, T.cast(sharedY,'int32')]
 
 def setSharedDataXY(sharedX, sharedY, dataX, dataY):        
-    sharedX.set_value(numpy.asarray(dataX, dtype=theano.config.floatX))
+    sharedX.set_value(np.asarray(dataX, dtype=theano.config.floatX))
     #TODO does't work in GPU for sharedY
-    sharedY.set_value(numpy.asarray(dataY, dtype=theano.config.floatX))
+    sharedY.set_value(np.asarray(dataY, dtype=theano.config.floatX))
     return [sharedX, sharedY, T.cast(sharedY,'int32')]
 
 def clearSharedDataXY(sharedX, sharedY):
@@ -27,7 +27,24 @@ def chooseUpdateMethod(grads, params, P):
         return updateMethod.RMSProp(grads, params)
     if P.updateMethod == 'Adagrad':
         return updateMethod.Adagrad(grads, params)
-    
+
+# GP means gradient and parameter(W and b).
+def printGradsParams(GP, dnnDepth):
+    for i in xrange(0, (2 * dnnDepth+1), 2):
+        print ( '================ Layer %d ================' % (i/2 + 1))
+        printNpArrayMeanStdMaxMin("GW", GP[i])
+        printNpArrayMeanStdMaxMin("Gb", GP[i+1])
+        printNpArrayMeanStdMaxMin("G ", GP[i+dnnDepth])
+        printNpArrayMeanStdMaxMin("G ", GP[i+dnnDepth+1])
+        """
+        print ( ' # GW\tmean = %.5f\tstd = %.5f' % (np.mean(GP[i]), np.std(GP[i]), np.amax(GP[i]), np.amin(GP[i]) ))
+        print ( ' # Gb\tmean = %.5f\tstd = %.5f' % (np.mean(GP[i+1]), np.std(GP[i+1]), np.amax(GP[i+1]), np.amin(GP[i+1]) ))
+        print ( ' # W \tmean = %.5f\tstd = %.5f' % (np.mean(GP[i+dnnDepth]), np.std(GP[i+dnnDepth]), np.amax(GP[i+dnnDepth]), np.amin(GP[i+dnnDepth]) ))
+        print ( ' # b \tmean = %.5f\tstd = %.5f' % (np.mean(GP[i+dnnDepth+1]), np.std(GP[i+dnnDepth+1]), np.amax(GP[i+dnnDepth+1]), np.amin(GP[i+dnnDepth+1]) )) 
+        """
+def printNpArrayMeanStdMaxMin(name, npArray):
+    print(" #%s \t mean = %f \t std = %f \t max = %f \t min = %f" % (name, np.mean(npArray), np.std(npArray), np.amax(npArray), np.amin(npArray) ))
+
 def EvalandResult(Model, indexList, modelType):
     result = []
     Losses = []
@@ -35,7 +52,7 @@ def EvalandResult(Model, indexList, modelType):
         thisLoss, thisResult = Model(indexList[i][0], indexList[i][1])
         result += thisResult.tolist()
         Losses.append(thisLoss)
-    FER = numpy.mean(Losses)
+    FER = np.mean(Losses)
     print ((modelType + ' FER,%f') % (FER * 100))
     return result
 
@@ -73,7 +90,7 @@ def setParamsValue(preParams, nowParams):
         nowParams[i].set_value(preParams[i])
 
 def Dropout(rng, input, inputNum, D = None, dropoutProb = 1):
-    D_values = numpy.asarray(
+    D_values = np.asarray(
               rng.binomial( size = (inputNum,), n = 1, p = dropoutProb ),
               dtype=theano.config.floatX )
     D = theano.shared( value=D_values, name='D', borrow=True )
@@ -95,16 +112,17 @@ def splice(dataset, w):
     spliceDataY = []
     spliceDataName = []
     for j in spliceIdxList:
-        spliceDataX.append(numpy.concatenate( [dataX[j+i] for i in xrange(-w, w+1)], axis = 0))
+        spliceDataX.append(np.concatenate( [dataX[j+i] for i in xrange(-w, w+1)], axis = 0))
         spliceDataY.append(dataY[j])
         spliceDataName.append(dataName[j])
-    spliceDataX = numpy.array(spliceDataX, dtype=theano.config.floatX)
-    spliceDataY = numpy.array(spliceDataY, dtype=theano.config.floatX)
+    spliceDataX = np.array(spliceDataX, dtype=theano.config.floatX)
+    spliceDataY = np.array(spliceDataY, dtype=theano.config.floatX)
     return spliceDataX, spliceDataY, spliceDataName
 
 class Parameters(object):
     def __init__(self, filename):
        title, parameter           = utils.readFile2(filename)
+       self.DEBUG                 = bool(parameter[title.index('debug')])
        self.SHUFFLE               = bool(parameter[title.index('shuffle')])
        self.momentum              = float(parameter[title.index('momentum')])
        self.dnnWidth              = int(parameter[title.index('width')])
@@ -125,6 +143,7 @@ class Parameters(object):
        self.L1Reg                 = float(parameter[title.index('L1Reg')])
        self.L2Reg                 = float(parameter[title.index('L2Reg')])
        self.outputFilename = (str(self.datasetType) + '_' + (str(self.updateMethod))
+                              + '_D_' + str(self.DEBUG)
                               + '_s_' + str(self.SHUFFLE)
                               + '_m_' + str(self.momentum)
                               + '_dw_'+ str(self.dnnWidth)
@@ -141,6 +160,6 @@ class Parameters(object):
        self.validSmoothedResultFilename = '../result/smoothed_valid_result/' + self.outputFilename + '.csv' 
        self.testSmoothedResultFilename  = '../result/smoothed_test_result/' + self.outputFilename + '.csv' 
        self.logFilename = '../log/' + self.outputFilename + '.log'
-       self.rng = numpy.random.RandomState(self.seed)
+       self.rng = np.random.RandomState(self.seed)
 
 

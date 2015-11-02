@@ -16,6 +16,9 @@ def trainDNN(datasets, P):
 
     trainSetX, trainSetY, trainSetName = dnnUtils.splice(datasets[0], 4)
     validSetX, validSetY, validSetName = dnnUtils.splice(datasets[1], 4)
+#sharedTrainSetX = trainSetX.tolist()
+#sharedTrainSetY = trainSetY.tolist()
+#castSharedTrainSetY = T.cast(sharedTrainSetY, 'int32')
     sharedTrainSetX, sharedTrainSetY, castSharedTrainSetY = sharedDataXY(trainSetX, trainSetY)
     sharedValidSetX, sharedValidSetY, castSharedValidSetY = sharedDataXY(validSetX, validSetY)
 
@@ -92,20 +95,19 @@ def trainDNN(datasets, P):
         if P.SHUFFLE:
             p = numpy.random.permutation(totalTrainSize)
             sharedTrainSetX, sharedTrainSetY, castSharedTrainSetY = setSharedDataXY(sharedTrainSetX, sharedTrainSetY, trainSetX[p], trainSetY[p])
+#sharedTrainSetX = trainSetX[p]
+#sharedTrainSetY = trainSetY[p]
+#castSharedTrainSetY = T.cast(sharedTrainSetY,'int32')
 
         # Training
         trainLosses=[]
         s = 2*(P.dnnDepth+1)
         for i in xrange(len(trainBatchIdxList)):
-            out = trainModel(trainBatchIdxList[i][0], trainBatchIdxList[i][1])
-            trainLosses.append(out[0])
-            # print value
-            """
-            if i == 0:
-                for j in [0,2]:
-                    print ('grad %d' % (j+1) )
-                    print numpy.array_str(out[j+1])
-            """
+            outputs = trainModel(trainBatchIdxList[i][0], trainBatchIdxList[i][1])
+            trainLosses.append(outputs[0])
+            # print value for debug
+            if i == 0 and P.DEBUG:
+                dnnUtils.printGradsParams(outputs[1:], P.dnnDepth)
         # Evaluate training FER 
         trainFER = numpy.mean(trainLosses)
 
@@ -116,22 +118,25 @@ def trainDNN(datasets, P):
         # Evaluate validation FER
         validLosses = [validModel(validBatchIdxList[i][0], validBatchIdxList[i][1]) for i in xrange(len(validBatchIdxList))]
         validFER = numpy.mean(validLosses)
-        
-        if validFER < prevFER:
+        if P.updateMethod != 'Momentum':
             prevFER = validFER
             prevModel = nowModel
-            curEarlyStop = 0
         else:
-            if curEarlyStop < P.earlyStop:
-                globalParam.lr = globalParam.lr * P.learningRateDecay
-                epoch -= 1
-                dnnUtils.setParamsValue(prevModel, classifier.params)
-                print (('====,%i,\t%f,\t%f') % (epoch, trainFER * 100, validFER * 100. ))
-                curEarlyStop += 1
-                continue
+            if validFER < prevFER:
+                prevFER = validFER
+                prevModel = nowModel
+                curEarlyStop = 0
             else:
-                doneLooping = True
-                continue
+                if curEarlyStop < P.earlyStop:
+                    globalParam.lr = globalParam.lr * P.learningRateDecay
+                    epoch -= 1
+                    dnnUtils.setParamsValue(prevModel, classifier.params)
+                    print (('====,%i,\t%f,\t%f') % (epoch, trainFER * 100, validFER * 100. ))
+                    curEarlyStop += 1
+                    continue
+                else:
+                    doneLooping = True
+                    continue
         print (('%i,\t%f,\t%f') % (epoch, trainFER * 100, validFER * 100. ))
     # end of training
         
