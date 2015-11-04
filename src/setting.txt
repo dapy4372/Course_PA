@@ -4,7 +4,7 @@ updateMethod:Adagrad
 momentum:0.90
 width:1024
 depth:4
-batchSize:4096
+batchSize:1024
 learningRate:0.005
 learningRateDecay:1
 hiddenProb:1

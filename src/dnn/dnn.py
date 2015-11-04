@@ -24,8 +24,6 @@ def trainDNN(datasets, P):
     ###############
     print '... building the model'
     idx = T.ivector('i')
-#x = T.tensor3('x')    # the data is presented as rasterized images
-#y = T.ivector('y')    # the labels are presented as 1D vector of [int] labels
     sX = T.matrix(dtype=theano.config.floatX)
     sY = T.ivector()
 
@@ -58,15 +56,10 @@ def trainDNN(datasets, P):
     grads = [T.grad(cost, param) for param in classifier.params] 
     # Training mode
     myOutputs = [classifier.errors(splicedY(sY, idx))] + grads + classifier.params
-#myOutputs = dnnUtils.splicedY(sY, idx)
     myUpdates = dnnUtils.chooseUpdateMethod(grads, classifier.params, P)
   
     trainModel = theano.function( inputs = [idx], outputs = myOutputs, updates = myUpdates, 
                                   givens={sX:sharedTrainSetX, sY:castSharedTrainSetY})
-#c = splicedX(sX,idx)
-#trainModel = theano.function( inputs = [idx], outputs = myOutputs, 
-#givens={sX:sharedTrainSetX, sY:castSharedTrainSetY})
-#print trainModel([4,5])
 
     # Validation model
     validModel = theano.function( inputs = [idx], outputs = predicter.errors(splicedY(sY, idx)),
@@ -88,17 +81,19 @@ def trainDNN(datasets, P):
     prevFER = numpy.inf
     random.seed(P.seed)
     
-    # Total data size
-    totalTrainSize = len(trainSetX)
-    totalValidSize = len(validSetX)
+   
+    # Center Index
+    trainCenterIdx = dnnUtils.findCenterIdxList(trainSetY)
+    validCenterIdx = dnnUtils.findCenterIdxList(validSetY)
+    
+    # Total Center Index
+    totalTrainSize = len(trainCenterIdx)
+    totalValidSize = len(validCenterIdx)
 
+    
     # Make mini-Batch
     trainBatchIdx = dnnUtils.makeBatch(totalTrainSize, P.batchSizeForTrain)
     validBatchIdx = dnnUtils.makeBatch(totalValidSize, 16384)
-   
-    # Center Indx
-    trainCenterIdx = dnnUtils.findCenterIdxList(trainSetY)
-    validCenterIdx = dnnUtils.findCenterIdxList(validSetY)
 
     startTime  = timeit.default_timer()
     while (epoch < P.maxEpoch) and (not doneLooping):
@@ -106,20 +101,16 @@ def trainDNN(datasets, P):
 
         if P.SHUFFLE:
             random.shuffle(trainCenterIdx)
-#p = numpy.random.permutation(totalTrainSize)
-#sharedTrainSetX, sharedTrainSetY, castSharedTrainSetY = setSharedDataXY(sharedTrainSetX, sharedTrainSetY, trainSetX[p], trainSetY[p])
 
         # Training
         trainLosses=[]
         for i in xrange(len(trainBatchIdx)):
             outputs = trainModel(trainCenterIdx[trainBatchIdx[i][0]:trainBatchIdx[i][1]])
-#tmp = numpy.mean(trainLosses)
-#print('%f'%(tmp))
             trainLosses.append(outputs[0])
 
             # print value for debug
             #if i == 0 and P.DEBUG:
-#dnnUtils.printGradsParams(outputs[1:], P.dnnDepth)
+               #dnnUtils.printGradsParams(outputs[1:], P.dnnDepth)
 
 
         # Evaluate training FER 

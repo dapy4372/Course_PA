@@ -81,7 +81,7 @@ def writeProb(prob, filename, setNameList):
 def makeBatch(totalSize, batchSize = 32):
     numBatchSize = totalSize / batchSize
     indexList = [[i * batchSize, (i + 1) * batchSize] for i in xrange(numBatchSize)]
-    indexList.append([numBatchSize * batchSize, totalSize * batchSize - 1])
+    indexList.append([numBatchSize * batchSize, totalSize])
     return indexList
 
 def getParamsValue(nowParams):
