@@ -31,7 +31,7 @@ def trainDNN(datasets, P):
     dummyParams = [None] * (2 * (P.dnnDepth + 1))
     
     def splicedX(x, idx):
-        spliceWidth = 1
+        spliceWidth = 4
         return T.concatenate([ (T.stacklists([x[j+i] for j in [idx] ])) for i in xrange(-spliceWidth, spliceWidth+1)])
     def splicedY(y, idx):    
         return T.concatenate([y[i] for i in [idx]])
@@ -81,6 +81,9 @@ def trainDNN(datasets, P):
     prevFER = numpy.inf
     random.seed(P.seed)
     
+    # Adagrad, RMSProp
+    prevGradSqrs = None
+    prevSigmaSqrs = None
    
     # Center Index
     trainCenterIdx = dnnUtils.findCenterIdxList(trainSetY)
@@ -134,16 +137,28 @@ def trainDNN(datasets, P):
                 curEarlyStop = 0
             else:
                 if curEarlyStop < P.earlyStop:
-                    globalParam.lr = globalParam.lr * P.learningRateDecay
                     epoch -= 1
                     dnnUtils.setParamsValue(prevModel, classifier.params)
                     print (('====,%i,\t%f,\t%f') % (epoch, trainFER * 100, validFER * 100. ))
                     curEarlyStop += 1
+                    if P.updateMethod == 'Momentum':
+                        globalParam.lr = globalParam.lr * P.learningRateDecay
+                    elif P.updateMethod == 'Adagrad':
+                        globalParam.gradSqrs = prevGradSqrs
+                    elif P.updateMethod == 'RMSProp':
+                        globalParam.sigmaSqrs = prevSigmaSqrs
                     continue
                 else:
                     doneLooping = True
                     continue
+
         print (('%i,\t%f,\t%f') % (epoch, trainFER * 100, validFER * 100. ))
+        # Record the Adagrad, RMSProp parameter
+        if P.updateMethod == 'Adagrad':
+            prevGradSqrs = globalParam.gradSqrs
+        if P.updateMethod == 'RMSProp':
+            prevSigmaSqrs = globalParam.sigmaSqrs
+
     # end of training
         
     endTime = timeit.default_timer()

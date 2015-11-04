@@ -12,7 +12,7 @@ class FirstHiddenLayer(object):
         self.input = input
         if W is None:
             W_values = rng.uniform( low = -numpy.sqrt(6./(inputNum+outputNum)), high = numpy.sqrt(6./(inputNum+outputNum)),
-            size = (3, inputNum/3, outputNum) ).astype( dtype=theano.config.floatX )
+            size = (9, inputNum/9, outputNum) ).astype( dtype=theano.config.floatX )
             W = theano.shared(value = W_values, name = 'W', borrow = True)
         else:
             W = theano.shared( value = numpy.array(W, dtype = theano.config.floatX), name='W', borrow = True )
