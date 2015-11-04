@@ -3,6 +3,7 @@ import numpy as np
 import theano
 import theano.tensor as T
 import updateMethod
+import theano.typed_list
 
 def sharedDataXY(dataX, dataY, borrow=True):
     sharedX = theano.shared(np.asarray(dataX, dtype=theano.config.floatX), borrow=True)
@@ -62,17 +63,21 @@ def writeResult(result, filename, setNameList):
         f.write(setNameList[i] + ',' + str(result[i]) + '\n')
     f.close()
 
-def getProb(Model, indexList):
-    prob = []
-    for i in xrange(len(indexList)):
-        prob += Model(indexList[i][0], indexList[i][1]).tolist()
-    return prob
-
+def writeProb(Model, idxList, nameList, filename):
+    f = open(filename, 'w')
+    for i in xrange(len(idxList)):
+        tmpProb = Model(idxList[i][0], idxList[i][1]).tolist()
+        for j in xrange(idxList[i][1]-idxList[i][0]):
+            f.write(nameList[j] + ' ' + " ".join(map(str, tmpProb[j])) + '\n')
+    f.close()
+"""
 def writeProb(prob, filename, setNameList):
+    print "123"
     f = open(filename, 'w')
     for i in xrange(len(prob)):
         f.write( setNameList[i] + ' ' + " ".join(map(str, prob[i])) + '\n')
-
+    f.close()
+"""
 def makeBatch(totalSize, batchSize = 32):
     numBatchSize = totalSize / batchSize
     indexList = [[i * batchSize, (i + 1) * batchSize] for i in xrange(numBatchSize)]
@@ -96,7 +101,7 @@ def Dropout(rng, input, inputNum, D = None, dropoutProb = 1):
     D = theano.shared( value=D_values, name='D', borrow=True )
     return input * D
 
-def findSpliceIdxList(dataY):
+def findCenterIdxList(dataY):
     spliceIdxList = []
     for i in xrange(len(dataY)):
         if dataY[i] == -1:
@@ -104,7 +109,7 @@ def findSpliceIdxList(dataY):
         else:
             spliceIdxList.append(i)
     return spliceIdxList
-
+"""
 def splice(dataset, w):
     dataX, dataY, dataName = dataset
     spliceIdxList = findSpliceIdxList(dataY)
@@ -118,6 +123,15 @@ def splice(dataset, w):
     spliceDataX = np.array(spliceDataX, dtype=theano.config.floatX)
     spliceDataY = np.array(spliceDataY, dtype=theano.config.floatX)
     return spliceDataX, spliceDataY, spliceDataName
+"""
+def spliceInput(x,y,idx):
+    spliceWidth = 4
+    spliceX = []
+    for i in xrange(-spliceWidth, spliceWidth+1):
+        spliceX += T.stacklists([x[j+i] for j in idx ])
+    spliceX = T.stacklists(spliceX)
+    spliceY = T.stacklists([y[i] for i in idx])
+    return spliceX.eval(), spliceY.eval()
 
 class Parameters(object):
     def __init__(self, filename):

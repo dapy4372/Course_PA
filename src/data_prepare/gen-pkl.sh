@@ -1,5 +1,6 @@
-mkdir -p ../../map ../../pkl ../../fbank_valid ../../model ../../log ../../result ../../result/smoothed_test_result  \
-        ../../result/smoothed_valid_result  ../../result/test_result  ../../result/valid_result ../../result/final_result
+mkdir -p ../../map ../../pkl ../../fbank_valid ../../model ../../log ../../result \
+         ../../result/smoothed_test_result ../../result/smoothed_valid_result  \
+         ../../result/test_result  ../../result/valid_result ../../result/final_result
 
 echo '... generate map'
 python ./0_gen-map.py

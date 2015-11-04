@@ -3,6 +3,37 @@ import theano.tensor as T
 import theano
 import numpy
 
+class FirstHiddenLayer(object):
+    def __init__(self, rng, input, inputNum, outputNum, dnnWidth, spliceWidth = 4, W = None, b = None, dropoutProb = 1.0, DROPOUT = False):
+        if DROPOUT == True:
+            self.input = Dropout( rng = rng, input = input, inputNum = inputNum, dropoutProb = dropoutProb )
+        else:
+            self.input = input * dropoutProb
+        if W is None:
+            W_values = rng.uniform( low = -numpy.sqrt(6./(inputNum+outputNum)), high = numpy.sqrt(6./(inputNum+outputNum)),
+            size = (inputNum, outputNum, (2 * spliceWidth+1) ) ).astype( dtype=theano.config.floatX )
+            W = theano.shared(value = W_values, name = 'W', borrow = True)
+        else:
+            W = theano.shared( value = numpy.array(W, dtype = theano.config.floatX), name='W', borrow = True )
+
+        if b is None:
+            b_values = rng.uniform( low = -1, high = 1, size = (outputNum,)).astype(dtype=theano.config.floatX)
+            b = theano.shared(value = b_values, name = 'b', borrow = True)
+        else:
+            b = theano.shared( value = numpy.array(b, dtype = theano.config.floatX), name='b', borrow = True )
+
+        self.W = W
+        self.b = b
+        
+        z = T.sum(T.batched_dot(self.input, self.W), axis=0) + self.b
+        
+        # Maxout
+        zT= z.dimshuffle(1,0)
+        self.output = T.maximum(zT[0:dnnWidth/2],zT[dnnWidth/2:]).dimshuffle(1,0)
+        
+        # parameters of the model
+        self.params = [self.W, self.b]
+
 class HiddenLayer(object):
     def __init__(self, rng, input, inputNum, outputNum, dnnWidth, W = None, b = None, dropoutProb = 1.0, DROPOUT = False):
         if DROPOUT == True:
@@ -93,7 +124,7 @@ class DNN(object):
         # Create Hidden Layers
         self.hiddenLayerList=[]
         self.hiddenLayerList.append(
-            HiddenLayer(
+            FirstHiddenLayer(
                 rng = P.rng,
                 input = input,
                 inputNum = P.inputDimNum,

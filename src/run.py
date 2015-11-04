@@ -39,6 +39,7 @@ if __name__ == '__main__':
         bestModel = utils.loadPkl(bestModelFilename)
     
     dnn.getResult(bestModel, datasets, P)
+    dnn.getProb(bestModel, datasets, P)
 
     smooth(noSmoothedFilename = P.testResultFilename, smoothedFilename = P.testSmoothedResultFilename)
     smooth(noSmoothedFilename = P.validResultFilename, smoothedFilename = P.validSmoothedResultFilename)

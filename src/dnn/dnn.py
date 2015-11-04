@@ -14,11 +14,8 @@ numpy.set_printoptions(threshold=numpy.nan) # for print numpy array
 
 def trainDNN(datasets, P):
 
-    trainSetX, trainSetY, trainSetName = dnnUtils.splice(datasets[0], 4)
-    validSetX, validSetY, validSetName = dnnUtils.splice(datasets[1], 4)
-#sharedTrainSetX = trainSetX.tolist()
-#sharedTrainSetY = trainSetY.tolist()
-#castSharedTrainSetY = T.cast(sharedTrainSetY, 'int32')
+    trainSetX, trainSetY, trainSetName = datasets[0]
+    validSetX, validSetY, validSetName = datasets[1]
     sharedTrainSetX, sharedTrainSetY, castSharedTrainSetY = sharedDataXY(trainSetX, trainSetY)
     sharedValidSetX, sharedValidSetY, castSharedValidSetY = sharedDataXY(validSetX, validSetY)
 
@@ -26,10 +23,8 @@ def trainDNN(datasets, P):
     # BUILD MODEL #
     ###############
     print '... building the model'
-
-    start = T.lscalar()  # index to a [mini]batch
-    end = T.lscalar()    # index to a [mini]batch
-    x = T.matrix('x')    # the data is presented as rasterized images
+    i = T.ivector('i')
+    x = T.tensor3('x')    # the data is presented as rasterized images
     y = T.ivector('y')   # the labels are presented as 1D vector of
                          # [int] labels
 
@@ -43,8 +38,7 @@ def trainDNN(datasets, P):
     predicter = DNN( input = x, P = P, params = dummyParams )
 
     # Validation model
-    validModel = theano.function( inputs = [start, end], outputs = predicter.errors(y),
-                                  givens = { x: sharedValidSetX[start:end], y: castSharedValidSetY[start:end] } )
+    validModel = theano.function( inputs = [x,y], outputs = predicter.errors(y), givens ={x:sharedTrainSetX})
     
     # Cost function 1.cross entropy 2.weight decay
     cost = ( classifier.crossEntropy(y) + P.L1Reg * classifier.L1 + P.L2Reg * classifier.L2_sqr )
@@ -60,9 +54,7 @@ def trainDNN(datasets, P):
     grads = [T.grad(cost, param) for param in classifier.params]
     myOutputs = [classifier.errors(y)] + grads + classifier.params
     myUpdates = dnnUtils.chooseUpdateMethod(grads, classifier.params, P)
-
-    trainModel = theano.function( inputs = [start, end], outputs = myOutputs, updates = myUpdates,
-                                  givens = { x: sharedTrainSetX[start:end], y: castSharedTrainSetY[start:end] } )
+    trainModel = theano.function( inputs = [x, y], outputs = myOutputs, updates = myUpdates)
 
     ###################
     # TRAIN DNN MODEL #
@@ -85,29 +77,35 @@ def trainDNN(datasets, P):
     totalValidSize = len(validSetX)
 
     # Make mini-Batch
-    trainBatchIdxList = dnnUtils.makeBatch(totalTrainSize, P.batchSizeForTrain)
-    validBatchIdxList = dnnUtils.makeBatch(totalValidSize, 16384)
-    
+    trainBatchIdx = dnnUtils.makeBatch(totalTrainSize, P.batchSizeForTrain)
+    validBatchIdx = dnnUtils.makeBatch(totalValidSize, 16384)
+   
+    # Center Indx
+    trainCenterIdx = dnnUtils.findCenterIdxList(trainSetY)
+    validCenterIdx = dnnUtils.findCenterIdxList(validSetY)
+
     startTime  = timeit.default_timer()
     while (epoch < P.maxEpoch) and (not doneLooping):
         epoch = epoch + 1
 
         if P.SHUFFLE:
-            p = numpy.random.permutation(totalTrainSize)
-            sharedTrainSetX, sharedTrainSetY, castSharedTrainSetY = setSharedDataXY(sharedTrainSetX, sharedTrainSetY, trainSetX[p], trainSetY[p])
-#sharedTrainSetX = trainSetX[p]
-#sharedTrainSetY = trainSetY[p]
-#castSharedTrainSetY = T.cast(sharedTrainSetY,'int32')
+            random.shuffle(trainCenterIdx)
+#p = numpy.random.permutation(totalTrainSize)
+#sharedTrainSetX, sharedTrainSetY, castSharedTrainSetY = setSharedDataXY(sharedTrainSetX, sharedTrainSetY, trainSetX[p], trainSetY[p])
 
         # Training
         trainLosses=[]
         s = 2*(P.dnnDepth+1)
-        for i in xrange(len(trainBatchIdxList)):
-            outputs = trainModel(trainBatchIdxList[i][0], trainBatchIdxList[i][1])
+        for i in xrange(len(trainBatchIdx)):
+            outputs = trainModel(dnnUtils.spliceInput(sharedTrainSetX, castSharedTrainSetY, trainCenterIdx[ trainBatchIdx[i][0]:trainBatchIdx[i][1] ]))
             trainLosses.append(outputs[0])
+
+
             # print value for debug
-            if i == 0 and P.DEBUG:
-                dnnUtils.printGradsParams(outputs[1:], P.dnnDepth)
+#    if i == 0 and P.DEBUG:
+#               dnnUtils.printGradsParams(outputs[1:], P.dnnDepth)
+
+
         # Evaluate training FER 
         trainFER = numpy.mean(trainLosses)
 
@@ -116,7 +114,8 @@ def trainDNN(datasets, P):
         dnnUtils.setParamsValue(nowModel, predicter.params)
         
         # Evaluate validation FER
-        validLosses = [validModel(validBatchIdxList[i][0], validBatchIdxList[i][1]) for i in xrange(len(validBatchIdxList))]
+        validLosses = [validModel(dnnUtils.spliceInput(sharedValidSetX, castSharedValidSetY, validCenterIdx[ validBatchIdx[i][0]:validBatchIdx[i][1] ])) for i in xrange(len(validBatchIdx))]
+
         validFER = numpy.mean(validLosses)
         if P.updateMethod != 'Momentum':
             prevFER = validFER
@@ -195,11 +194,22 @@ def getResult(bestModel, datasets, P):
     clearSharedDataXY(sharedTestSetX, sharedTestSetY)
     clearSharedDataXY(sharedValidSetX, sharedValidSetY)
 
-    print "...getting probability"
 
+def getProb(bestModel, datasets, P):
+
+    print "...getting probability"
     # For getting prob
     trainSetX, trainSetY, trainSetName = dnnUtils.splice(datasets[0], 4)
     sharedTrainSetX, sharedTrainSetY, castSharedTrainSetY = sharedDataXY(trainSetX, trainSetY)
+
+    # allocate symbolic variables for the data
+    start = T.lscalar()  # index to a [mini]batch
+    end = T.lscalar()  # index to a [mini]batch
+    x = T.matrix('x')    # the data is presented as rasterized images
+    y = T.ivector('y')   # the labels are presented as 1D vector of
+
+    # bulid best DNN model
+    predicter = DNN( input = x, P = P, params = bestModel )
     
     # training model
     trainModel = theano.function(
@@ -208,9 +218,8 @@ def getResult(bestModel, datasets, P):
                 givens={ x: sharedTrainSetX[start : end], y: castSharedTrainSetY[start : end] }, on_unused_input='ignore')
     
     totalTrainSize = len(trainSetX)
-    trainBatchIdxList = dnnUtils.makeBatch(totalTrainSize, P.batchSizeForTrain)
+    trainBatchIdxList = dnnUtils.makeBatch(totalTrainSize, 16384)
 
-    trainProb = dnnUtils.getProb(trainModel, trainBatchIdxList) 
-    dnnUtils.writeProb(trainProb, P.trainProbFilename, trainSetName)
+    dnnUtils.writeProb(trainModel, trainBatchIdxList, trainSetName, P.trainProbFilename) 
     
     clearSharedDataXY(sharedTrainSetX, sharedTrainSetY)
