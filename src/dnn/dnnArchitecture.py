@@ -4,14 +4,15 @@ import theano
 import numpy
 
 class FirstHiddenLayer(object):
-    def __init__(self, rng, input, inputNum, outputNum, dnnWidth, spliceWidth = 4, W = None, b = None, dropoutProb = 1.0, DROPOUT = False):
-        if DROPOUT == True:
-            self.input = Dropout( rng = rng, input = input, inputNum = inputNum, dropoutProb = dropoutProb )
-        else:
-            self.input = input * dropoutProb
+    def __init__(self, rng, input, inputNum, outputNum, dnnWidth, spliceWidth = 1, W = None, b = None, dropoutProb = 1.0, DROPOUT = False):
+        #if DROPOUT == True:
+#self.input = Dropout( rng = rng, input = input, inputNum = inputNum, dropoutProb = dropoutProb )
+#else:
+#self.input = input * dropoutProb
+        self.input = input
         if W is None:
             W_values = rng.uniform( low = -numpy.sqrt(6./(inputNum+outputNum)), high = numpy.sqrt(6./(inputNum+outputNum)),
-            size = (inputNum, outputNum, (2 * spliceWidth+1) ) ).astype( dtype=theano.config.floatX )
+            size = (3, inputNum/3, outputNum) ).astype( dtype=theano.config.floatX )
             W = theano.shared(value = W_values, name = 'W', borrow = True)
         else:
             W = theano.shared( value = numpy.array(W, dtype = theano.config.floatX), name='W', borrow = True )
@@ -25,12 +26,11 @@ class FirstHiddenLayer(object):
         self.W = W
         self.b = b
         
-        z = T.sum(T.batched_dot(self.input, self.W), axis=0) + self.b
-        
+        #z = T.sum(T.batched_dot(self.input, self.W),axis=2) + self.b
+        z = T.tensordot(self.input, self.W, [[0,2],[0,1]]) + self.b
         # Maxout
-        zT= z.dimshuffle(1,0)
-        self.output = T.maximum(zT[0:dnnWidth/2],zT[dnnWidth/2:]).dimshuffle(1,0)
-        
+        zT= z.T
+        self.output = T.maximum(zT[0:dnnWidth/2],zT[dnnWidth/2:]).T
         # parameters of the model
         self.params = [self.W, self.b]
 

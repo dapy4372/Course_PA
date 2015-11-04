@@ -124,15 +124,18 @@ def splice(dataset, w):
     spliceDataY = np.array(spliceDataY, dtype=theano.config.floatX)
     return spliceDataX, spliceDataY, spliceDataName
 """
-def spliceInput(x,y,idx):
+def spliceInput(sX, sY, idx):
     spliceWidth = 4
-    spliceX = []
-    for i in xrange(-spliceWidth, spliceWidth+1):
-        spliceX += T.stacklists([x[j+i] for j in idx ])
-    spliceX = T.stacklists(spliceX)
-    spliceY = T.stacklists([y[i] for i in idx])
-    return spliceX.eval(), spliceY.eval()
-
+    print idx
+    spliceX = T.stacklists([ (T.stacklists([sX[j+i] for j in idx ])) for i in xrange(-spliceWidth, spliceWidth+1)])
+    spliceY = T.stacklists([sY[i] for i in idx ])
+    return spliceX, spliceY
+def splicedX(x, idx):
+    spliceWidth = 1
+    return T.concatenate([ (T.stacklists([x[j+i] for j in [idx] ])) for i in xrange(-spliceWidth, spliceWidth+1)])
+def splicedY(y, idx):    
+    return T.concatenate([y[i] for i in [idx]])
+    
 class Parameters(object):
     def __init__(self, filename):
        title, parameter           = utils.readFile2(filename)

@@ -23,25 +23,30 @@ def trainDNN(datasets, P):
     # BUILD MODEL #
     ###############
     print '... building the model'
-    i = T.ivector('i')
-    x = T.tensor3('x')    # the data is presented as rasterized images
-    y = T.ivector('y')   # the labels are presented as 1D vector of
-                         # [int] labels
+    idx = T.ivector('i')
+#x = T.tensor3('x')    # the data is presented as rasterized images
+#y = T.ivector('y')    # the labels are presented as 1D vector of [int] labels
+    sX = T.matrix(dtype=theano.config.floatX)
+    sY = T.ivector()
 
     # For create a new model
     dummyParams = [None] * (2 * (P.dnnDepth + 1))
     
+    def splicedX(x, idx):
+        spliceWidth = 1
+        return T.concatenate([ (T.stacklists([x[j+i] for j in [idx] ])) for i in xrange(-spliceWidth, spliceWidth+1)])
+    def splicedY(y, idx):    
+        return T.concatenate([y[i] for i in [idx]])
+
     # Build the DNN object for training
-    classifier = DNN( input = x, params = dummyParams, P = P, DROPOUT = True )
+    
+    classifier = DNN( input = splicedX(sX, idx), params = dummyParams, P = P, DROPOUT = True )
     
     # Build the DNN object for Validation
-    predicter = DNN( input = x, P = P, params = dummyParams )
-
-    # Validation model
-    validModel = theano.function( inputs = [x,y], outputs = predicter.errors(y), givens ={x:sharedTrainSetX})
+    predicter = DNN( input = splicedX(sX, idx), P = P, params = dummyParams )
     
     # Cost function 1.cross entropy 2.weight decay
-    cost = ( classifier.crossEntropy(y) + P.L1Reg * classifier.L1 + P.L2Reg * classifier.L2_sqr )
+    cost = ( classifier.crossEntropy(splicedY(sY,idx)) + P.L1Reg * classifier.L1 + P.L2Reg * classifier.L2_sqr )
    
     # Global parameters setting
     globalParam.initGlobalLearningRate(P)
@@ -50,11 +55,22 @@ def trainDNN(datasets, P):
     globalParam.initGlobalSigmas()
     globalParam.initGlobalgradSqrs()
     
-    # Training model
-    grads = [T.grad(cost, param) for param in classifier.params]
-    myOutputs = [classifier.errors(y)] + grads + classifier.params
+    grads = [T.grad(cost, param) for param in classifier.params] 
+    # Training mode
+    myOutputs = [classifier.errors(splicedY(sY, idx))] + grads + classifier.params
+#myOutputs = dnnUtils.splicedY(sY, idx)
     myUpdates = dnnUtils.chooseUpdateMethod(grads, classifier.params, P)
-    trainModel = theano.function( inputs = [x, y], outputs = myOutputs, updates = myUpdates)
+  
+    trainModel = theano.function( inputs = [idx], outputs = myOutputs, updates = myUpdates, 
+                                  givens={sX:sharedTrainSetX, sY:castSharedTrainSetY})
+#c = splicedX(sX,idx)
+#trainModel = theano.function( inputs = [idx], outputs = myOutputs, 
+#givens={sX:sharedTrainSetX, sY:castSharedTrainSetY})
+#print trainModel([4,5])
+
+    # Validation model
+    validModel = theano.function( inputs = [idx], outputs = predicter.errors(splicedY(sY, idx)),
+                                  givens={sX:sharedValidSetX, sY:castSharedValidSetY})
 
     ###################
     # TRAIN DNN MODEL #
@@ -95,15 +111,15 @@ def trainDNN(datasets, P):
 
         # Training
         trainLosses=[]
-        s = 2*(P.dnnDepth+1)
         for i in xrange(len(trainBatchIdx)):
-            outputs = trainModel(dnnUtils.spliceInput(sharedTrainSetX, castSharedTrainSetY, trainCenterIdx[ trainBatchIdx[i][0]:trainBatchIdx[i][1] ]))
+            outputs = trainModel(trainCenterIdx[trainBatchIdx[i][0]:trainBatchIdx[i][1]])
+#tmp = numpy.mean(trainLosses)
+#print('%f'%(tmp))
             trainLosses.append(outputs[0])
 
-
             # print value for debug
-#    if i == 0 and P.DEBUG:
-#               dnnUtils.printGradsParams(outputs[1:], P.dnnDepth)
+            #if i == 0 and P.DEBUG:
+#dnnUtils.printGradsParams(outputs[1:], P.dnnDepth)
 
 
         # Evaluate training FER 
@@ -114,7 +130,7 @@ def trainDNN(datasets, P):
         dnnUtils.setParamsValue(nowModel, predicter.params)
         
         # Evaluate validation FER
-        validLosses = [validModel(dnnUtils.spliceInput(sharedValidSetX, castSharedValidSetY, validCenterIdx[ validBatchIdx[i][0]:validBatchIdx[i][1] ])) for i in xrange(len(validBatchIdx))]
+        validLosses = [validModel(validCenterIdx[validBatchIdx[i][0]:validBatchIdx[i][1]]) for i in xrange(len(validBatchIdx))]
 
         validFER = numpy.mean(validLosses)
         if P.updateMethod != 'Momentum':
