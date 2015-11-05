@@ -9,11 +9,11 @@ learningRate:0.005
 learningRateDecay:1
 hiddenProb:1
 inputProb:1
-dataSetFilename:../pkl/fbank_dataset.pkl
+dataSetFilename:../pkl/fbank_1943_dataset.pkl
 dataSetType:fbank
-maxEpoch:200
+maxEpoch:1
 inputDimNum:621
-outputPhoneNum:48
+outputPhoneNum:1943
 seed:1111
 earlyStop:100
 L1Reg:0.00
