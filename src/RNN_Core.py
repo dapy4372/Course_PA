@@ -28,6 +28,37 @@ class HiddenLayer(object):
         # parameters of the model
         self.params = [self.W, self.b]
 
+class MemoryLayer(object):
+    def __init__(self, rng, input, inputNum, outputNum, dnnWidth, W = None, b = None, dropoutProb = 1.0, DROPOUT = False):
+        if DROPOUT == True:
+            self.input = Dropout( rng = rng, input = input, inputNum = inputNum, dropoutProb = dropoutProb )
+        else:
+            self.input = input * dropoutProb
+        if W is None:
+            W_values = rng.uniform( low = -numpy.sqrt(6./(inputNum+outputNum)), high = numpy.sqrt(6./(inputNum+outputNum)),
+            size = (inputNum, outputNum) ).astype( dtype=theano.config.floatX )
+            W = theano.shared(value = W_values, name = 'W', borrow = True)
+        else:
+            W = theano.shared( value = numpy.array(W, dtype = theano.config.floatX), name='W', borrow = True )
+
+        if b is None:
+            b_values = rng.uniform( low = -1, high = 1, size = (outputNum,)).astype(dtype=theano.config.floatX)
+            b = theano.shared(value = b_values, name = 'b', borrow = True)
+        else:
+            b = theano.shared( value = numpy.array(b, dtype = theano.config.floatX), name='b', borrow = True )
+        self.W = W
+        self.b = b
+        
+        z = T.dot(self.input, self.W) + self.b
+        
+        '''# Maxout
+        zT= z.dimshuffle(1,0)
+        self.output = T.maximum(zT[0:dnnWidth/2],zT[dnnWidth/2:]).dimshuffle(1,0)'''
+        self.output = z
+        
+        # parameters of the model
+        self.params = [self.W, self.b]
+
 class OutputLayer(object):
     def __init__(self, input, inputNum, outputNum, rng, W = None, b = None):
         if W is None:
@@ -111,7 +142,7 @@ class RNN(object):
             HiddenLayer(
               input       = self.memoryLayerList[0].output + self.input, 
               rng         = P.rng,
-              inputNum    = P.dnnWidth/2,
+              inputNum    = P.inputDimNum,
               outputNum   = P.dnnWidth,
               dnnWidth    = P.dnnWidth,
               dropoutProb = P.dropoutHiddenProb,
@@ -122,11 +153,11 @@ class RNN(object):
         # The memory layer, 
         # Currently it's a Jordan type RNN, thus only 1 memory layer is required
         self.memoryLayerList.append(
-            HiddenLayer(
+            MemoryLayer(
               input       = self.outputLayer.output, 
               rng         = P.rng,
-              inputNum    = P.dnnWidth/2,
-              outputNum   = P.dnnWidth,
+              inputNum    = P.outputPhoneNum,
+              outputNum   = P.inputDimNum,
               dnnWidth    = P.dnnWidth,
               dropoutProb = P.dropoutHiddenProb,
               W           = params[2 * P.dnnDepth ],
@@ -151,25 +182,27 @@ class RNN(object):
         '''
         # Output Layer
         self.outputLayer = OutputLayer(
-              input = self.hiddenLayerList[P.dnnDepth - 1].output,
-              inputNum = P.dnnWidth/2, 
+              input     = self.hiddenLayerList[P.dnnDepth - 1].output,
+              inputNum  = P.dnnWidth/2, 
               outputNum = P.outputPhoneNum,
-              rng = P.rng,
-              W = params[2 * P.dnnDepth + 2],
-              b = params[2 * P.dnnDepth + 3])
+              rng       = P.rng,
+              W         = params[2 * P.dnnDepth + 2],
+              b         = params[2 * P.dnnDepth + 3])
         
         # Weight decay
         # L1 norm ; one regularization option is to enforce L1 norm to be small
         self.L1 = 0
         for i in xrange(P.dnnDepth):
              self.L1 += abs(self.hiddenLayerList[i].W).sum()
-        self.L1 += abs(self.memoryLayerList[0].W).sum()
+        for i in xrange(P.dnnDepth):
+             self.L1 += abs(self.memoryLayerList[i].W).sum()
         self.L1 += abs(self.outputLayer.W).sum()
         # square of L2 norm ; one regularization option is to enforce square of L2 norm to be small
         self.L2_sqr = 0
         for i in xrange(P.dnnDepth):
             self.L2_sqr += (self.hiddenLayerList[i].W ** 2).sum()
-        self.L2_sqr += (self.memoryLayerList[0].W).sum()
+        for i in xrange(P.dnnDepth):
+            self.L2_sqr += (self.memoryLayerList[i].W ** 2).sum()
         self.L2_sqr += (self.outputLayer.W ** 2).sum()
 
         # CrossEntropy
