@@ -51,7 +51,7 @@ def trainDNN(datasets, P):
     globalParam.initGlobalgradSqrs()
     
     grads = [T.grad(cost, param) for param in classifier.params]
-    myOutputs = [classifier.errors(dnnUtils.splicedY(sY, idx))] + grads + classifier.params
+    myOutputs = [classifier.errors(dnnUtils.splicedY(sY, idx))] + grads + classifier.params + [cost]
     myUpdates = dnnUtils.chooseUpdateMethod(grads, classifier.params, P)
 
     # Training mode
@@ -67,7 +67,7 @@ def trainDNN(datasets, P):
     ###################
 
     print '... start training'
-    print ('epoch,    train,    valid')
+    print ('epoch,\ttrain,\tvalid,\tcost')
 
     # Training parameter
     epoch = 0
@@ -102,10 +102,11 @@ def trainDNN(datasets, P):
 
         # Training
         trainLosses=[]
+        cost = 0
         for i in xrange(len(trainBatchIdx)):
             outputs = trainModel(trainCenterIdx[trainBatchIdx[i][0]:trainBatchIdx[i][1]])
             trainLosses.append(outputs[0])
-
+            cost += outputs[-1]
             # Print parameter value for debug
             if (i == 0 and DEBUG):
                 dnnUtils.printGradsParams(outputs[1:], P.dnnDepth)
@@ -129,7 +130,7 @@ def trainDNN(datasets, P):
             if curEarlyStop < P.earlyStop:
                 epoch -= 1
                 dnnUtils.setParamsValue(prevModel, classifier.params)
-                print (('====,%i,\t%f,\t%f') % (epoch, trainFER * 100, validFER * 100. ))
+                print (('====,%i,    %f,    %f,    %f') % (epoch, trainFER * 100, validFER * 100., cost ))
                 curEarlyStop += 1
                 if P.updateMethod == 'Momentum':
                     globalParam.lr = globalParam.lr * P.learningRateDecay
@@ -142,7 +143,7 @@ def trainDNN(datasets, P):
                 doneLooping = True
                 continue
 
-        print (('%i,\t%f,\t%f') % (epoch, trainFER * 100, validFER * 100. ))
+        print (('%i,\t%f,\t%f,\t%f') % (epoch, trainFER * 100, validFER * 100. , cost))
 
         # Record the Adagrad, RMSProp parameter
         if P.updateMethod == 'Adagrad':

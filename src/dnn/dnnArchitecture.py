@@ -11,7 +11,7 @@ class FirstHiddenLayer(object):
 #self.input = input * dropoutProb
         self.input = input
         if W is None:
-            W_values = rng.uniform( low = -numpy.sqrt(6./(inputNum+outputNum)), high = numpy.sqrt(6./(inputNum+outputNum)),
+            W_values = rng.uniform( low = -numpy.sqrt(1./(inputNum+outputNum)), high = numpy.sqrt(1./(inputNum+outputNum)),
             size = (9, inputNum/9, outputNum) ).astype( dtype=theano.config.floatX )
             W = theano.shared(value = W_values, name = 'W', borrow = True)
         else:
@@ -41,7 +41,7 @@ class HiddenLayer(object):
         else:
             self.input = input * dropoutProb
         if W is None:
-            W_values = rng.uniform( low = -numpy.sqrt(6./(inputNum+outputNum)), high = numpy.sqrt(6./(inputNum+outputNum)),
+            W_values = rng.uniform( low = -numpy.sqrt(1./(inputNum+outputNum)), high = numpy.sqrt(1./(inputNum+outputNum)),
             size = (inputNum, outputNum) ).astype( dtype=theano.config.floatX )
             W = theano.shared(value = W_values, name = 'W', borrow = True)
         else:
