@@ -126,22 +126,27 @@ def trainDNN(datasets, P):
             prevFER = validFER
             prevModel = nowModel
             curEarlyStop = 0
-        else:
+        elif globalParam.lr > 1e-7:
+            epoch -= 1
+            dnnUtils.setParamsValue(prevModel, classifier.params)
+
             if curEarlyStop < P.earlyStop:
-                epoch -= 1
-                dnnUtils.setParamsValue(prevModel, classifier.params)
-                print (('====,%i,    %f,    %f,    %f') % (epoch, trainFER * 100, validFER * 100., cost ))
                 curEarlyStop += 1
-                if P.updateMethod == 'Momentum':
-                    globalParam.lr = globalParam.lr * P.learningRateDecay
-                elif P.updateMethod == 'Adagrad':
-                    globalParam.gradSqrs = prevGradSqrs
-                elif P.updateMethod == 'RMSProp':
-                    globalParam.sigmaSqrs = prevSigmaSqrs
-                continue
-            else:
-                doneLooping = True
-                continue
+            elif (curEarlyStop > P.earlyStop) and (P.updateMethod != 'Momentum'):
+                globalParam.lr = globalParam.lr * P.learningRateDecay
+                print "learning decay!!"
+
+            if P.updateMethod == 'Momentum':
+                globalParam.lr = globalParam.lr * P.learningRateDecay
+            elif P.updateMethod == 'Adagrad':
+                globalParam.gradSqrs = prevGradSqrs
+            elif P.updateMethod == 'RMSProp':
+                globalParam.sigmaSqrs = prevSigmaSqrs
+            print (('====,%i,    %f,    %f,    %f') % (epoch, trainFER * 100, validFER * 100., cost ))
+            continue
+        else:
+            doneLooping = True
+            continue
 
         print (('%i,\t%f,\t%f,\t%f') % (epoch, trainFER * 100, validFER * 100. , cost))
 
