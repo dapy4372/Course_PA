@@ -11,12 +11,6 @@ def sharedDataXY(dataX, dataY, borrow=True):
     sharedY = theano.shared(np.asarray(dataY, dtype=theano.config.floatX), borrow=True)
     return [sharedX, sharedY, T.cast(sharedY,'int32')]
 
-def setSharedDataXY(sharedX, sharedY, dataX, dataY):        
-    sharedX.set_value(np.asarray(dataX, dtype=theano.config.floatX))
-    #TODO does't work in GPU for sharedY
-    sharedY.set_value(np.asarray(dataY, dtype=theano.config.floatX))
-    return [sharedX, sharedY, T.cast(sharedY,'int32')]
-
 def clearSharedDataXY(sharedX, sharedY):
     sharedX.set_value([[]])
     sharedY.set_value([])
@@ -37,20 +31,15 @@ def printGradsParams(GP, dnnDepth):
         printNpArrayMeanStdMaxMin("Gb", GP[i+1])
         printNpArrayMeanStdMaxMin("G ", GP[i+dnnDepth])
         printNpArrayMeanStdMaxMin("G ", GP[i+dnnDepth+1])
-        """
-        print ( ' # GW\tmean = %.5f\tstd = %.5f' % (np.mean(GP[i]), np.std(GP[i]), np.amax(GP[i]), np.amin(GP[i]) ))
-        print ( ' # Gb\tmean = %.5f\tstd = %.5f' % (np.mean(GP[i+1]), np.std(GP[i+1]), np.amax(GP[i+1]), np.amin(GP[i+1]) ))
-        print ( ' # W \tmean = %.5f\tstd = %.5f' % (np.mean(GP[i+dnnDepth]), np.std(GP[i+dnnDepth]), np.amax(GP[i+dnnDepth]), np.amin(GP[i+dnnDepth]) ))
-        print ( ' # b \tmean = %.5f\tstd = %.5f' % (np.mean(GP[i+dnnDepth+1]), np.std(GP[i+dnnDepth+1]), np.amax(GP[i+dnnDepth+1]), np.amin(GP[i+dnnDepth+1]) )) 
-        """
+
 def printNpArrayMeanStdMaxMin(name, npArray):
     print(" #%s \t mean = %f \t std = %f \t max = %f \t min = %f" % (name, np.mean(npArray), np.std(npArray), np.amax(npArray), np.amin(npArray) ))
 
-def EvalandResult(Model, indexList, modelType):
+def EvalandResult(Model, batchIdx, centerIdx, modelType):
     result = []
     Losses = []
-    for i in xrange(len(indexList)):
-        thisLoss, thisResult = Model(indexList[i][0], indexList[i][1])
+    for i in xrange(len(batchIdx)):
+        thisLoss, thisResult = Model(centerIdx[batchIdx[i][0]:batchIdx[i][1]])
         result += thisResult.tolist()
         Losses.append(thisLoss)
     FER = np.mean(Losses)
@@ -63,11 +52,11 @@ def writeResult(result, filename, setNameList):
         f.write(setNameList[i] + ',' + str(result[i]) + '\n')
     f.close()
 
-def writeProb(Model, idxList, nameList, filename):
+def writeProb(Model, batchIdx, centerIdx, nameList, filename):
     f = open(filename, 'w')
-    for i in xrange(len(idxList)):
-        tmpProb = Model(idxList[i][0], idxList[i][1]).tolist()
-        for j in xrange(idxList[i][1]-idxList[i][0]):
+    for i in xrange(len(batchIdx)):
+        tmpProb = Model(centerIdx[batchIdx[i][0]:batchIdx[i][1]]).tolist()
+        for j in xrange(batchIdx[i][1]-batchIdx[i][0]):
             f.write(nameList[j] + ' ' + " ".join(map(str, tmpProb[j])) + '\n')
     f.close()
 """
@@ -109,38 +98,17 @@ def findCenterIdxList(dataY):
         else:
             spliceIdxList.append(i)
     return spliceIdxList
-"""
-def splice(dataset, w):
-    dataX, dataY, dataName = dataset
-    spliceIdxList = findSpliceIdxList(dataY)
-    spliceDataX = []
-    spliceDataY = []
-    spliceDataName = []
-    for j in spliceIdxList:
-        spliceDataX.append(np.concatenate( [dataX[j+i] for i in xrange(-w, w+1)], axis = 0))
-        spliceDataY.append(dataY[j])
-        spliceDataName.append(dataName[j])
-    spliceDataX = np.array(spliceDataX, dtype=theano.config.floatX)
-    spliceDataY = np.array(spliceDataY, dtype=theano.config.floatX)
-    return spliceDataX, spliceDataY, spliceDataName
-"""
-def spliceInput(sX, sY, idx):
-    spliceWidth = 4
-    print idx
-    spliceX = T.stacklists([ (T.stacklists([sX[j+i] for j in idx ])) for i in xrange(-spliceWidth, spliceWidth+1)])
-    spliceY = T.stacklists([sY[i] for i in idx ])
-    return spliceX, spliceY
+
 def splicedX(x, idx):
-    spliceWidth = 1
+    spliceWidth = 4
     return T.concatenate([ (T.stacklists([x[j+i] for j in [idx] ])) for i in xrange(-spliceWidth, spliceWidth+1)])
+
 def splicedY(y, idx):    
     return T.concatenate([y[i] for i in [idx]])
     
 class Parameters(object):
     def __init__(self, filename):
        title, parameter           = utils.readFile2(filename)
-       self.DEBUG                 = bool(parameter[title.index('debug')])
-       self.SHUFFLE               = bool(parameter[title.index('shuffle')])
        self.momentum              = float(parameter[title.index('momentum')])
        self.dnnWidth              = int(parameter[title.index('width')])
        self.dnnDepth              = int(parameter[title.index('depth')])
@@ -160,8 +128,6 @@ class Parameters(object):
        self.L1Reg                 = float(parameter[title.index('L1Reg')])
        self.L2Reg                 = float(parameter[title.index('L2Reg')])
        self.outputFilename = (str(self.datasetType) + '_' + (str(self.updateMethod))
-                              + '_D_' + str(self.DEBUG)
-                              + '_s_' + str(self.SHUFFLE)
                               + '_m_' + str(self.momentum)
                               + '_dw_'+ str(self.dnnWidth)
                               + '_dd_'+ str(self.dnnDepth)
@@ -171,7 +137,7 @@ class Parameters(object):
                               + '_di_'+ str(self.dropoutInputProb)
                               + '_dh_'+ str(self.dropoutHiddenProb) )
        self.bestModelFilename   = '../model/' + self.outputFilename
-       self.trainProbFilename  = '../prob/' + self.outputFilename + '.ark'
+       self.trainProbFilename   = '../prob/' + self.outputFilename + '.ark'
        self.testResultFilename  = '../result/test_result/' + self.outputFilename + '.csv'
        self.validResultFilename = '../result/valid_result/' + self.outputFilename + '.csv'
        self.validSmoothedResultFilename = '../result/smoothed_valid_result/' + self.outputFilename + '.csv' 
