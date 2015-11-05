@@ -1,10 +1,11 @@
 from operator import itemgetter, attrgetter
+import sys
 import utils
 
 RATIO = 10
-
-trainArkDir     = '../../data/fbank/train.ark'
-trainLabelDir   = '../../data/state_label/train.lab'
+dataPath = sys.argv[1]
+trainArkDir     = dataPath + '/fbank/train.ark'
+trainLabelDir   = dataPath + '/label/train_int.lab'
 trainXName      = '../../fbank_valid/train.ark'
 trainYName      = '../../fbank_valid/train.lab'
 validXName      = '../../fbank_valid/valid.ark'

@@ -1,6 +1,9 @@
+import sys
 import operator
-state_48_39_ori_map = '../../data/phones/state_48_39.map'
-phone_48_39_ori_map = '../../data/phones/48_39.map'
+
+dataPath = sys.argv[1]
+state_48_39_ori_map = dataPath + '/phones/state_48_39.map'
+phone_48_39_ori_map = dataPath + '/phones/48_39.map'
 state_label_map     = '../../map/state_label.map'
 phone_48_39_int_map = '../../map/phone_48_39_int.map'
 phone_48_int_map    = '../../map/phone_48_int.map'

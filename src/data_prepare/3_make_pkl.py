@@ -1,19 +1,21 @@
-import numpy as np
+import sys
+import gzip
 import random
 import cPickle
-import gzip
+import numpy as np
 import utils
 from operator import itemgetter, attrgetter
 
 random.seed(1234)
-dirPath = '../../fbank_valid/'
-trainArkFilename   = dirPath + 'train.ark'
-trainLabelFilename = dirPath + 'train.lab'
-validArkFilename   = dirPath + 'valid.ark'
-validLabelFilename = dirPath + 'valid.lab'
-testArkFilename    = '../../data/fbank/' + 'test.ark'
-outputPklFilename  = '../../pkl/fbank_1943_dataset_without_preprocessing.pkl'
-dim = 69
+dim = int(sys.argv[1])
+dataPath = sys.argv[2]
+pickedValidDirPath = '../../fbank_valid/'
+trainArkFilename   = pickedValidDirPath + 'train.ark'
+trainLabelFilename = pickedValidDirPath + 'train.lab'
+validArkFilename   = pickedValidDirPath + 'valid.ark'
+validLabelFilename = pickedValidDirPath + 'valid.lab'
+testArkFilename    = dataPath + '/fbank/test.ark'
+outputPklFilename  = '../../pkl/fbank_' + str(dim) + '_dataset_without_preprocessing.pkl'
 
 def countLineNum(fileArkName):
     f = open(fileArkName, 'rb')
