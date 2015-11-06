@@ -207,12 +207,12 @@ def getResult(bestModel, datasets, P):
     dnnUtils.clearSharedDataXY(sharedValidSetX, sharedValidSetY)
 
 
-def getProb(bestModel, datasets, P):
+def getProb(bestModel, dataset, probFilename):
 
     print "...getting probability"
     # For getting prob
-    trainSetX, trainSetY, trainSetName = datasets[0]
-    sharedTrainSetX, sharedTrainSetY, castSharedTrainSetY = dnnUtils.sharedDataXY(trainSetX, trainSetY)
+    setX, setY, setName = dataset
+    sharedSetX, sharedSetY, castSharedSetY = dnnUtils.sharedDataXY(setX, setY)
 
     idx = T.ivector('i')
     sX = T.matrix(dtype=theano.config.floatX)
@@ -221,20 +221,19 @@ def getProb(bestModel, datasets, P):
     # bulid best DNN model
     predicter = DNN( input = dnnUtils.splicedX(sX, idx), P = P, params = bestModel )
 
-    # Validation model
-    trainModel = theano.function( inputs = [idx], outputs = predicter.p_y_given_x, 
-                                  givens={sX:sharedTrainSetX, sY:castSharedTrainSetY}, on_unused_input='ignore')
+    Model = theano.function( inputs = [idx], outputs = predicter.p_y_given_x, 
+                                  givens={sX:sharedSetX, sY:castSharedSetY}, on_unused_input='ignore')
     
     # Center Index
-    trainCenterIdx = dnnUtils.findCenterIdxList(trainSetY)
+    centerIdx = dnnUtils.findCenterIdxList(setY)
 
     # Total Center Index
-    totalTrainSize = len(trainCenterIdx)
+    totalSize = len(centerIdx)
     
     # Make mini-Batch
-    trainBatchIdx = dnnUtils.makeBatch(totalTrainSize, 16384)
+    batchIdx = dnnUtils.makeBatch(totalSize, 16384)
     
     # Writing Probability
-    dnnUtils.writeProb(trainModel, trainBatchIdx, trainCenterIdx, trainSetName, P.trainProbFilename)
+    dnnUtils.writeProb(Model, batchIdx, centerIdx, setName, probFilename)
 
-    dnnUtils.clearSharedDataXY(sharedTrainSetX, sharedTrainSetY)
+    dnnUtils.clearSharedDataXY(sharedSetX, sharedSetY)
