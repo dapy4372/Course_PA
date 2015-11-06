@@ -226,3 +226,4 @@ class RNN(object):
 
         # keep track of model input
         self.input = input
+
