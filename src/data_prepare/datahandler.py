@@ -2,7 +2,7 @@ import os
 import sys
 import numpy
 
-InputSize = 39
+InputSize = 69
 
 def nameSplit(name):
     part = name.split('_')
@@ -27,7 +27,7 @@ def normalization(dataXYN):
     newDataXYN = [dataX, dataY, dataName]
     return newDataXYN
 
-def prepareSplice(dataXYN, SpliceRange = 4):
+def prepareSplice(dataXYN, SpliceRange = 1):
     dataX, dataY, dataName = dataXYN
     endIndxList = findEndIndx(dataName)
     GroupNum = len(endIndxList)

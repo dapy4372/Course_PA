@@ -1,6 +1,7 @@
 mkdir -p ../../map ../../pkl ../../fbank_valid ../../model ../../log ../../result \
          ../../result/smoothed_test_result ../../result/smoothed_valid_result  \
-         ../../result/test_result  ../../result/valid_result ../../result/final_result ../../prob
+         ../../result/test_result  ../../result/valid_result ../../result/final_result ../../prob \
+         ../../prob/train ../../prob/test ../../prob/valid
 
 dataPath=/home/roylu/datashare/MLDS_data/         
 

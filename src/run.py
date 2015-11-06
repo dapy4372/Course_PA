@@ -38,8 +38,11 @@ if __name__ == '__main__':
         bestModelFilename = sys.argv[2]
         bestModel = utils.loadPkl(bestModelFilename)
     
-    dnn.getResult(bestModel, datasets, P)
-    dnn.getProb(bestModel, datasets, P)
+    dnn.getResult(bestModel, datasets[1], P, 'valid', P.validResultFilename)
+    dnn.getResult(bestModel, datasets[2], P, 'test', P.testResultFilename)
+    dnn.getProb(bestModel, datasets[0], P.trainProbFilename, P)
+    dnn.getProb(bestModel, datasets[1], P.validProbFilename, P)
+    dnn.getProb(bestModel, datasets[2], P.testProbFilename, P)
 
     smooth(noSmoothedFilename = P.testResultFilename, smoothedFilename = P.testSmoothedResultFilename)
     smooth(noSmoothedFilename = P.validResultFilename, smoothedFilename = P.validSmoothedResultFilename)

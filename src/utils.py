@@ -58,7 +58,7 @@ def readFile(filename):
     f.close()
     return name, label
 
-def readFile2(filename):
+def readSetting(filename):
     f = open(filename, 'r')
     title = []
     parameter = []

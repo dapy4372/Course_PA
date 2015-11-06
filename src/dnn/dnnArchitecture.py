@@ -4,7 +4,7 @@ import theano
 import numpy
 
 class FirstHiddenLayer(object):
-    def __init__(self, rng, input, inputNum, outputNum, dnnWidth, spliceWidth = 1, W = None, b = None, dropoutProb = 1.0, DROPOUT = False):
+    def __init__(self, rng, input, inputNum, outputNum, dnnWidth, spliceWidth, W = None, b = None, dropoutProb = 1.0, DROPOUT = False):
         #if DROPOUT == True:
 #self.input = Dropout( rng = rng, input = input, inputNum = inputNum, dropoutProb = dropoutProb )
 #else:
@@ -12,7 +12,7 @@ class FirstHiddenLayer(object):
         self.input = input
         if W is None:
             W_values = rng.uniform( low = -numpy.sqrt(1./(inputNum+outputNum)), high = numpy.sqrt(1./(inputNum+outputNum)),
-            size = (9, inputNum/9, outputNum) ).astype( dtype=theano.config.floatX )
+            size = (spliceWidth*2 + 1, inputNum/(spliceWidth*2 + 1), outputNum) ).astype( dtype=theano.config.floatX )
             W = theano.shared(value = W_values, name = 'W', borrow = True)
         else:
             W = theano.shared( value = numpy.array(W, dtype = theano.config.floatX), name='W', borrow = True )
@@ -28,9 +28,11 @@ class FirstHiddenLayer(object):
         
         #z = T.sum(T.batched_dot(self.input, self.W),axis=2) + self.b
         z = T.tensordot(self.input, self.W, [[0,2],[0,1]]) + self.b
+
         # Maxout
         zT= z.T
         self.output = T.maximum(zT[0:dnnWidth/2],zT[dnnWidth/2:]).T
+
         # parameters of the model
         self.params = [self.W, self.b]
 
@@ -127,9 +129,10 @@ class DNN(object):
             FirstHiddenLayer(
                 rng = P.rng,
                 input = input,
-                inputNum = P.inputDimNum,
+                inputNum  = P.inputDimNum,
                 outputNum = P.dnnWidth,
-                dnnWidth = P.dnnWidth,
+                dnnWidth  = P.dnnWidth,
+                spliceWidth = P.spliceWidth,
                 dropoutProb = P.dropoutHiddenProb,
                 W = params[0],
                 b = params[1],

@@ -99,19 +99,20 @@ def findCenterIdxList(dataY):
             spliceIdxList.append(i)
     return spliceIdxList
 
-def splicedX(x, idx):
-    spliceWidth = 4
-    return T.concatenate([ (T.stacklists([x[j+i] for j in [idx] ])) for i in xrange(-spliceWidth, spliceWidth+1)])
+def splicedX(x, idx, spliceWidth):
+    return T.concatenate([ (T.stacklists([ (x[j+i] / (abs(i)+1))  for j in [idx] ])) for i in xrange(-spliceWidth, spliceWidth+1)])
 
+# Not really spliced Y data
 def splicedY(y, idx):    
     return T.concatenate([y[i] for i in [idx]])
     
 class Parameters(object):
     def __init__(self, filename):
-       title, parameter           = utils.readFile2(filename)
+       title, parameter           = utils.readSetting(filename)
        self.momentum              = float(parameter[title.index('momentum')])
        self.dnnWidth              = int(parameter[title.index('width')])
        self.dnnDepth              = int(parameter[title.index('depth')])
+       self.spliceWidth           = int(parameter[title.index('spliceWidth')])
        self.batchSizeForTrain     = int(parameter[title.index('batchSize')])
        self.learningRate          = float(parameter[title.index('learningRate')])
        self.learningRateDecay     = float(parameter[title.index('learningRateDecay')])
@@ -131,13 +132,16 @@ class Parameters(object):
                               + '_m_' + str(self.momentum)
                               + '_dw_'+ str(self.dnnWidth)
                               + '_dd_'+ str(self.dnnDepth)
+                              + '_sw_'+ str(self.spliceWidth)
                               + '_b_' + str(self.batchSizeForTrain)
                               + '_lr_'+ str(self.learningRate)
                               + '_lrd_' + str(self.learningRateDecay)
                               + '_di_'+ str(self.dropoutInputProb)
                               + '_dh_'+ str(self.dropoutHiddenProb) )
        self.bestModelFilename   = '../model/' + self.outputFilename
-       self.trainProbFilename   = '../prob/' + self.outputFilename + '.ark'
+       self.trainProbFilename   = '../prob/train/' +self.outputFilename + '.ark'
+       self.validProbFilename   = '../prob/valid/' + self.outputFilename + '.ark'
+       self.testProbFilename   = '../prob/test/' + self.outputFilename + '.ark'
        self.testResultFilename  = '../result/test_result/' + self.outputFilename + '.csv'
        self.validResultFilename = '../result/valid_result/' + self.outputFilename + '.csv'
        self.validSmoothedResultFilename = '../result/smoothed_valid_result/' + self.outputFilename + '.csv' 

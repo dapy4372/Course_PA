@@ -35,10 +35,10 @@ def trainDNN(datasets, P):
     dummyParams = [None] * (2 * (P.dnnDepth + 1))
     
     # Build the DNN object for training
-    classifier = DNN( input = dnnUtils.splicedX(sX, idx), params = dummyParams, P = P, DROPOUT = True )
+    classifier = DNN( input = dnnUtils.splicedX(sX, idx, P.spliceWidth), params = dummyParams, P = P, DROPOUT = True )
     
     # Build the DNN object for Validation
-    predicter = DNN( input = dnnUtils.splicedX(sX, idx), P = P, params = dummyParams )
+    predicter = DNN( input = dnnUtils.splicedX(sX, idx, P.spliceWidth), P = P, params = dummyParams )
     
     # Cost function 1.cross entropy 2.weight decay
     cost = ( classifier.crossEntropy(dnnUtils.splicedY(sY,idx)) + P.L1Reg * classifier.L1 + P.L2Reg * classifier.L2_sqr )
@@ -166,14 +166,12 @@ def trainDNN(datasets, P):
 
     return prevModel
 
-def getResult(bestModel, datasets, P):
+def getResult(bestModel, dataset, P, typeName, resultFilename):
 
     print "...getting result"
 
-    validSetX, validSetY, validSetName = datasets[1]
-    testSetX, testSetY, testSetName = datasets[2]
-    sharedValidSetX, sharedValidSetY, castSharedValidSetY = dnnUtils.sharedDataXY(validSetX, validSetY)
-    sharedTestSetX, sharedTestSetY, castSharedTestSetY = dnnUtils.sharedDataXY(testSetX, testSetY)
+    setX, setY, setName = dataset
+    sharedSetX, sharedSetY, castSharedSetY = dnnUtils.sharedDataXY(setX, setY)
     
     print "...buliding model"
     idx = T.ivector('i')
@@ -181,66 +179,53 @@ def getResult(bestModel, datasets, P):
     sY = T.ivector()
     
     # bulid best DNN  model
-    predicter = DNN( input = dnnUtils.splicedX(sX, idx), P = P, params = bestModel )
+    predicter = DNN( input = dnnUtils.splicedX(sX, idx, P.spliceWidth), P = P, params = bestModel )
     
     # Center Index
-    validCenterIdx = dnnUtils.findCenterIdxList(validSetY)
-    testCenterIdx = dnnUtils.findCenterIdxList(testSetY)
+    centerIdx = dnnUtils.findCenterIdxList(setY)
     
     # Total Center Index
-    totalValidSize = len(validCenterIdx)
-    totalTestSize = len(testCenterIdx)
+    totalCenterIdxSize = len(centerIdx)
     
     # Make mini-Batch
-    validBatchIdx = dnnUtils.makeBatch(totalValidSize, 16384)
-    testBatchIdx = dnnUtils.makeBatch(totalTestSize, 16384)
+    batchIdx = dnnUtils.makeBatch(totalCenterIdxSize, 16384)
     
-    # Validation model
-    validModel = theano.function( inputs = [idx], outputs = [predicter.errors(dnnUtils.splicedY(sY, idx)),predicter.yPred],
-                                  givens={sX:sharedValidSetX, sY:castSharedValidSetY})
+    Model = theano.function( inputs = [idx], outputs = [predicter.errors(dnnUtils.splicedY(sY, idx)),predicter.yPred],
+                                  givens={sX:sharedSetX, sY:castSharedSetY})
     
-    # bulid test model
-    testModel = theano.function( inputs = [idx], outputs = [predicter.errors(dnnUtils.splicedY(sY, idx)),predicter.yPred],
-                                  givens={sX:sharedTestSetX, sY:castSharedTestSetY})
+    result = dnnUtils.EvalandResult(Model, batchIdx, centerIdx, typeName) 
     
-    validResult = dnnUtils.EvalandResult(validModel, validBatchIdx, validCenterIdx, 'valid') 
-    testResult = dnnUtils.EvalandResult(testModel, testBatchIdx, testCenterIdx, 'test')
+    dnnUtils.writeResult(result, resultFilename, setName)
     
-    dnnUtils.writeResult(validResult, P.validResultFilename, validSetName)
-    dnnUtils.writeResult(testResult, P.testResultFilename, testSetName)
-    
-    dnnUtils.clearSharedDataXY(sharedTestSetX, sharedTestSetY)
-    dnnUtils.clearSharedDataXY(sharedValidSetX, sharedValidSetY)
+    dnnUtils.clearSharedDataXY(sharedSetX, sharedSetY)
 
-
-def getProb(bestModel, datasets, P):
+def getProb(bestModel, dataset, probFilename, P):
 
     print "...getting probability"
-    # For getting prob
-    trainSetX, trainSetY, trainSetName = datasets[0]
-    sharedTrainSetX, sharedTrainSetY, castSharedTrainSetY = dnnUtils.sharedDataXY(trainSetX, trainSetY)
+    setX, setY, setName = dataset
+    sharedSetX, sharedSetY, castSharedSetY = dnnUtils.sharedDataXY(setX, setY)
 
     idx = T.ivector('i')
     sX = T.matrix(dtype=theano.config.floatX)
     sY = T.ivector()
 
     # bulid best DNN model
-    predicter = DNN( input = dnnUtils.splicedX(sX, idx), P = P, params = bestModel )
+    predicter = DNN( input = dnnUtils.splicedX(sX, idx, P.spliceWidth), P = P, params = bestModel )
 
     # Validation model
-    trainModel = theano.function( inputs = [idx], outputs = predicter.p_y_given_x, 
-                                  givens={sX:sharedTrainSetX, sY:castSharedTrainSetY}, on_unused_input='ignore')
+    Model = theano.function( inputs = [idx], outputs = predicter.p_y_given_x, 
+                             givens={sX:sharedSetX, sY:castSharedSetY}, on_unused_input='ignore')
     
     # Center Index
-    trainCenterIdx = dnnUtils.findCenterIdxList(trainSetY)
+    centerIdx = dnnUtils.findCenterIdxList(setY)
 
     # Total Center Index
-    totalTrainSize = len(trainCenterIdx)
+    totalCenterIdxSize = len(centerIdx)
     
     # Make mini-Batch
-    trainBatchIdx = dnnUtils.makeBatch(totalTrainSize, 16384)
+    batchIdx = dnnUtils.makeBatch(totalCenterIdxSize, 16384)
     
     # Writing Probability
-    dnnUtils.writeProb(trainModel, trainBatchIdx, trainCenterIdx, trainSetName, P.trainProbFilename)
+    dnnUtils.writeProb(Model, batchIdx, centerIdx, setName, probFilename)
 
-    dnnUtils.clearSharedDataXY(sharedTrainSetX, sharedTrainSetY)
+    dnnUtils.clearSharedDataXY(sharedSetX, sharedSetY)
