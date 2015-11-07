@@ -35,11 +35,11 @@ def printGradsParams(GP, dnnDepth):
 def printNpArrayMeanStdMaxMin(name, npArray):
     print(" #%s \t mean = %f \t std = %f \t max = %f \t min = %f" % (name, np.mean(npArray), np.std(npArray), np.amax(npArray), np.amin(npArray) ))
 
-def EvalandResult(Model, batchIdx, centerIdx, modelType):
+def EvalandResult(Model, totalSentSize, modelType):
     result = []
     Losses = []
-    for i in xrange(len(batchIdx)):
-        thisLoss, thisResult = Model(centerIdx[batchIdx[i][0]:batchIdx[i][1]])
+    for i in xrange(totalSentSize):
+        thisLoss, thisResult = Model(i)
         result += thisResult.tolist()
         Losses.append(thisLoss)
     FER = np.mean(Losses)
