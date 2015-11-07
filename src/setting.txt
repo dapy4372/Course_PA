@@ -3,13 +3,13 @@ shuffle:True
 updateMethod:Adagrad
 momentum:0.90
 width:512
-depth:4
+depth:1
 batchSize:1024
 learningRate:0.005
 learningRateDecay:1
 hiddenProb:1
 inputProb:1
-dataSetFilename:../pkl/fbank_dataset.pkl
+dataSetFilename:../pkl/fbank_69_dataset_without_preprocessing.pkl
 dataSetType:fbank
 maxEpoch:200
 inputDimNum:621

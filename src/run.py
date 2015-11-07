@@ -1,8 +1,8 @@
 import os
 import sys
 import utils
-import dnn.dnn as dnn
-import dnn.dnnUtils as dnnUtils
+import rnn.rnn as rnn
+import rnn.rnnUtils as rnnUtils
 import postprocessing as pp 
 import transformIntToLabel as tfit
 setting = sys.argv[1]
@@ -24,13 +24,13 @@ class Logger(object):
         self.log.write(message)  
 
 if __name__ == '__main__':
-    P = dnnUtils.Parameters(setting)
+    P = rnnUtils.Parameters(setting)
     print P.outputFilename
     datasets  = utils.loadDataset(filename = P.datasetFilename, totalSetNum=3)
 
     if not USE_EXIST_MODEL: 
         sys.stdout = Logger(P.logFilename)
-        bestModel = dnn.trainDNN(datasets, P)
+        bestModel = rnn.trainDNN(datasets, P)
         bestModelFilename = '../model/' + P.outputFilename + '.model'
         utils.makePkl(bestModel, P.bestModelFilename)
     else:
@@ -38,8 +38,8 @@ if __name__ == '__main__':
         bestModelFilename = sys.argv[2]
         bestModel = utils.loadPkl(bestModelFilename)
     
-    dnn.getResult(bestModel, datasets, P)
-    dnn.getProb(bestModel, datasets, P)
+    rnn.getResult(bestModel, datasets, P)
+    rnn.getProb(bestModel, datasets, P)
 
     smooth(noSmoothedFilename = P.testResultFilename, smoothedFilename = P.testSmoothedResultFilename)
     smooth(noSmoothedFilename = P.validResultFilename, smoothedFilename = P.validSmoothedResultFilename)

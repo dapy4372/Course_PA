@@ -12,7 +12,7 @@ def maxLen(Set):
         if maxLength<number:
             maxLength=number
             max_sen=name
-    print max_sen,maxLength
+# print max_sen,maxLength
     return maxLength
 
 
@@ -52,13 +52,16 @@ def fillerCore(Set):
         finalSet[3].append(fillSet[3][i*maxLength:(i+1)*maxLength-1])
     return finalSet
 
-def filler():
-    dataSet=loadDataset("../pkl/fbank_69_dataset.pkl",3)
+if __name__ == '__main__':
+    dataSet=loadDataset("../pkl/fbank_69_dataset_without_preprocessing.pkl",3)
     fill_trainSet=fillerCore(dataSet[0])
-    fill_validSet=fillerCore(dataSet[1])
-    fill_testSet =fillerCore(dataSet[2])
-    return fill_trainSet,fill_validSet,fill_testSet
+#fill_validSet=fillerCore(dataSet[1])
+#fill_testSet =fillerCore(dataSet[2])
+    a = numpy.array(fill_trainSet)
+    print a[0]
+    print a[0][0]
+    print a[1].shape
+    print a[2].shape
+    print a[3].shape
 
-a,b,c=filler()
 
-print a[2][0]

@@ -1,6 +1,9 @@
+import numpy
+import theano
+import theano.tensor as T
 def sigmoid(z):
     return 1/(1+T.exp(-z))
-def softmax(z)
+def softmax(z):
     # Softmax
     absZ = T.abs_(z)
     maxZ = T.max(absZ, axis=1)
@@ -11,11 +14,7 @@ def softmax(z)
     return expZ / expZsum
 
 class HiddenLayer(object):
-    def __init__(self, rng, input, inputNum, outputNum, dnnWidth, W = None, b = None, dropoutProb = 1.0, DROPOUT = False):
-        if DROPOUT == True:
-            self.input = Dropout( rng = rng, input = input, inputNum = inputNum, dropoutProb = dropoutProb )
-        else:
-            self.input = input * dropoutProb
+    def __init__(self, rng, input, inputNum, outputNum, rnnWidth, W = None, b = None, dropoutProb = 1.0, DROPOUT = False):
         if W is None:
             W_values = rng.uniform( low = -numpy.sqrt(6./(inputNum+outputNum)), high = numpy.sqrt(6./(inputNum+outputNum)),
             size = (inputNum, outputNum) ).astype( dtype=theano.config.floatX )
@@ -33,9 +32,9 @@ class HiddenLayer(object):
 
         def step(x_t, z_tm1):
             return sigmoid(T.dot(x_t, self.W) + self.b)
-
-        self.z_0 = theano.shared(numpy.zeros(outputNum))
-        [y_seq], _ = theano.scan(step, sequences = input, output_info[z_0], truncate_gradient=-1)
+#scanInput = theano.shared(numpy.array(input, dtype = theano.config.floatX), borrow=True)
+        self.z_0 = theano.shared(numpy.zeros(outputNum).astype(dtype=theano.config.floatX), borrow=True)
+        [y_seq], _ = theano.scan(step, sequences = [input], outputs_info=[self.z_0],truncate_gradient=-1)
         
         # parameters of the model
         self.params = [self.W, self.b]
@@ -63,8 +62,8 @@ class OutputLayer(object):
         def step(x_t, y_tm1):
             return softmax(T.dot(x_t, self.Wo) + self.bo + T.dot(y_tm1, self.Wh) + self.bh)
 
-        self.y_0 = theano.shared(numpy.zeros(outputNum))
-        [y_seq], _ = theano.scan(step, sequences = input, output_info[y_0], truncate_gradient=-1)
+        self.y_0 = theano.shared(numpy.zeros(outputNum).astype(dtype=theano.config.floatX), borrow=True)
+        [y_seq], _ = theano.scan(step, sequences = [input], outputs_info=[self.y_0], truncate_gradient=-1)
 
         self.p_y_given_x = y_seq
         
@@ -101,32 +100,32 @@ class RNN(object):
         # Create Hidden Layers amd Memory Layers
         self.hiddenLayerList=[]
         # The sequential order of storing parameters is:
-        # Hidden Layers   (0 ~ 2 * dnnDepth - 1) 
-        # -> MemoryLayers ( 2 * dnnDepth, 2 * dnnDepth + 1)
-        # -> Output Layer ( 2 * dnnDepth + 2, 2 * dnnDepth + 3) 
+        # Hidden Layers   (0 ~ 2 * rnnDepth - 1) 
+        # -> MemoryLayers ( 2 * rnnDepth, 2 * rnnDepth + 1)
+        # -> Output Layer ( 2 * rnnDepth + 2, 2 * rnnDepth + 3) 
 
         # The First hidden layer, taking input from the previous RNN and the DNN output
         self.hiddenLayerList.append(
             HiddenLayer(
-              input       = self.input, 
+              input       = input, 
               rng         = P.rng,
               inputNum    = P.inputDimNum,
-              outputNum   = P.dnnWidth,
-              dnnWidth    = P.dnnWidth,
+              outputNum   = P.rnnWidth,
+              rnnWidth    = P.rnnWidth,
               W           = params[0],
               b           = params[1],
               ) )
         # Other hidden layers, 
         # Currently it's a Jordan type RNN, thus no other hidden layers are required
         '''
-        for i in xrange (P.dnnDepth - 1):
+        for i in xrange (P.rnnDepth - 1):
             self.hiddenLayerList.append(
                 HiddenLayer(
                     input = self.hiddenLayerList[i].output,
                     rng = P.rng,
-                    inputNum = P.dnnWidth/2,
-                    outputNum = P.dnnWidth,
-                    dnnWidth = P.dnnWidth,
+                    inputNum = P.rnnWidth/2,
+                    outputNum = P.rnnWidth,
+                    rnnWidth = P.rnnWidth,
                     dropoutProb = P.dropoutHiddenProb,
                     W = params[2 * (i + 1)],
                     b = params[2 * (i + 1) + 1],
@@ -134,23 +133,23 @@ class RNN(object):
         '''
         # Output Layer
         self.outputLayer = OutputLayer(
-              input     = self.hiddenLayerList[P.dnnDepth - 1].output,
-              inputNum  = P.dnnWidth/2, 
+              input     = self.hiddenLayerList[P.rnnDepth - 1].output,
+              inputNum  = P.rnnWidth/2, 
               outputNum = P.outputPhoneNum,
               rng       = P.rng,
-              W         = params[2 * P.dnnDepth + 2],
-              b         = params[2 * P.dnnDepth + 3] 
+              W         = params[2 * P.rnnDepth + 2],
+              b         = params[2 * P.rnnDepth + 3] 
               )
         
         # Weight decay
         # L1 norm ; one regularization option is to enforce L1 norm to be small
         self.L1 = 0
-        for i in xrange(P.dnnDepth):
+        for i in xrange(P.rnnDepth):
              self.L1 += abs(self.hiddenLayerList[i].W).sum()
         self.L1 += abs(self.outputLayer.W).sum()
         # square of L2 norm ; one regularization option is to enforce square of L2 norm to be small
         self.L2_sqr = 0
-        for i in xrange(P.dnnDepth):
+        for i in xrange(P.rnnDepth):
             self.L2_sqr += (self.hiddenLayerList[i].W ** 2).sum()
         self.L2_sqr += (self.outputLayer.W ** 2).sum()
 
@@ -168,7 +167,7 @@ class RNN(object):
 
         # Parameters of all DNN model
         self.params = self.hiddenLayerList[0].params
-        for i in xrange(1, P.dnnDepth):
+        for i in xrange(1, P.rnnDepth):
             self.params += self.hiddenLayerList[i].params
         self.params += self.memoryLayerList[0].params
         self.params += self.outputLayer.params
