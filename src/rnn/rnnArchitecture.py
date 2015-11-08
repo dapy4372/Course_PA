@@ -14,31 +14,51 @@ def softmax(z):
     return expZ / expZsum
 
 class HiddenLayer(object):
-    def __init__(self, rng, input, inputNum, outputNum, rnnWidth, W = None, b = None, dropoutProb = 1.0, DROPOUT = False):
-        if W is None:
-            W_values = rng.uniform( low = -numpy.sqrt(6./(inputNum+outputNum)), high = numpy.sqrt(6./(inputNum+outputNum)),
+    def __init__(self, rng, input, inputNum, outputNum, W_i = None, b_i = None, W_h = None, b_h = None):
+        if W_i is None:
+            W_i_values = rng.uniform( low = -numpy.sqrt(6./(inputNum+outputNum)), high = numpy.sqrt(6./(inputNum+outputNum)),
             size = (inputNum, outputNum) ).astype( dtype=theano.config.floatX )
-            W = theano.shared(value = W_values, name = 'W', borrow = True)
+            W_i = theano.shared(value = W_i_values, name = 'W', borrow = True)
         else:
-            W = theano.shared( value = numpy.array(W, dtype = theano.config.floatX), name='W', borrow = True )
+            W_i = theano.shared( value = numpy.array(W, dtype = theano.config.floatX), name='W', borrow = True )
 
-        if b is None:
-            b_values = rng.uniform( low = -1, high = 1, size = (outputNum,)).astype(dtype=theano.config.floatX)
-            b = theano.shared(value = b_values, name = 'b', borrow = True)
+        if W_h is None:
+            W_h_values = rng.uniform( low = -numpy.sqrt(6./(inputNum+outputNum)), high = numpy.sqrt(6./(inputNum+outputNum)),
+            size = (outputNum, inputNum) ).astype( dtype=theano.config.floatX )
+            W_h = theano.shared(value = W_h_values, name = 'W', borrow = True)
         else:
-            b = theano.shared( value = numpy.array(b, dtype = theano.config.floatX), name='b', borrow = True )
-        self.W = W
-        self.b = b
+            W_h = theano.shared( value = numpy.array(W, dtype = theano.config.floatX), name='W', borrow = True )
+
+        if b_i is None:
+            b_values = rng.uniform( low = -1, high = 1, size = (outputNum,)).astype(dtype=theano.config.floatX)
+            b_i = theano.shared(value = b_values, name = 'b', borrow = True)
+        else:
+            b_i = theano.shared( value = numpy.array(b, dtype = theano.config.floatX), name='b', borrow = True )
+
+        if b_h is None:
+            b_values = rng.uniform( low = -1, high = 1, size = (inputNum,)).astype(dtype=theano.config.floatX)
+            b_h = theano.shared(value = b_values, name = 'b', borrow = True)
+        else:
+            b_h = theano.shared( value = numpy.array(b, dtype = theano.config.floatX), name='b', borrow = True )
+
+        self.W_i = W_i
+        self.b_i = b_i
+        self.W_h = W_h
+        self.b_h = b_h
 
         def step(x_t, z_tm1):
-            return sigmoid(T.dot(x_t, self.W) + self.b)
-#scanInput = theano.shared(numpy.array(input, dtype = theano.config.floatX), borrow=True)
-        self.z_0 = theano.shared(numpy.zeros(outputNum).astype(dtype=theano.config.floatX), borrow=True)
-        [y_seq], _ = theano.scan(step, sequences = [input], outputs_info=[self.z_0],truncate_gradient=-1)
-        
-        # parameters of the model
-        self.params = [self.W, self.b]
+            return sigmoid( T.dot(x_t, self.W_i) + self.b_i + T.dot(z_tm1, self.W_h) + self.b_h )
 
+        a_0 = theano.shared(numpy.zeros(outputNum).astype(dtype = theano.config.floatX), borrow = True)
+        
+        #self.output = []
+        #self.output.append( scan(step, sequences = input, outputs_info = a_0, truncate_gradient = -1)[0] )
+
+        a_seq, _ = theano.scan(step, sequences = input, outputs_info = a_0, truncate_gradient = -1)
+        self.output = a_seq
+
+        self.params = [self.W_i, self.b_i, self.W_h, self.b_h]
+        
 class OutputLayer(object):
     def __init__(self, input, inputNum, outputNum, rng, W = None, b = None):
         if W is None:
@@ -56,25 +76,22 @@ class OutputLayer(object):
 
         self.W_o = W_o
         self.b_o = b_o
-        self.W_h = W_h
-        self.b_o = b_o
         
         def step(x_t, y_tm1):
-            return softmax(T.dot(x_t, self.Wo) + self.bo + T.dot(y_tm1, self.Wh) + self.bh)
+            return softmax( T.dot(x_t, self.W_o) )
 
-        self.y_0 = theano.shared(numpy.zeros(outputNum).astype(dtype=theano.config.floatX), borrow=True)
-        [y_seq], _ = theano.scan(step, sequences = [input], outputs_info=[self.y_0], truncate_gradient=-1)
-
+        y_0 = theano.shared(numpy.zeros(outputNum).astype(dtype=theano.config.floatX), borrow=True)
+        
+        #self.output = []
+        #self.output.append( theano.scan(step, sequences = input, outputs_info = y_0, truncate_gradient = -1)[0] )
+        y_seq, _ = theano.scan(step, sequences = input, outputs_info = y_0, truncate_gradient = -1)[0]
+      
         self.p_y_given_x = y_seq
         
         # Find larget y_i
-#self.y_pred = T.argmax(self.p_y_given_x, axis=1)
         self.y_pred = T.argmax(self.p_y_given_x, axis=1)
 
         self.params = [self.W, self.b]
-
-        # keep track of model input
-        self.input = input
     
     # Cross entropy
     def crossEntropy(self, y):
@@ -97,24 +114,11 @@ class OutputLayer(object):
 
 class RNN(object):
     def __init__(self, input, P, params = None, DROPOUT = False):
-        # Create Hidden Layers amd Memory Layers
-        self.hiddenLayerList=[]
-        # The sequential order of storing parameters is:
-        # Hidden Layers   (0 ~ 2 * rnnDepth - 1) 
-        # -> MemoryLayers ( 2 * rnnDepth, 2 * rnnDepth + 1)
-        # -> Output Layer ( 2 * rnnDepth + 2, 2 * rnnDepth + 3) 
-
-        # The First hidden layer, taking input from the previous RNN and the DNN output
+        
+        self.hiddenLayerList = []
         self.hiddenLayerList.append(
-            HiddenLayer(
-              input       = input, 
-              rng         = P.rng,
-              inputNum    = P.inputDimNum,
-              outputNum   = P.rnnWidth,
-              rnnWidth    = P.rnnWidth,
-              W           = params[0],
-              b           = params[1],
-              ) )
+            HiddenLayer( input = input, rng = P.rng, inputNum = P.inputDimNum, outputNum = P.rnnWidth, 
+                         W_i = params[0], b_i = params[1], W_h = params[2], b_h = params[3] ))
         # Other hidden layers, 
         # Currently it's a Jordan type RNN, thus no other hidden layers are required
         '''
@@ -123,23 +127,17 @@ class RNN(object):
                 HiddenLayer(
                     input = self.hiddenLayerList[i].output,
                     rng = P.rng,
-                    inputNum = P.rnnWidth/2,
-                    outputNum = P.rnnWidth,
-                    rnnWidth = P.rnnWidth,
+                    inputNum = P.rnnW_idth/2,
+                    outputNum = P.rnnW_idth,
+                    rnnW_idth = P.rnnW_idth,
                     dropoutProb = P.dropoutHiddenProb,
                     W = params[2 * (i + 1)],
                     b = params[2 * (i + 1) + 1],
                     DROPOUT = DROPOUT ) )
         '''
         # Output Layer
-        self.outputLayer = OutputLayer(
-              input     = self.hiddenLayerList[P.rnnDepth - 1].output,
-              inputNum  = P.rnnWidth/2, 
-              outputNum = P.outputPhoneNum,
-              rng       = P.rng,
-              W         = params[2 * P.rnnDepth + 2],
-              b         = params[2 * P.rnnDepth + 3] 
-              )
+        self.outputLayer = OutputLayer( input = self.hiddenLayerList[P.rnnDepth - 1].output, rng = P.rng, inputNum = P.rnnWidth, 
+                                        outputNum = P.outputPhoneNum, W = params[4 * P.rnnDepth], b = params[4 * P.rnnDepth+1] )
         
         # Weight decay
         # L1 norm ; one regularization option is to enforce L1 norm to be small
@@ -147,6 +145,7 @@ class RNN(object):
         for i in xrange(P.rnnDepth):
              self.L1 += abs(self.hiddenLayerList[i].W).sum()
         self.L1 += abs(self.outputLayer.W).sum()
+
         # square of L2 norm ; one regularization option is to enforce square of L2 norm to be small
         self.L2_sqr = 0
         for i in xrange(P.rnnDepth):
@@ -169,9 +168,4 @@ class RNN(object):
         self.params = self.hiddenLayerList[0].params
         for i in xrange(1, P.rnnDepth):
             self.params += self.hiddenLayerList[i].params
-        self.params += self.memoryLayerList[0].params
         self.params += self.outputLayer.params
-
-        # keep track of model input
-        self.input = input
-
