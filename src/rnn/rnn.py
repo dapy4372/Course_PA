@@ -22,7 +22,7 @@ def trainDNN(datasets, P):
     validSetX, validSetY, validSetName, validMask = filler.fillerCore(datasets[1])
     sharedTrainSetX, sharedTrainSetY, castSharedTrainSetY = rnnUtils.sharedDataXY(trainSetX, trainSetY)
     sharedValidSetX, sharedValidSetY, castSharedValidSetY = rnnUtils.sharedDataXY(validSetX, validSetY)
-
+    print numpy.array(trainSetY).shape
     ###############
     # BUILD MODEL #
     ###############

@@ -14,27 +14,27 @@ def softmax(z):
 class HiddenLayer(object):
     def __init__(self, rng, input, inputNum, outputNum, W_i = None, b_i = None, W_h = None, b_h = None):
         if W_i is None:
-            W_i_values = rng.uniform( low = -numpy.sqrt(6./(inputNum+outputNum)), high = numpy.sqrt(6./(inputNum+outputNum)),
+            W_i_values = rng.uniform( low = -numpy.sqrt(0.1/(inputNum+outputNum)), high = numpy.sqrt(0.1/(inputNum+outputNum)),
             size = (inputNum, outputNum) ).astype( dtype=theano.config.floatX )
             W_i = theano.shared(value = W_i_values, name = 'W', borrow = True)
         else:
             W_i = theano.shared( value = numpy.array(W, dtype = theano.config.floatX), name='W', borrow = True )
 
         if W_h is None:
-            W_h_values = rng.uniform( low = -numpy.sqrt(6./(inputNum+outputNum)), high = numpy.sqrt(6./(inputNum+outputNum)),
+            W_h_values = rng.uniform( low = -numpy.sqrt(0.1/(inputNum+outputNum)), high = numpy.sqrt(0.1/(inputNum+outputNum)),
             size = (outputNum, outputNum) ).astype( dtype=theano.config.floatX )
             W_h = theano.shared(value = W_h_values, name = 'W', borrow = True)
         else:
             W_h = theano.shared( value = numpy.array(W, dtype = theano.config.floatX), name='W', borrow = True )
 
         if b_i is None:
-            b_values = rng.uniform( low = -1, high = 1, size = (outputNum,)).astype(dtype=theano.config.floatX)
+            b_values = rng.uniform( low = -0.1, high = 0.1, size = (outputNum,)).astype(dtype=theano.config.floatX)
             b_i = theano.shared(value = b_values, name = 'b', borrow = True)
         else:
             b_i = theano.shared( value = numpy.array(b, dtype = theano.config.floatX), name='b', borrow = True )
 
         if b_h is None:
-            b_values = rng.uniform( low = -1, high = 1, size = (outputNum,)).astype(dtype=theano.config.floatX)
+            b_values = rng.uniform( low = -0.1, high = 0.1, size = (outputNum,)).astype(dtype=theano.config.floatX)
             b_h = theano.shared(value = b_values, name = 'b', borrow = True)
         else:
             b_h = theano.shared( value = numpy.array(b, dtype = theano.config.floatX), name='b', borrow = True )
@@ -61,14 +61,14 @@ class HiddenLayer(object):
 class OutputLayer(object):
     def __init__(self, input, inputNum, outputNum, rng, W = None, b = None):
         if W is None:
-            W_values = rng.uniform( low = -numpy.sqrt(6./(inputNum+outputNum)), high = numpy.sqrt(6./(inputNum+outputNum)),
+            W_values = rng.uniform( low = -numpy.sqrt(0.1/(inputNum+outputNum)), high = numpy.sqrt(0.1/(inputNum+outputNum)),
                                     size = (inputNum, outputNum) ).astype(dtype=theano.config.floatX )
             W_o = theano.shared(value = W_values, name = 'W', borrow = True)
         else:
             W_o = theano.shared( value = numpy.array(W, dtype = theano.config.floatX), name='W', borrow=True )
 
         if b is None:
-            b_values = rng.uniform( low = -1, high = 1, size = (outputNum,)).astype(dtype=theano.config.floatX)
+            b_values = rng.uniform( low = -0.1, high = 0.1, size = (outputNum,)).astype(dtype=theano.config.floatX)
             b_o = theano.shared(value = b_values, name = 'b', borrow = True)
         else:
             b_o = theano.shared( value = numpy.array(b, dtype = theano.config.floatX), name='b', borrow=True )
