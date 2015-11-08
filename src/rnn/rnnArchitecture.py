@@ -3,14 +3,12 @@ import theano
 import theano.tensor as T
 def sigmoid(z):
     return 1/(1+T.exp(-z))
+
 def softmax(z):
-    # Softmax
     absZ = T.abs_(z)
-    maxZ = T.max(absZ, axis=1)
-    maxZ = T.reshape(maxZ, (maxZ.shape[0], 1))
+    maxZ = T.max(absZ)
     expZ = T.exp(z * 10 / maxZ)
-    expZsum = T.sum(expZ, axis=1)
-    expZsum = T.reshape(expZsum, (expZsum.shape[0], 1))
+    expZsum = T.sum(expZ)
     return expZ / expZsum
 
 class HiddenLayer(object):
@@ -24,7 +22,7 @@ class HiddenLayer(object):
 
         if W_h is None:
             W_h_values = rng.uniform( low = -numpy.sqrt(6./(inputNum+outputNum)), high = numpy.sqrt(6./(inputNum+outputNum)),
-            size = (outputNum, inputNum) ).astype( dtype=theano.config.floatX )
+            size = (outputNum, outputNum) ).astype( dtype=theano.config.floatX )
             W_h = theano.shared(value = W_h_values, name = 'W', borrow = True)
         else:
             W_h = theano.shared( value = numpy.array(W, dtype = theano.config.floatX), name='W', borrow = True )
@@ -36,7 +34,7 @@ class HiddenLayer(object):
             b_i = theano.shared( value = numpy.array(b, dtype = theano.config.floatX), name='b', borrow = True )
 
         if b_h is None:
-            b_values = rng.uniform( low = -1, high = 1, size = (inputNum,)).astype(dtype=theano.config.floatX)
+            b_values = rng.uniform( low = -1, high = 1, size = (outputNum,)).astype(dtype=theano.config.floatX)
             b_h = theano.shared(value = b_values, name = 'b', borrow = True)
         else:
             b_h = theano.shared( value = numpy.array(b, dtype = theano.config.floatX), name='b', borrow = True )
@@ -78,20 +76,20 @@ class OutputLayer(object):
         self.b_o = b_o
         
         def step(x_t, y_tm1):
-            return softmax( T.dot(x_t, self.W_o) )
+            return softmax( T.dot(x_t, self.W_o) + b_o )
 
         y_0 = theano.shared(numpy.zeros(outputNum).astype(dtype=theano.config.floatX), borrow=True)
         
         #self.output = []
         #self.output.append( theano.scan(step, sequences = input, outputs_info = y_0, truncate_gradient = -1)[0] )
-        y_seq, _ = theano.scan(step, sequences = input, outputs_info = y_0, truncate_gradient = -1)[0]
+        y_seq, _ = theano.scan(step, sequences = input, outputs_info = y_0, truncate_gradient = -1)
       
         self.p_y_given_x = y_seq
         
         # Find larget y_i
         self.y_pred = T.argmax(self.p_y_given_x, axis=1)
 
-        self.params = [self.W, self.b]
+        self.params = [self.W_o, self.b_o]
     
     # Cross entropy
     def crossEntropy(self, y):
@@ -143,14 +141,14 @@ class RNN(object):
         # L1 norm ; one regularization option is to enforce L1 norm to be small
         self.L1 = 0
         for i in xrange(P.rnnDepth):
-             self.L1 += abs(self.hiddenLayerList[i].W).sum()
-        self.L1 += abs(self.outputLayer.W).sum()
+             self.L1 = self.L1 + abs(self.hiddenLayerList[i].W_i).sum() + abs(self.hiddenLayerList[i].W_h).sum()
+        self.L1 += abs(self.outputLayer.W_o).sum()
 
         # square of L2 norm ; one regularization option is to enforce square of L2 norm to be small
         self.L2_sqr = 0
         for i in xrange(P.rnnDepth):
-            self.L2_sqr += (self.hiddenLayerList[i].W ** 2).sum()
-        self.L2_sqr += (self.outputLayer.W ** 2).sum()
+            self.L2_sqr = self.L2_sqr + (self.hiddenLayerList[i].W_i ** 2).sum() + (self.hiddenLayerList[i].W_h ** 2).sum()
+        self.L2_sqr += (self.outputLayer.W_o ** 2).sum()
 
         # CrossEntropy
         self.crossEntropy = ( self.outputLayer.crossEntropy )
