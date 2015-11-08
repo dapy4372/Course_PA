@@ -6,7 +6,6 @@ import timeit
 import numpy
 import theano
 import theano.tensor as T
-import preprocessing
 
 def loadDataset(filename, totalSetNum):
     print '... loading data'
@@ -78,20 +77,67 @@ def pickResultFilename(resultFilename):
     tmp = resultFilename.split('/')
     return tmp[len(tmp)-1]
 
-def findSpeakerInterval(speakerNameList):
-    prevName = speakerNameList[0][1]
-    start = 0
-    end = 0
-    speakerInterval = []
-    speakerNameListLen = len(speakerNameList)
-    for i in xrange(speakerNameListLen):
-        curName = speakerNameList[i][1]
-        if (prevName != curName):
-            end = i
-            name = prevName
-            speakerInterval.append((start, end, name))
+# SpeakerNameList should be a total setName. (e.g. trainSetName)
+# It will return the idex of each sentence interval. ( e.g. (200, 456) )
+def findSentenceInterval(setName):
+    prevName, _ = namepick(setName[0])
+    start, end = 0
+    sentenceInterval = []
+    for i in xrange(1, len(setName)):
+        curName, _ = namepick(setName[i])
+        if(prevName != curName):
+            end = i - 1
+            sentenceInterval.append((start, end))
             start = i
         prevName = curName
-    speakerInterval.append((start, speakerNameListLen, prevName))
-    return speakerInterval
+    sentenceInterval.append(start, len(setName)-1)
+    return sentenceInterval
+
+# For "data_prepare/2_pick_value"
+# It will return speaker interval and the total frames of this seakper. 
+# Return format is the list of " (start index, end index, speakname) "
+def findSpeakerInterval(y):
+    prevName = y[0][0]
+    start = 0 
+    end = 0
+    maleSpeakerInterval = []
+    femaleSpeakerInterval = []
+    totalMaleFrameNum = 0
+    totalFemaleFrameNum = 0
+    for i in xrange(1, len(y)):
+        curName = y[i][0]
+        if (prevName != curName):
+            end = i - 1
+            if prevName[0] == 'm':
+                maleSpeakerInterval.append((start, end, end - start + 1, prevName))
+                totalMaleFrameNum += (end - start + 1)
+            elif prevName[0] == 'f':
+                femaleSpeakerInterval.append((start, end, end - start + 1, prevName))
+                totalFemaleFrameNum += (end - start + 1)
+            start = i
+        prevName = curName
+    end = len(y) - 1
+    if prevName[0] == 'm':
+        maleSpeakerInterval.append((start, end, end - start + 1, prevName))
+        totalMaleFrameNum += (end - start + 1)
+    elif prevName[0] == 'f':
+        femaleSpeakerInterval.append((start, end, end - start + 1, prevName))
+        totalFemaleFrameNum += (end - start + 1)
+    return maleSpeakerInterval, totalMaleFrameNum, femaleSpeakerInterval, totalFemaleFrameNum
+
+# For writing a sorted ark file
+def writeArkFile(x, fileName):
+    f = open(filename, 'w')
+    for i in xrange(len(x)):
+        tmp = x[i][0] + '_' + x[i][1] + '_' + str(x[i][2]) + ' ' + x[i][3] + '\n'
+        f.write(tmp)
+    f.close()
+
+# For writing a sorted label file
+def writeLabelFile(y, fileName):
+    f = open(filename, 'w')
+    for i in xrange(len(y)):
+        tmp = y[i][0] + '_' + y[i][1] + '_' + str(y[i][2]) + ',' + x[i][3] + '\n'
+        f.write(tmp)
+    f.close()
 
