@@ -29,8 +29,8 @@ def printGradsParams(GP, dnnDepth):
         print ( '================ Layer %d ================' % (i/2 + 1))
         printNpArrayMeanStdMaxMin("GW", GP[i])
         printNpArrayMeanStdMaxMin("Gb", GP[i+1])
-        printNpArrayMeanStdMaxMin("G ", GP[i+dnnDepth])
-        printNpArrayMeanStdMaxMin("G ", GP[i+dnnDepth+1])
+        printNpArrayMeanStdMaxMin("W ", GP[i+dnnDepth])
+        printNpArrayMeanStdMaxMin("b ", GP[i+dnnDepth+1])
 
 def printNpArrayMeanStdMaxMin(name, npArray):
     print(" #%s \t mean = %f \t std = %f \t max = %f \t min = %f" % (name, np.mean(npArray), np.std(npArray), np.amax(npArray), np.amin(npArray) ))
@@ -101,6 +101,7 @@ def findCenterIdxList(dataY):
 
 def splicedX(x, idx, spliceWidth):
     return T.concatenate([ (T.stacklists([ (x[j+i] / (abs(i)+1))  for j in [idx] ])) for i in xrange(-spliceWidth, spliceWidth+1)])
+#return T.concatenate([ x[idx+i] for i in xrange(-spliceWidth, spliceWidth+1)])
 
 # Not really spliced Y data
 def splicedY(y, idx):    
