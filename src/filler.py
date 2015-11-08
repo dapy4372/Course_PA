@@ -37,7 +37,7 @@ def fillerCore(Set):
             for j in range(maxLength-count+1):
                 fillSet[0].append(numpy.zeros(len(Set[0][0])))
                 fillSet[1].append(-1)
-                fillSet[2].append(currentName+"_"+str(j+count+1))
+                fillSet[2].append(currentName+"_"+str(j+count))
                 fillSet[3].append(-1)
             count=1
             currentName=name
@@ -46,22 +46,26 @@ def fillerCore(Set):
         fillSet[1].append(Set[1][i])
         fillSet[2].append(Set[2][i])
         fillSet[3].append(1)
-
+    print "bbbbbbbbbbbbbb"
+    print fillSet[2]
     for i in range((len(fillSet[0])/maxLength)):
-        finalSet[0].append(fillSet[0][i*maxLength:(i+1)*maxLength-1])
-        finalSet[1].append(fillSet[1][i*maxLength:(i+1)*maxLength-1])
-        finalSet[2].append(fillSet[2][i*maxLength:(i+1)*maxLength-1])
-        finalSet[3].append(fillSet[3][i*maxLength:(i+1)*maxLength-1])
+        finalSet[0].append(fillSet[0][i*maxLength:(i+1)*maxLength])
+        finalSet[1].append(fillSet[1][i*maxLength:(i+1)*maxLength])
+        finalSet[2].append(fillSet[2][i*maxLength:(i+1)*maxLength])
+        finalSet[3].append(fillSet[3][i*maxLength:(i+1)*maxLength])
+    print "cccccccccccccccc"
+    print finalSet[2]    
     return finalSet
 
 def filler():
-    dataSet=loadDataset("../pkl/fbank_69_dataset.pkl",3)
-    print dataSet[0][2][0:300]
+    dataSet=loadDataset("../pkl/small_data.pkl",3)
+    print dataSet[0][2]
     fill_trainSet=fillerCore(dataSet[0])
     fill_validSet=fillerCore(dataSet[1])
     fill_testSet =fillerCore(dataSet[2])
     return fill_trainSet,fill_validSet,fill_testSet
 
-a,b,c=filler()
-
-print a[1][0]
+dataSet=loadDataset("../pkl/small_data.pkl",3)
+print"aaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+print dataSet[0][2]
+fillerCore(dataSet[0])
