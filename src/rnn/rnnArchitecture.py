@@ -43,17 +43,18 @@ class HiddenLayer(object):
         self.b_i = b_i
         self.W_h = W_h
         self.b_h = b_h
+        self.output=[]
 
         def step(x_t, z_tm1):
             return sigmoid( T.dot(x_t, self.W_i) + self.b_i + T.dot(z_tm1, self.W_h) + self.b_h )
-
+        
         a_0 = theano.shared(numpy.zeros(outputNum).astype(dtype = theano.config.floatX), borrow = True)
         
-        #self.output = []
-        #self.output.append( scan(step, sequences = input, outputs_info = a_0, truncate_gradient = -1)[0] )
+        a_seq, _ = theano.scan(step, sequences = input[0], outputs_info = a_0, truncate_gradient = -1)
+        self.output.append(a_seq)
 
-        a_seq, _ = theano.scan(step, sequences = input, outputs_info = a_0, truncate_gradient = -1)
-        self.output = a_seq
+        reverse_a_seq, _ = theano.scan(step, sequences = input[1], outputs_info = a_0, truncate_gradient = -1)
+        self.output.append(reverse_a_seq)
 
         self.params = [self.W_i, self.b_i, self.W_h, self.b_h]
         
@@ -74,15 +75,14 @@ class OutputLayer(object):
 
         self.W_o = W_o
         self.b_o = b_o
-        
+         
+        avergeInput = (input[0] + input[1]) / 2
+
         def step(x_t, y_tm1):
             return softmax( T.dot(x_t, self.W_o) + b_o )
 
         y_0 = theano.shared(numpy.zeros(outputNum).astype(dtype=theano.config.floatX), borrow=True)
-        
-        #self.output = []
-        #self.output.append( theano.scan(step, sequences = input, outputs_info = y_0, truncate_gradient = -1)[0] )
-        y_seq, _ = theano.scan(step, sequences = input, outputs_info = y_0, truncate_gradient = -1)
+        y_seq, _ = theano.scan(step, sequences = avergeInput, outputs_info = y_0, truncate_gradient = -1)
       
         self.p_y_given_x = y_seq
         
@@ -114,25 +114,20 @@ class RNN(object):
     def __init__(self, input, P, params = None, DROPOUT = False):
         
         self.hiddenLayerList = []
+        bidirectionalInput = []
+        bidirectionalInput.append(input)
+        bidirectionalInput.append(input[::-1])
+        
+        # First hidden layer
         self.hiddenLayerList.append(
-            HiddenLayer( input = input, rng = P.rng, inputNum = P.inputDimNum, outputNum = P.rnnWidth, 
+            HiddenLayer( input = bidirectionalInput, rng = P.rng, inputNum = P.inputDimNum, outputNum = P.rnnWidth, 
                          W_i = params[0], b_i = params[1], W_h = params[2], b_h = params[3] ))
-        # Other hidden layers, 
-        # Currently it's a Jordan type RNN, thus no other hidden layers are required
-        '''
+        
+        # Other hidden layers 
         for i in xrange (P.rnnDepth - 1):
             self.hiddenLayerList.append(
-                HiddenLayer(
-                    input = self.hiddenLayerList[i].output,
-                    rng = P.rng,
-                    inputNum = P.rnnW_idth/2,
-                    outputNum = P.rnnW_idth,
-                    rnnW_idth = P.rnnW_idth,
-                    dropoutProb = P.dropoutHiddenProb,
-                    W = params[2 * (i + 1)],
-                    b = params[2 * (i + 1) + 1],
-                    DROPOUT = DROPOUT ) )
-        '''
+                HiddenLayer( input = self.hiddenLayerList[i].output, rng = P.rng, inputNum = P.rnnWidth, outputNum = P.rnnWidth,
+                             W_i = params[2 * (i + 1)], b_i = params[2 * (i + 1) + 1], W_h = params[2 * (i + 1) + 2], b_h = params[2 * (i + 1) + 3] ))
         # Output Layer
         self.outputLayer = OutputLayer( input = self.hiddenLayerList[P.rnnDepth - 1].output, rng = P.rng, inputNum = P.rnnWidth, 
                                         outputNum = P.outputPhoneNum, W = params[4 * P.rnnDepth], b = params[4 * P.rnnDepth+1] )
