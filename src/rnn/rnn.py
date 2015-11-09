@@ -11,18 +11,21 @@ import globalParam
 from rnnUtils import Parameters
 from rnnArchitecture import HiddenLayer, OutputLayer, RNN
 
-DEBUG = False
+DEBUG = True
 
 parameterFilename = sys.argv[1]
 numpy.set_printoptions(threshold=numpy.nan) # for print numpy array
 
 def trainDNN(datasets, P):
 
-    trainSetX, trainSetY, trainSetName, trainMask = filler.fillerCore(datasets[0])
-    validSetX, validSetY, validSetName, validMask = filler.fillerCore(datasets[1])
-    sharedTrainSetX, sharedTrainSetY, castSharedTrainSetY = rnnUtils.sharedDataXY(trainSetX, trainSetY)
-    sharedValidSetX, sharedValidSetY, castSharedValidSetY = rnnUtils.sharedDataXY(validSetX, validSetY)
-    print numpy.array(trainSetY).shape
+    
+#trainSetX, trainSetY, trainSetName, trainMask = filler.fillerCore(datasets[0])
+#validSetX, validSetY, validSetName, validMask = filler.fillerCore(datasets[1])
+    trainSetX, trainSetY, trainSetName = rnnUtils.makeDataSentence(datasets[0])
+    validSetX, validSetY, validSetName = rnnUtils.makeDataSentence(datasets[1])
+#sharedTrainSetX, sharedTrainSetY, castSharedTrainSetY = rnnUtils.sharedDataXY(trainSetX, trainSetY)
+#sharedValidSetX, sharedValidSetY, castSharedValidSetY = rnnUtils.sharedDataXY(validSetX, validSetY)
+    print trainSetY
     ###############
     # BUILD MODEL #
     ###############
@@ -32,7 +35,7 @@ def trainDNN(datasets, P):
     y = T.ivector()
 
     # For create a new model
-    dummyParams = [None] * (4 * (P.rnnDepth) + 2)
+    dummyParams = [None] * (3 * (P.rnnDepth) + 2)
     
     # Build the RNN object for training
     classifier = RNN( input = x, params = dummyParams, P = P)
@@ -50,17 +53,23 @@ def trainDNN(datasets, P):
     globalParam.initGlobalSigmas()
     globalParam.initGlobalgradSqrs()
     
-    grads = [T.grad(cost, param) for param in classifier.params]
-    myOutputs = [classifier.errors(y)] + grads + classifier.params
+#grads = [(T.grad(cost, param)).clip(-0.1, 0.1) for param in classifier.params]
+    grads = [(T.grad(cost, param)).clip(-0.1,0.1) for param in classifier.params]
+    myOutputs = [classifier.errors(y)] + [classifier.p_y_given_x] + [classifier.yPred] + grads + classifier.params 
     myUpdates = rnnUtils.chooseUpdateMethod(grads, classifier.params, P)
 
     # Training mode
+    """
     trainModel = theano.function( inputs = [idx], outputs = myOutputs, updates = myUpdates, 
                                   givens = {x:sharedTrainSetX[idx], y:castSharedTrainSetY[idx]})
-
+    """
+    trainModel = theano.function( inputs = [x, y], outputs = myOutputs, updates = myUpdates)
     # Validation model
+    """
     validModel = theano.function( inputs = [idx], outputs = predicter.errors(y),
                                   givens = {x:sharedValidSetX[idx], y:castSharedValidSetY[idx]})
+    """
+    validModel = theano.function( inputs = [x, y], outputs = predicter.errors(y))
 
     ###################
     # TRAIN DNN MODEL #
@@ -102,12 +111,16 @@ def trainDNN(datasets, P):
         # Training
         trainLosses=[]
         for i in xrange(totalTrainSentSize):
-            outputs = trainModel(i)
+#outputs = trainModel(i)
+            outputs = trainModel(numpy.array(trainSetX[i]).astype(dtype='float32'), numpy.array(trainSetY[i]).astype(dtype='int32'))
             trainLosses.append(outputs[0])
-
+            print '====== p y given x ====='
+            print outputs[1]
+            print '====== y pred ====='
+            print outputs[2]
             # Print parameter value for debug
             if (i == 0 and DEBUG):
-                rnnUtils.printGradsParams(outputs[1:], P.rnnDepth)
+                rnnUtils.printGradsParams(outputs[3:], P.rnnDepth)
 
         # Evaluate training FER 
         trainFER = numpy.mean(trainLosses)
@@ -117,7 +130,7 @@ def trainDNN(datasets, P):
         rnnUtils.setParamsValue(nowModel, predicter.params)
         
         # Evaluate validation FER
-        validLosses = [validModel(i) for i in xrange(totalValidSentSize)]
+        validLosses = [validModel(numpy.array(validSetX[i]).astype(dtype='float32'), numpy.array(validSetY[i]).astype(dtype='int32')) for i in xrange(totalValidSentSize)]
         validFER = numpy.mean(validLosses)
         prevModel = nowModel
         """

@@ -3,7 +3,35 @@ import numpy as np
 import theano
 import theano.tensor as T
 import updateMethod
-import theano.typed_list
+
+# SpeakerNameList should be a total setName. (e.g. trainSetName)
+# It will return the idex of each sentence interval. ( e.g. (200, 456) )
+def findSentenceInterval(datasetName):
+    prevName, _ = utils.namepick(datasetName[0])
+    start = 0
+    end = 0
+    sentenceInterval = []
+    for i in xrange(1, len(datasetName)):
+        curName, _ = utils.namepick(datasetName[i])
+        if(prevName != curName):
+            end = i+1
+            sentenceInterval.append( (start, end) )
+            start = i
+        prevName = curName
+    sentenceInterval.append( (start, len(datasetName)-1) )
+    return sentenceInterval
+
+def toBeSentence(subset, interval):
+    sentencedSubset = []
+    for i in xrange(len(interval)):
+        sentencedSubset.append( subset[ interval[i][0] : (interval[i][1]+1) ] )  # Cuz the index will be -1, plusing 1 to avoid.
+    return sentencedSubset
+
+# make original data sentenced
+def makeDataSentence(dataset):
+    datasetX, datasetY, datasetName = dataset
+    sentenceInterval = findSentenceInterval(datasetName)
+    return toBeSentence(datasetX, sentenceInterval), toBeSentence(datasetY, sentenceInterval), toBeSentence(datasetName, sentenceInterval)
 
 def sharedDataXY(dataX, dataY, borrow=True):
     sharedX = theano.shared(np.asarray(dataX, dtype=theano.config.floatX), borrow=True)
@@ -25,12 +53,19 @@ def chooseUpdateMethod(grads, params, P):
 
 # GP means gradient and parameter(W and b).
 def printGradsParams(GP, rnnDepth):
-    for i in xrange(0, (2 * rnnDepth+1), 2):
-        print ( '================ Layer %d ================' % (i/2 + 1))
-        printNpArrayMeanStdMaxMin("GW", GP[i])
-        printNpArrayMeanStdMaxMin("Gb", GP[i+1])
-        printNpArrayMeanStdMaxMin("G ", GP[i+rnnDepth])
-        printNpArrayMeanStdMaxMin("G ", GP[i+rnnDepth+1])
+    for i in xrange(0, (3 * rnnDepth), 3):
+        print ( '================ Layer %d ================' % (i/3 + 1))
+        printNpArrayMeanStdMaxMin("GWi", GP[i])
+        printNpArrayMeanStdMaxMin("GWh", GP[i+1])
+        printNpArrayMeanStdMaxMin("Gbh", GP[i+2])
+        printNpArrayMeanStdMaxMin("Wi ", GP[i+3*rnnDepth + 2])   # +2 is for output layer
+        printNpArrayMeanStdMaxMin("Wh ", GP[i+3*rnnDepth+1 + 2])
+        printNpArrayMeanStdMaxMin("bh ", GP[i+3*rnnDepth+2 + 2])
+    print ( '================ Output Layer ================' )
+    printNpArrayMeanStdMaxMin("GWo", GP[3*rnnDepth])
+    printNpArrayMeanStdMaxMin("Gbo", GP[3*rnnDepth+1])
+    printNpArrayMeanStdMaxMin("Wo ", GP[3*2*rnnDepth+2]) # +2 is for the gradient of output layer
+    printNpArrayMeanStdMaxMin("bo ", GP[3*2*rnnDepth+3]) # +3 = +2 +1
 
 def printNpArrayMeanStdMaxMin(name, npArray):
     print(" #%s \t mean = %f \t std = %f \t max = %f \t min = %f" % (name, np.mean(npArray), np.std(npArray), np.amax(npArray), np.amin(npArray) ))
@@ -108,7 +143,7 @@ def splicedY(y, idx):
     
 class Parameters(object):
     def __init__(self, filename):
-       title, parameter           = utils.readFile2(filename)
+       title, parameter           = utils.readSetting(filename)
        self.momentum              = float(parameter[title.index('momentum')])
        self.rnnWidth              = int(parameter[title.index('width')])
        self.rnnDepth              = int(parameter[title.index('depth')])

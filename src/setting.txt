@@ -2,8 +2,8 @@ debug:True
 shuffle:True
 updateMethod:Adagrad
 momentum:0.90
-width:512
-depth:3
+width:48
+depth:1
 batchSize:1
 learningRate:0.0001
 learningRateDecay:1

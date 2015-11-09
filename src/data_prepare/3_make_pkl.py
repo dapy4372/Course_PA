@@ -9,7 +9,7 @@ from operator import itemgetter, attrgetter
 random.seed(1234)
 dim = int(sys.argv[1])
 #dataPath = sys.argv[2]
-pickedValidDirPath = '../../small_data/'
+pickedValidDirPath = '../../fbank_valid/'
 trainArkFilename   = pickedValidDirPath + 'train.ark'
 trainLabelFilename = pickedValidDirPath + 'train.lab'
 validArkFilename   = pickedValidDirPath + 'valid.ark'
@@ -17,7 +17,7 @@ validLabelFilename = pickedValidDirPath + 'valid.lab'
 testArkFilename    = pickedValidDirPath + 'test.ark'
 #testArkFilename    = dataPath + '/fbank/test.ark'
 #outputPklFilename  = '../../pkl/fbank_' + str(dim) + '_dataset_without_preprocessing.pkl'
-outputPklFilename  = '../../pkl/small_data.pkl'
+outputPklFilename  = '../../pkl/valid31.pkl'
 
 def countLineNum(fileArkName):
     f = open(fileArkName, 'rb')

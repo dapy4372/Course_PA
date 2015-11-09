@@ -6,7 +6,6 @@ import timeit
 import numpy
 import theano
 import theano.tensor as T
-import preprocessing
 
 def loadDataset(filename, totalSetNum):
     print '... loading data'
