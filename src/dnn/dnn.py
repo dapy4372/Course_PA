@@ -195,7 +195,7 @@ def getResult(bestModel, dataset, P, typeName, resultFilename):
     
     result = dnnUtils.EvalandResult(Model, batchIdx, centerIdx, typeName) 
     
-    dnnUtils.writeResult(result, resultFilename, setName)
+    dnnUtils.writeResult(result, centerIdx, resultFilename, setName)
     
     dnnUtils.clearSharedDataXY(sharedSetX, sharedSetY)
 

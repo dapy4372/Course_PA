@@ -46,10 +46,10 @@ def EvalandResult(Model, batchIdx, centerIdx, modelType):
     print ((modelType + ' FER,%f') % (FER * 100))
     return result
 
-def writeResult(result, filename, setNameList):
+def writeResult(result, centerIdx, filename, setNameList):
     f = open(filename, 'w')
     for i in xrange(len(result)):
-        f.write(setNameList[i] + ',' + str(result[i]) + '\n')
+        f.write(setNameList[centerIdx[i]] + ',' + str(result[i]) + '\n')
     f.close()
 
 def writeProb(Model, batchIdx, centerIdx, nameList, filename):
