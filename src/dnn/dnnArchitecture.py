@@ -61,7 +61,7 @@ class HiddenLayer(object):
         
         # Maxout
         zT= z.dimshuffle(1,0)
-        self.output = T.maximum(zT[0:dnnWidth/2],zT[dnnWidth/2:]).dimshuffle(1,0)
+        self.output = (T.maximum(zT[0:dnnWidth/2],zT[dnnWidth/2:]).dimshuffle(1,0)).astype(dtype=theano.config.floatX)
         
         # parameters of the model
         self.params = [self.W, self.b]
@@ -86,12 +86,12 @@ class OutputLayer(object):
         z = T.dot(input, self.W) + self.b
         
         # Softmax
-        absZ = T.abs_(z)
-        maxZ = T.max(absZ, axis=1)
-        maxZ = T.reshape(maxZ, (maxZ.shape[0], 1))
-        expZ = T.exp(z * 10 / maxZ)
-        expZsum = T.sum(expZ, axis=1)
-        expZsum = T.reshape(expZsum, (expZsum.shape[0], 1))
+        maxZ = T.max(z, axis=1).astype(dtype = theano.config.floatX)
+        absMaxZ = T.abs_(maxZ)
+        absMaxZ = T.reshape(absMaxZ, (absMaxZ.shape[0], 1))
+        expZ = T.exp(z*10  / absMaxZ)
+        expZsum = T.sum(expZ, axis=1).astype(dtype = theano.config.floatX)
+        expZsum = T.reshape(expZsum, (expZsum.shape[0],1))
         self.p_y_given_x = (expZ / expZsum)
         
         # Find larget y_i
