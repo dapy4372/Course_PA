@@ -54,10 +54,12 @@ def writeResult(result, centerIdx, filename, setNameList):
 
 def writeProb(Model, batchIdx, centerIdx, nameList, filename):
     f = open(filename, 'w')
+    k = 0
     for i in xrange(len(batchIdx)):
         tmpProb = Model(centerIdx[batchIdx[i][0]:batchIdx[i][1]]).tolist()
         for j in xrange(batchIdx[i][1]-batchIdx[i][0]):
-            f.write(nameList[centerIdx[j]] + ' ' + " ".join(map(str, tmpProb[j])) + '\n')
+            f.write(nameList[centerIdx[j+k]] + ' ' + " ".join(map(str, tmpProb[j])) + '\n')
+        k += batchIdx[i][1] - batchIdx[i][0]
     f.close()
 """
 def writeProb(prob, filename, setNameList):
