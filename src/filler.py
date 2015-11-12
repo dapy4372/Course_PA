@@ -46,15 +46,15 @@ def fillerCore(Set):
         fillSet[1].append(Set[1][i])
         fillSet[2].append(Set[2][i])
         fillSet[3].append(1)
-    print "bbbbbbbbbbbbbb"
-    print fillSet[2]
+    #print "bbbbbbbbbbbbbb"
+    #print fillSet[2]
     for i in range((len(fillSet[0])/maxLength)):
         finalSet[0].append(fillSet[0][i*maxLength:(i+1)*maxLength])
         finalSet[1].append(fillSet[1][i*maxLength:(i+1)*maxLength])
         finalSet[2].append(fillSet[2][i*maxLength:(i+1)*maxLength])
         finalSet[3].append(fillSet[3][i*maxLength:(i+1)*maxLength])
-    print "cccccccccccccccc"
-    print finalSet[2]    
+    #print "cccccccccccccccc"
+    #print finalSet[2]    
     return finalSet
 
 def filler():
@@ -65,7 +65,32 @@ def filler():
     fill_testSet =fillerCore(dataSet[2])
     return fill_trainSet,fill_validSet,fill_testSet
 
+#dataSet=loadDataset("../pkl/small_data.pkl",3)
+#print"aaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+#print dataSet[0][2]
+#fillerCore(dataSet[0])
+
+
+def cut(Set,size):
+    finalSet=[]
+    for i in range (3):
+        finalSet.append([])
+    for i in range (len(Set[0])):
+        for j in range((len(Set[0][i])/size)-1):
+            finalSet[0].append(Set[0][i][j*size:(j+1)*size])
+            finalSet[1].append(Set[1][i][j*size:(j+1)*size])
+            finalSet[2].append(Set[2][i][j*size:(j+1)*size])
+        if len(Set[0][i])%size!=0:
+            j=(len(Set[0][i])/size)
+
+            finalSet[0].append(Set[0][i][j*size:len(Set[0][i])])
+            finalSet[1].append(Set[1][i][j*size:len(Set[0][i])])
+            finalSet[2].append(Set[2][i][j*size:len(Set[0][i])])
+    return finalSet
+
+
 dataSet=loadDataset("../pkl/small_data.pkl",3)
-print"aaaaaaaaaaaaaaaaaaaaaaaaaaaa"
-print dataSet[0][2]
-fillerCore(dataSet[0])
+b=fillerCore(dataSet[0])
+a=cut(b,20)
+print a[1]
+#print a[1][2] 
