@@ -11,7 +11,9 @@ import globalParam
 from rnnUtils import Parameters
 from rnnArchitecture import HiddenLayer, OutputLayer, RNN
 
-DEBUG = True 
+DEBUG = False 
+clipRange = 0.1
+clipSentSize = 50
 
 parameterFilename = sys.argv[1]
 numpy.set_printoptions(threshold=numpy.nan) # for print numpy array
@@ -21,9 +23,13 @@ def trainDNN(datasets, P):
     
 #trainSetX, trainSetY, trainSetName, trainMask = filler.fillerCore(datasets[0])
 #validSetX, validSetY, validSetName, validMask = filler.fillerCore(datasets[1])
-    trainSetX, trainSetY, trainSetName = rnnUtils.makeDataClipSentence(datasets[0])
-    validSetX, validSetY, validSetName = rnnUtils.makeDataClipSentence(datasets[1])
-    print trainSetY
+    trainSetX, trainSetY, trainSetName = rnnUtils.makeDataSentence(datasets[0])
+    validSetX, validSetY, validSetName = rnnUtils.makeDataSentence(datasets[1])
+#print numpy.array(trainSetY[0]).shape
+#print numpy.array(trainSetY[1]).shape
+#trainSetX, trainSetY, trainSetName = filler.cut([trainSetX, trainSetY, trainSetName], clipSentSize)
+#validSetX, validSetY, validSetName = filler.cut([validSetX, validSetY, validSetName], clipSentSize)
+#print numpy.array(trainSetY[i]).shape
 #sharedTrainSetX, sharedTrainSetY, castSharedTrainSetY = rnnUtils.sharedDataXY(trainSetX, trainSetY)
 #sharedValidSetX, sharedValidSetY, castSharedValidSetY = rnnUtils.sharedDataXY(validSetX, validSetY)
     ###############
@@ -56,8 +62,8 @@ def trainDNN(datasets, P):
     
 #grads = [(T.grad(cost, param)).clip(-0.1, 0.1) for param in classifier.params]
 #grads = [ (T.grad(cost, param)).clip(-0.5,0.5) for param in classifier.params]
-    grads = [ (T.grad(cost, param)).clip(-100.,100.) for param in classifier.params]
-    myOutputs = [classifier.errors(y)] +[cost]+ classifier.hiddenLayerList[0].output + [classifier.p_y_given_x] + [classifier.yPred] + grads + classifier.params 
+    grads = [ (T.grad(cost, param)).clip(-1 * clipRange, clipRange) for param in classifier.params]
+    myOutputs = [classifier.errors(y)] +[cost]+ [classifier.hiddenLayerList[0].z_seq] + [classifier.hiddenLayerList[0].alp] +classifier.hiddenLayerList[0].output + [classifier.p_y_given_x] + [classifier.yPred] + grads + classifier.params 
     myUpdates = rnnUtils.chooseUpdateMethod(grads, classifier.params, P)
 
     # Training mode
@@ -116,10 +122,14 @@ def trainDNN(datasets, P):
 #outputs = trainModel(i)
             outputs = trainModel(numpy.array(trainSetX[i]).astype(dtype='float32'), numpy.array(trainSetY[i]).astype(dtype='int32'))
             trainLosses.append(outputs[0])
-            
+#print outputs[2]
+#print '========================'
+#sys.stdin.read(1)
+            """
             trainFER = numpy.mean(trainLosses)
             print (('   %i,\t%f\t, cost = %f') % (sent, trainFER * 100, outputs[1]))
-            sent += 1
+            """
+#           sent += 1
 #rnnUtils.printNpArrayMeanStdMaxMin('hidden output', outputs[1])
             """
             print '========== In order ==========='
@@ -143,9 +153,10 @@ def trainDNN(datasets, P):
             print outputs[3]
             """
             # Print parameter value for debug
-            if (DEBUG):
+            if (i == 0 and DEBUG):
                 rnnUtils.printGradsParams(outputs[5:], P.rnnDepth)
-
+        if (i != 0 and epoch % 30 == 0):
+            globalParam.lr *= 0.5
         # Evaluate training FER 
         trainFER = numpy.mean(trainLosses)
 

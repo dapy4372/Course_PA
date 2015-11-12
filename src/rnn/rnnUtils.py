@@ -7,6 +7,7 @@ import updateMethod
 # SpeakerNameList should be a total setName. (e.g. trainSetName)
 # It will return the idex of each sentence interval. ( e.g. (200, 456) )
 def findSentenceInterval(datasetName):
+    print datasetName
     prevName, _ = utils.namepick(datasetName[0])
     start = 0
     end = 0
