@@ -17,7 +17,7 @@ validLabelFilename = pickedValidDirPath + 'valid.lab'
 testArkFilename    = pickedValidDirPath + 'test.ark'
 #testArkFilename    = dataPath + '/fbank/test.ark'
 #outputPklFilename  = '../../pkl/fbank_' + str(dim) + '_dataset_without_preprocessing.pkl'
-outputPklFilename  = '../../pkl/valid31.pkl'
+outputPklFilename  = '../../pkl/first_test.pkl'
 
 def countLineNum(fileArkName):
     f = open(fileArkName, 'rb')

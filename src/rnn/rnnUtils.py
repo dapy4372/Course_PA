@@ -27,11 +27,25 @@ def toBeSentence(subset, interval):
         sentencedSubset.append( subset[ interval[i][0] : (interval[i][1]+1) ] )  # Cuz the index will be -1, plusing 1 to avoid.
     return sentencedSubset
 
+def toBeClipSentence(subset, interval, clipSize = 20):
+    sentencedSubset = []
+    for i in xrange(len(interval)):
+        clipNum = (interval[i][1] - interval[i][0] + 1) / clipSize
+        for j in xrange(clipNum):
+            sentencedSubset.append( subset[ interval[i][0] + (j*clipSize) : (interval[i][1]+1) + ((j+1) * clipSize) ] )
+        sentencedSubset.append( subset[ interval[i][0] + clipNum * clipSize : interval[i][1] + (clipNum+1) * clipSize ] )
+    return sentencedSubset
+
 # make original data sentenced
 def makeDataSentence(dataset):
     datasetX, datasetY, datasetName = dataset
     sentenceInterval = findSentenceInterval(datasetName)
     return toBeSentence(datasetX, sentenceInterval), toBeSentence(datasetY, sentenceInterval), toBeSentence(datasetName, sentenceInterval)
+
+def makeDataClipSentence(dataset):
+    datasetX, datasetY, datasetName = dataset
+    sentenceInterval = findSentenceInterval(datasetName)
+    return toBeClipSentence(datasetX, sentenceInterval), toBeClipSentence(datasetY, sentenceInterval), toBeClipSentence(datasetName, sentenceInterval)
 
 def sharedDataXY(dataX, dataY, borrow=True):
     sharedX = theano.shared(np.asarray(dataX, dtype=theano.config.floatX), borrow=True)
@@ -69,6 +83,19 @@ def printGradsParams(GP, rnnDepth):
 
 def printNpArrayMeanStdMaxMin(name, npArray):
     print(" #%s \t mean = %f \t std = %f \t max = %f \t min = %f" % (name, np.mean(npArray), np.std(npArray), np.amax(npArray), np.amin(npArray) ))
+"""
+def printNpArrayMeanStdMaxMin(name, npArray):
+    print(" #%s" % (name))
+    print "======= mean ======"
+    print np.mean(npArray, axis=1)
+    print "======= std  ======"
+    print np.std(npArray, axis=1)
+    print "======= max  ======"
+    print np.amax(npArray, axis=1)
+    print "======= min ======"
+    print np.amin(npArray, axis=1)
+"""
+
 
 def EvalandResult(Model, batchIdx, centerIdx, modelType):
     result = []

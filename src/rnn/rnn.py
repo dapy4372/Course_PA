@@ -11,7 +11,7 @@ import globalParam
 from rnnUtils import Parameters
 from rnnArchitecture import HiddenLayer, OutputLayer, RNN
 
-DEBUG = True
+DEBUG = True 
 
 parameterFilename = sys.argv[1]
 numpy.set_printoptions(threshold=numpy.nan) # for print numpy array
@@ -21,11 +21,11 @@ def trainDNN(datasets, P):
     
 #trainSetX, trainSetY, trainSetName, trainMask = filler.fillerCore(datasets[0])
 #validSetX, validSetY, validSetName, validMask = filler.fillerCore(datasets[1])
-    trainSetX, trainSetY, trainSetName = rnnUtils.makeDataSentence(datasets[0])
-    validSetX, validSetY, validSetName = rnnUtils.makeDataSentence(datasets[1])
+    trainSetX, trainSetY, trainSetName = rnnUtils.makeDataClipSentence(datasets[0])
+    validSetX, validSetY, validSetName = rnnUtils.makeDataClipSentence(datasets[1])
+    print trainSetY
 #sharedTrainSetX, sharedTrainSetY, castSharedTrainSetY = rnnUtils.sharedDataXY(trainSetX, trainSetY)
 #sharedValidSetX, sharedValidSetY, castSharedValidSetY = rnnUtils.sharedDataXY(validSetX, validSetY)
-    print trainSetY
     ###############
     # BUILD MODEL #
     ###############
@@ -43,8 +43,6 @@ def trainDNN(datasets, P):
     # Build the DNN object for Validation
     predicter = RNN( input = x, P = P, params = dummyParams )
     
-    # Cost function 1.cross entropy 2.weight decay
-    cost = ( classifier.crossEntropy(y) + P.L1Reg * classifier.L1 + P.L2Reg * classifier.L2_sqr )
    
     # Global parameters setting
     globalParam.initGlobalLearningRate(P)
@@ -53,9 +51,13 @@ def trainDNN(datasets, P):
     globalParam.initGlobalSigmas()
     globalParam.initGlobalgradSqrs()
     
+    # Cost function 1.cross entropy 2.weight decay
+    cost = ( classifier.crossEntropy(y) + P.L1Reg * classifier.L1 + P.L2Reg * classifier.L2_sqr )
+    
 #grads = [(T.grad(cost, param)).clip(-0.1, 0.1) for param in classifier.params]
-    grads = [(T.grad(cost, param)).clip(-0.1,0.1) for param in classifier.params]
-    myOutputs = [classifier.errors(y)] + [classifier.p_y_given_x] + [classifier.yPred] + grads + classifier.params 
+#grads = [ (T.grad(cost, param)).clip(-0.5,0.5) for param in classifier.params]
+    grads = [ (T.grad(cost, param)).clip(-100.,100.) for param in classifier.params]
+    myOutputs = [classifier.errors(y)] +[cost]+ classifier.hiddenLayerList[0].output + [classifier.p_y_given_x] + [classifier.yPred] + grads + classifier.params 
     myUpdates = rnnUtils.chooseUpdateMethod(grads, classifier.params, P)
 
     # Training mode
@@ -63,7 +65,7 @@ def trainDNN(datasets, P):
     trainModel = theano.function( inputs = [idx], outputs = myOutputs, updates = myUpdates, 
                                   givens = {x:sharedTrainSetX[idx], y:castSharedTrainSetY[idx]})
     """
-    trainModel = theano.function( inputs = [x, y], outputs = myOutputs, updates = myUpdates)
+    trainModel = theano.function( inputs = [x, y], outputs = myOutputs, updates = myUpdates )
     # Validation model
     """
     validModel = theano.function( inputs = [idx], outputs = predicter.errors(y),
@@ -107,20 +109,42 @@ def trainDNN(datasets, P):
         epoch = epoch + 1
 
 #random.shuffle(trainCenterIdx)
-
+        sent = 1
         # Training
         trainLosses=[]
         for i in xrange(totalTrainSentSize):
 #outputs = trainModel(i)
             outputs = trainModel(numpy.array(trainSetX[i]).astype(dtype='float32'), numpy.array(trainSetY[i]).astype(dtype='int32'))
             trainLosses.append(outputs[0])
-            print '====== p y given x ====='
-            print outputs[1]
-            print '====== y pred ====='
+            
+            trainFER = numpy.mean(trainLosses)
+            print (('   %i,\t%f\t, cost = %f') % (sent, trainFER * 100, outputs[1]))
+            sent += 1
+#rnnUtils.printNpArrayMeanStdMaxMin('hidden output', outputs[1])
+            """
+            print '========== In order ==========='
+            print outputs[3]
+            """
+            """
+            print '========== In reverse ==========='
             print outputs[2]
+            """
+            """
+            print '==========================================='
+            print outputs[4]
+            print '==========================================='
+            """
+            """
+            print '====== p y given x ====='
+            print outputs[2]
+            """
+            """
+            print '====== y pred ====='
+            print outputs[3]
+            """
             # Print parameter value for debug
-            if (i == 0 and DEBUG):
-                rnnUtils.printGradsParams(outputs[3:], P.rnnDepth)
+            if (DEBUG):
+                rnnUtils.printGradsParams(outputs[5:], P.rnnDepth)
 
         # Evaluate training FER 
         trainFER = numpy.mean(trainLosses)

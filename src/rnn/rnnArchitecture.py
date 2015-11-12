@@ -1,14 +1,17 @@
 import numpy
 import theano
 import theano.tensor as T
+
+init = 10.
+
 def sigmoid(z):
-    return 1/(1+(T.exp(-z)).clip(0., 1000.)).astype(dtype=theano.config.floatX)
+    return ( 1/(1+T.exp(-z)) ).astype(dtype=theano.config.floatX)
 
 def softmax(z):
     maxZ = T.max(z, axis=1).astype(dtype = theano.config.floatX)
     absMaxZ = T.abs_(maxZ)
     absMaxZ = T.reshape(absMaxZ, (absMaxZ.shape[0], 1))
-    expZ = T.exp(z*10  / absMaxZ)
+    expZ = T.exp( z*10  / absMaxZ)
     expZsum = T.sum(expZ, axis=1).astype(dtype = theano.config.floatX)
     expZsum = T.reshape(expZsum, (expZsum.shape[0],1))
     return expZ /expZsum
@@ -16,21 +19,18 @@ def softmax(z):
 class HiddenLayer(object):
     def __init__(self, rng, input, inputNum, outputNum, W_i = None, W_h = None, b_h = None):
         if W_i is None:
-            W_i_values = rng.uniform( low = -numpy.sqrt(0.01/(inputNum+outputNum)), high = numpy.sqrt(0.01/(inputNum+outputNum)),
-            size = (inputNum, outputNum) ).astype( dtype=theano.config.floatX )
+            W_i_values = rng.uniform( low = -1 * init, high = init, size = (inputNum, outputNum) ).astype( dtype=theano.config.floatX )
             W_i = theano.shared(value = W_i_values, name = 'W', borrow = True)
         else:
             W_i = theano.shared( value = numpy.array(W, dtype = theano.config.floatX), name='W', borrow = True )
 
         if W_h is None:
-            W_h_values = rng.uniform( low = -numpy.sqrt(0.01/(inputNum+outputNum)), high = numpy.sqrt(0.01/(inputNum+outputNum)),
-            size = (outputNum, outputNum) ).astype( dtype=theano.config.floatX )
-#W_h_values = numpy.eye(outputNum, outputNum, dtype = theano.config.floatX )
+            W_h_values = numpy.eye(outputNum, outputNum, dtype = theano.config.floatX )
             W_h = theano.shared(value = W_h_values, name = 'W', borrow = True)
         else:
             W_h = theano.shared( value = numpy.array(W, dtype = theano.config.floatX), name='W', borrow = True )
         if b_h is None:
-            b_values = rng.uniform( low = -0.1, high = 0.1, size = (outputNum,)).astype(dtype=theano.config.floatX)
+            b_values = rng.uniform( low = -1., high = 1., size = (outputNum,)).astype(dtype=theano.config.floatX)
             b_h = theano.shared(value = b_values, name = 'b', borrow = True)
         else:
             b_h = theano.shared( value = numpy.array(b, dtype = theano.config.floatX), name='b', borrow = True )
@@ -44,43 +44,50 @@ class HiddenLayer(object):
             return sigmoid( z_t + T.dot(a_tm1, self.W_h) + self.b_h )
         
         a_0 = theano.shared(numpy.zeros(outputNum).astype(dtype = theano.config.floatX), borrow = True)
-        
+
         # In order
         z_seq = T.dot(input[0], W_i)
 
         a_seq, _ = theano.scan(step, sequences = z_seq, outputs_info = a_0, truncate_gradient = -1)
         self.output.append(a_seq)
-
+        """
+        z_seq = sigmoid(T.dot(input[0], W_i + self.b_h))
+        self.output.append(z_seq)
+        """ 
+        """ 
         # In reverse  
         z_seq_reverse = T.dot(input[0], W_i)
       
         a_seq_reverse, _ = theano.scan(step, sequences = z_seq_reverse, outputs_info = a_0, truncate_gradient = -1)
         self.output.append(a_seq_reverse)
 
+        """ 
         self.params = [self.W_i, self.W_h, self.b_h]
         
 class OutputLayer(object):
-    def __init__(self, input, inputNum, outputNum, rng, W = None, b = None):
-        if W is None:
-            W_values = rng.uniform( low = -numpy.sqrt(0.01/(inputNum+outputNum)), high = numpy.sqrt(0.01/(inputNum+outputNum)),
-                                    size = (inputNum, outputNum) ).astype(dtype=theano.config.floatX )
+    def __init__(self, input, inputNum, outputNum, rng, W_o = None, b_o = None):
+        if W_o is None:
+            W_values = rng.uniform( low = -1 * init, high = init, size = (inputNum, outputNum) ).astype(dtype=theano.config.floatX )
             W_o = theano.shared(value = W_values, name = 'W', borrow = True)
         else:
             W_o = theano.shared( value = numpy.array(W, dtype = theano.config.floatX), name='W', borrow=True )
 
-        if b is None:
-            b_values = rng.uniform( low = -0.1, high = 0.1, size = (outputNum,)).astype(dtype=theano.config.floatX)
+        if b_o is None:
+            b_values = rng.uniform( low = -1, high = 1, size = (outputNum,)).astype(dtype=theano.config.floatX)
             b_o = theano.shared(value = b_values, name = 'b', borrow = True)
         else:
             b_o = theano.shared( value = numpy.array(b, dtype = theano.config.floatX), name='b', borrow=True )
 
         self.W_o = W_o
         self.b_o = b_o
-         
+
+        """ 
         avergeInput = (input[0] + input[1]) / 2
 
         y_seq = softmax( T.dot(avergeInput, self.W_o) + b_o )
-        
+        """ 
+        y_seq = softmax( T.dot(input[0], self.W_o) + b_o )
+
         # Find probability, given x
         self.p_y_given_x = y_seq
         
@@ -91,7 +98,8 @@ class OutputLayer(object):
     
     # Cross entropy
     def crossEntropy(self, y):
-        return -T.mean(T.log(self.p_y_given_x)[T.arange(y.shape[0]), y])
+#return -T.mean( T.log(self.p_y_given_x)[T.arange(y.shape[0]), y] )
+        return -T.sum( T.log(self.p_y_given_x)[T.arange(y.shape[0]), y] )
 
     def errors(self, y):
         # Check y and y_pred dimension
@@ -124,7 +132,7 @@ class RNN(object):
                              W_i = params[3 * (i + 1)], W_h = params[3 * (i + 1) + 1], b_h = params[3 * (i + 1) + 2] ))
         # Output Layer
         self.outputLayer = OutputLayer( input = self.hiddenLayerList[P.rnnDepth - 1].output, rng = P.rng, inputNum = P.rnnWidth, 
-                                        outputNum = P.outputPhoneNum, W = params[3 * P.rnnDepth], b = params[3 * P.rnnDepth+1] )
+                                        outputNum = P.outputPhoneNum, W_o = params[3 * P.rnnDepth], b_o = params[3 * P.rnnDepth+1] )
         
         # Weight decay
         # L1 norm ; one regularization option is to enforce L1 norm to be small
