@@ -5,10 +5,10 @@ import numpy
 
 class FirstHiddenLayer(object):
     def __init__(self, rng, input, inputNum, outputNum, dnnWidth, spliceWidth, W = None, b = None, dropoutProb = 1.0, DROPOUT = False):
-        #if DROPOUT == True:
-#self.input = Dropout( rng = rng, input = input, inputNum = inputNum, dropoutProb = dropoutProb )
-#else:
-#self.input = input * dropoutProb
+        if DROPOUT == True:
+            self.input = Dropout( rng = rng, input = input, inputNum = inputNum, dropoutProb = dropoutProb )
+        else:
+            self.input = input * dropoutProb
         self.input = input
         if W is None:
             W_values = rng.uniform( low = -numpy.sqrt(1./(inputNum+outputNum)), high = numpy.sqrt(1./(inputNum+outputNum)),
@@ -30,9 +30,13 @@ class FirstHiddenLayer(object):
         z = T.tensordot(self.input, self.W, [[0,2],[0,1]]) + self.b
 
         # Maxout
+        zEven = z[:,0::2]
+        zOld = z[:,1::2]
+        self.output = (T.maximum(zOld, zEven)).astype(dtype=theano.config.floatX)
+        """
         zT= z.T
         self.output = T.maximum(zT[0:dnnWidth/2],zT[dnnWidth/2:]).T
-
+        """
         # parameters of the model
         self.params = [self.W, self.b]
 
@@ -60,8 +64,8 @@ class HiddenLayer(object):
         z = T.dot(self.input, self.W) + self.b
         
         # Maxout
-        zOld = z[:, 0::2]
-        zEven = z[:, 1::2]
+        zEven = z[:, 0::2]
+        zOld = z[:, 1::2]
         self.output = (T.maximum(zOld, zEven)).astype(dtype=theano.config.floatX)
         """
         zT= z.dimshuffle(1,0)
