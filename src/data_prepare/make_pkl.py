@@ -8,16 +8,14 @@ from operator import itemgetter, attrgetter
 
 random.seed(1234)
 dim = int(sys.argv[1])
-#dataPath = sys.argv[2]
-pickedValidDirPath = '../../fbank_valid/'
-trainArkFilename   = pickedValidDirPath + 'train.ark'
-trainLabelFilename = pickedValidDirPath + 'train.lab'
-validArkFilename   = pickedValidDirPath + 'valid.ark'
-validLabelFilename = pickedValidDirPath + 'valid.lab'
-testArkFilename    = pickedValidDirPath + 'test.ark'
-#testArkFilename    = dataPath + '/fbank/test.ark'
-#outputPklFilename  = '../../pkl/fbank_' + str(dim) + '_dataset_without_preprocessing.pkl'
-outputPklFilename  = '../../pkl/first_test.pkl'
+probDataPath = sys.argv[2]
+outputPklFilename = sys.argv[3]
+
+trainArkFilename   = probDataPath + 'train.ark'
+trainLabelFilename = probDataPath + '../train.lab'
+validArkFilename   = probDataPath + 'valid.ark'
+validLabelFilename = probDataPath + '../valid.lab'
+testArkFilename    = probDataPath + 'test.ark'
 
 def countLineNum(fileArkName):
     f = open(fileArkName, 'rb')

@@ -1,19 +1,28 @@
-mkdir -p ../../map ../../pkl ../../fbank_valid ../../model ../../log ../../result \
+mkdir -p ../../pkl ../../model ../../log ../../result \
          ../../result/smoothed_test_result ../../result/smoothed_valid_result  \
-         ../../result/test_result  ../../result/valid_result ../../result/final_result ../../prob
+         ../../result/test_result  ../../result/valid_result ../../result/final_result
 
-dataPath=/home/roylu/datashare/MLDS_data 
 
-echo '... generate map'
-python ./0_gen-map.py $dataPath
+# Genally, you should only change the variable "DNNResult".
+# t means train and v means valid.
+# The integers follow t and v are the FER.
+DNNResult=t26v31
 
-echo '... generate int label'
-python ./1_gen-intlab.py $dataPath
+# "dim" is the dimension of the probability.
+# "tmp" is for the data which is without preprocessing.
+# It will be remove after the shell sript finish.
 
-echo '... pick  validation set'
-python ./2_pick_valid.py $dataPath
+dim=48
+tmp=./tmp_$DNNResult.pkl
+probDataPath=/home/roylu/datashare/DNNResult/$DNNResult/
+outputFilename=../../pkl/$DNNResult.pkl
 
-echo '... make pkl file'
-python ./3_make_pkl.py 69 $dataPath
+echo '... coverting data to pkl'
+python ./make_pkl.py $dim $probDataPath $tmp
+
+echo '... preprocessing'
+python ./preprocessing.py $tmp $outputFilename
+
+rm -f $tmp
 
 echo 'done'

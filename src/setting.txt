@@ -6,7 +6,7 @@ depth:1
 batchSize:1
 learningRate:0.001
 learningRateDecay:1
-dataSetFilename:../pkl/first_test.pkl
+dataSetFilename:../pkl/small_data.pkl
 dataSetType:clip20
 maxEpoch:2000
 inputDimNum:48
