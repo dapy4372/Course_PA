@@ -126,7 +126,7 @@ def trainDNN(datasets, P):
             prevFER = validFER
             prevModel = nowModel
             curEarlyStop = 0
-        elif globalParam.lr > 1e-7:
+        elif globalParam.lr > 1e-5:
             epoch -= 1
             dnnUtils.setParamsValue(prevModel, classifier.params)
 
@@ -142,13 +142,13 @@ def trainDNN(datasets, P):
                 globalParam.gradSqrs = prevGradSqrs
             elif P.updateMethod == 'RMSProp':
                 globalParam.sigmaSqrs = prevSigmaSqrs
-            print (('====,%i,    %f,    %f,    %f') % (epoch, trainFER * 100, validFER * 100., cost ))
+            print (('====,%i,%f,%f,%f') % (epoch, trainFER * 100, validFER * 100., cost ))
             continue
         else:
             doneLooping = True
             continue
 
-        print (('%i,\t%f,\t%f,\t%f') % (epoch, trainFER * 100, validFER * 100. , cost))
+        print (('%i,%f,%f,%f') % (epoch, trainFER * 100, validFER * 100. , cost))
 
         # Record the Adagrad, RMSProp parameter
         if P.updateMethod == 'Adagrad':

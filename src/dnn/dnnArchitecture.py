@@ -60,9 +60,13 @@ class HiddenLayer(object):
         z = T.dot(self.input, self.W) + self.b
         
         # Maxout
+        zOld = z[:, 0::2]
+        zEven = z[:, 1::2]
+        self.output = (T.maximum(zOld, zEven)).astype(dtype=theano.config.floatX)
+        """
         zT= z.dimshuffle(1,0)
         self.output = (T.maximum(zT[0:dnnWidth/2],zT[dnnWidth/2:]).dimshuffle(1,0)).astype(dtype=theano.config.floatX)
-        
+        """
         # parameters of the model
         self.params = [self.W, self.b]
 
@@ -104,7 +108,7 @@ class OutputLayer(object):
     
     # Cross entropy
     def crossEntropy(self, y):
-        return -T.mean(T.log(self.p_y_given_x)[T.arange(y.shape[0]), y])
+        return -T.mean( (T.log(self.p_y_given_x)).clip(-1e6, 1e6)[T.arange(y.shape[0]), y])
 
     def errors(self, y):
         # Check y and y_pred dimension
