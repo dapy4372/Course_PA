@@ -1,5 +1,4 @@
-debug:True
-shuffle:True
+shuffle:0
 updateMethod:Momentum
 momentum:0.8
 width:512
@@ -8,8 +7,8 @@ batchSize:1
 learningRate:0.001
 learningRateDecay:1
 dataSetFilename:../pkl/first_test.pkl
-dataSetType:fbank
-maxEpoch:20
+dataSetType:clip20
+maxEpoch:2000
 inputDimNum:48
 outputPhoneNum:48
 seed:168

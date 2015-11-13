@@ -42,10 +42,6 @@ def covertData(fileArkName, LineNum, fileLabelName = None, existY = True):
         for i in xrange(dim):
             feature.append(float(curLine[i+1]))
         dataX.append([name, number,feature])
-    print dataX[0][0]
-    print dataX[0][1]
-    print dataX[1][0]
-    print dataX[1][1]
 
     if fileLabelName is not None:
         dataX = sorted(dataX, key=itemgetter(0,1))  
@@ -67,13 +63,6 @@ def covertData(fileArkName, LineNum, fileLabelName = None, existY = True):
         npDataX[i] = dataX[i][2]
         npDataY[i] = dataY[i][2]
         dataName[i] = dataX[i][0] + '_' + str(dataX[i][1])
-    print dataX[0][0]
-    print dataX[0][1]
-    print dataX[1][0]
-    print dataX[1][1]
-    print dataName[0]
-    print dataName[1]
-    print dataName[2]
 
     return npDataX, npDataY, dataName
 
