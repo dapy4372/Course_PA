@@ -3,7 +3,8 @@ updateMethod:Momentum
 momentum:0.8
 width:512
 depth:1
-batchSize:1
+cutSentSize:100
+clipRange:0.01
 learningRate:0.001
 learningRateDecay:1
 dataSetFilename:../pkl/t26v31.pkl

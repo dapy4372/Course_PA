@@ -11,11 +11,9 @@ from rnnUtils import Parameters
 from rnnArchitecture import HiddenLayer, OutputLayer, RNN
 
 DEBUG = False
-FER_SENT = True
+FER_PER_SENT = True
 PAUSE = False
 OUTPUT_DETAIL = False
-clipRange = 0.05
-clipSentSize = 100
 
 parameterFilename = sys.argv[1]
 np.set_printoptions(threshold=np.nan) # for print np array
@@ -25,8 +23,9 @@ def trainDNN(datasets, P):
     
     trainSetX, trainSetY, trainSetName = rnnUtils.makeDataSentence(datasets[0])
     validSetX, validSetY, validSetName = rnnUtils.makeDataSentence(datasets[1])
-#    trainSetX, trainSetY, trainSetName = rnnUtils.cutSentence([trainSetX, trainSetY, trainSetName], clipSentSize)
-#    validSetX, validSetY, validSetName = rnnUtils.cutSentence([validSetX, validSetY, validSetName], clipSentSize)
+    if P.cutSentSize > 0:
+        trainSetX, trainSetY, trainSetName = rnnUtils.cutSentence([trainSetX, trainSetY, trainSetName], P.cutSentSize)
+        validSetX, validSetY, validSetName = rnnUtils.cutSentence([validSetX, validSetY, validSetName], P.cutSentSize)
 
     ###############
     # BUILD MODEL #
@@ -55,7 +54,7 @@ def trainDNN(datasets, P):
     # Cost function 1.cross entropy 2.weight decay
     cost = ( classifier.crossEntropy(y) + P.L1Reg * classifier.L1 + P.L2Reg * classifier.L2_sqr )
     
-    grads = [ (T.grad(cost, param)).clip(-1 * clipRange, clipRange) for param in classifier.params]
+    grads = [ (T.grad(cost, param)).clip(-1 * P.clipRange, P.clipRange) for param in classifier.params]
     myOutputs = ( [classifier.errors(y)] +[cost]+ classifier.hiddenLayerList[0].output 
                  + [classifier.p_y_given_x] + [classifier.yPred] + grads + classifier.params )
     myUpdates = rnnUtils.chooseUpdateMethod(grads, classifier.params, P)
@@ -102,6 +101,7 @@ def trainDNN(datasets, P):
             random.shuffle(trainSentIdx)
         # Training
         trainLosses=[]
+        sentNum = 1
         for i in xrange(totalTrainSentNum):
             outputs = trainModel(np.array(trainSetX[trainSentIdx[i]]).astype(dtype='float32'), np.array(trainSetY[trainSentIdx[i]]).astype(dtype='int32'))
             trainLosses.append(outputs[0])
@@ -109,9 +109,10 @@ def trainDNN(datasets, P):
             # Print output detail
 #if OUTPUT_DETAIL:
 #                rnnUtils.printOutputDetail(outputs[])
-            if FER_SENT:
+            if FER_PER_SENT:
                 trainFER = np.mean(trainLosses)
                 print (('%i,\t%f') % (epoch, trainFER * 100))
+                sentNum+=1
             # Print parameter value for debug
             if DEBUG:
                 rnnUtils.printGradsParams(outputs[7:7 + 6 * P.rnnDepth + 2], outputs[7 + 6 * P.rnnDepth:], P.rnnDepth)
