@@ -139,7 +139,7 @@ def trainRNN(datasets, P):
 
         if validFER < prevFER:
             if bestModelName != '':
-                os.remove(prevModelName)
+                os.remove(bestModelName)
             prevFER = validFER
             prevModel = nowModel
             bestModelName = '../model/' + P.outputFilename + '_validFER_' + str(validFER * 100.) 
