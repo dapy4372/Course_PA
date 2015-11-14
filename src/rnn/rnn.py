@@ -111,7 +111,7 @@ def trainDNN(datasets, P):
 #                rnnUtils.printOutputDetail(outputs[])
             if FER_PER_SENT:
                 trainFER = np.mean(trainLosses)
-                print (('%i,\t%f') % (epoch, trainFER * 100))
+                print (('   %i,%f') % (sentNum, trainFER * 100))
                 sentNum+=1
             # Print parameter value for debug
             if DEBUG:
@@ -154,7 +154,7 @@ def trainDNN(datasets, P):
                 doneLooping = True
                 continue
         """
-        print (('%i,\t%f,\t%f') % (epoch, trainFER * 100, validFER * 100. ))
+        print (('%i,%f,%f') % (epoch, trainFER * 100, validFER * 100. ))
 
         # Record the Adagrad, RMSProp parameter
         if P.updateMethod == 'Adagrad':
