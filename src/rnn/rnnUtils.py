@@ -44,21 +44,14 @@ def cutSentence(Set,size):
             finalSet[2].append(Set[2][i][j*size:len(Set[0][i])])
     return finalSet
 
-def toBeClipSentence(subset, interval, clipSize = 20):
-    sentencedSubset = []
-    for i in xrange(len(interval)):
-        clipNum = (interval[i][1] - interval[i][0] + 1) / clipSize
-        for j in xrange(clipNum):
-            sentencedSubset.append( subset[ interval[i][0] + (j*clipSize) : (interval[i][1]+1) + ((j+1) * clipSize) ] )
-        sentencedSubset.append( subset[ interval[i][0] + clipNum * clipSize : interval[i][1] + (clipNum+1) * clipSize ] )
-    return sentencedSubset
-
 # make original data sentenced
 def makeDataSentence(dataset):
     datasetX, datasetY, datasetName = dataset
     sentenceInterval = findSentenceInterval(datasetName)
     return toBeSentence(datasetX, sentenceInterval), toBeSentence(datasetY, sentenceInterval), toBeSentence(datasetName, sentenceInterval)
 
+# Not used in RNN
+"""
 def sharedDataXY(dataX, dataY, borrow=True):
     sharedX = theano.shared(np.asarray(dataX, dtype=theano.config.floatX), borrow=True)
     #TODO does't work in GPU for sharedY
@@ -68,7 +61,9 @@ def sharedDataXY(dataX, dataY, borrow=True):
 def clearSharedDataXY(sharedX, sharedY):
     sharedX.set_value([[]])
     sharedY.set_value([])
+"""
 
+# Used to bulid model
 def chooseUpdateMethod(grads, params, P):
     if P.updateMethod == 'Momentum':
         return updateMethod.Momentum(grads, params, P.momentum)
@@ -77,7 +72,7 @@ def chooseUpdateMethod(grads, params, P):
     if P.updateMethod == 'Adagrad':
         return updateMethod.Adagrad(grads, params)
 
-# GP means gradient and parameter(W and b).
+# Used to debug
 def printGradsParams(grads, params, rnnDepth):
     for i in xrange(0, (3 * rnnDepth), 6):
         print ( '================ Layer %d ================' % (i/3 + 1))
@@ -99,9 +94,7 @@ def printGradsParams(grads, params, rnnDepth):
     printNpArrayMeanStdMaxMin("Wo ", params[6*rnnDepth]) 
     printNpArrayMeanStdMaxMin("bo ", params[6*rnnDepth+1])
 
-def printNpArrayMeanStdMaxMin(name, npArray):
-    print(" #%s \t mean = %f \t std = %f \t max = %f \t min = %f" % (name, np.mean(npArray), np.std(npArray), np.amax(npArray), np.amin(npArray) ))
-"""
+# Used to debug
 def printNpArrayMeanStdMaxMin(name, npArray):
     print(" #%s" % (name))
     print "======= mean ======"
@@ -112,9 +105,8 @@ def printNpArrayMeanStdMaxMin(name, npArray):
     print np.amax(npArray, axis=1)
     print "======= min ======"
     print np.amin(npArray, axis=1)
-"""
 
-
+# Used in getResult
 def EvalandResult(Model, totalSentNum, setX, setY, modelType):
     result = []
     Losses = []
@@ -126,6 +118,8 @@ def EvalandResult(Model, totalSentNum, setX, setY, modelType):
     print ((modelType + ' FER,%f') % (FER * 100))
     return result
 
+# Used in getResult
+# Write the result into a ".lab" file
 def writeResult(result, filename, setNameList):
     f = open(filename, 'w')
     print result
@@ -134,22 +128,28 @@ def writeResult(result, filename, setNameList):
             f.write(setNameList[i][j] + ',' + str(result[i][j]) + '\n')
     f.close()
 
+# Not used in RNN
+"""
 def makeBatch(totalSize, batchSize = 32):
     numBatchSize = totalSize / batchSize
     indexList = [[i * batchSize, (i + 1) * batchSize] for i in xrange(numBatchSize)]
     indexList.append([numBatchSize * batchSize, totalSize])
     return indexList
+"""
 
+# Used to get the current parameters of the model   
 def getParamsValue(nowParams):
     params = []
     for i in xrange(len(nowParams)):
         params.append(nowParams[i].get_value())
     return params
 
+# Used to set the parameters of the model   
 def setParamsValue(preParams, nowParams):
     for i in xrange(len(preParams)):
         nowParams[i].set_value(preParams[i])
 
+# Used in RNN Architecture
 def Dropout(rng, input, inputNum, D = None, dropoutProb = 1):
     D_values = np.asarray(
               rng.binomial( size = (inputNum,), n = 1, p = dropoutProb ),
@@ -157,6 +157,8 @@ def Dropout(rng, input, inputNum, D = None, dropoutProb = 1):
     D = theano.shared( value=D_values, name='D', borrow=True )
     return input * D
 
+# Not used in RNN
+"""
 def findCenterIdxList(dataY):
     spliceIdxList = []
     for i in xrange(len(dataY)):
@@ -172,6 +174,7 @@ def splicedX(x, idx):
 
 def splicedY(y, idx):    
     return T.concatenate([y[i] for i in [idx]])
+"""
     
 class Parameters(object):
     def __init__(self, filename):

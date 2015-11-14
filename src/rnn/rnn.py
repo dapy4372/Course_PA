@@ -138,7 +138,7 @@ def trainDNN(datasets, P):
             prevFER = validFER
             prevModel = nowModel
             curEarlyStop = 0
-        elif curEarlyStop < P.rnnUtils.earlyStop:
+        elif curEarlyStop < P.earlyStop:
             rnnUtils.setParamsValue(prevModel, classifier.params)
             print (('====,%i,\t%f,\t%f') % (epoch, trainFER * 100, validFER * 100. ))
             curEarlyStop += 1
