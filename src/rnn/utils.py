@@ -42,9 +42,6 @@ def makePkl(pkl, filename):
     cPickle.dump(pkl, f, protocol=2)
     f.close()
 
-def makeModelPkl(model, modelfilename, P):
-    modelPkl = [P, params]
-    utils.makePkl(modelPkl, modelFilename)
 
 def readFile(filename):
     f = open(filename, 'r')
@@ -67,11 +64,6 @@ def readSetting(filename):
         parameter.append(part[1])
     f.close()
     return title, parameter
-
-def readModelPkl(filename):
-    f = open(filename, 'rb')
-    bestModel = cPickle.load(f)
-    return bestModel
 
 def pickResultFilename(resultFilename):
     tmp = resultFilename.split('/')

@@ -27,20 +27,19 @@ if __name__ == '__main__':
     P = rnnUtils.Parameters(setting)
     print P.outputFilename
     datasets  = utils.loadDataset(filename = P.datasetFilename, totalSetNum=3)
+   
+    # Redirect stdout to log file
+    sys.stdout = Logger(P.logFilename)
 
-    if not USE_EXIST_MODEL: 
-        sys.stdout = Logger(P.logFilename)
-        bestModel = rnn.trainDNN(datasets, P)
-        bestModelFilename = '../model/' + P.outputFilename + '.model'
-        utils.makePkl(bestModel, P.bestModelFilename)
-    else:
-        # TODO use filename to build P
-        bestModelFilename = sys.argv[2]
-        bestModel = utils.loadPkl(bestModelFilename)
+    # train RNN model
+    bestModelFilename = rnn.trainRNN(datasets, P)
     
-    rnn.getResult(bestModel, datasets, P)
-"""
+    # Get result
+    rnn.getResult(bestModelFilename, datasets)
+
+    # Smooth
     smooth(noSmoothedFilename = P.testResultFilename, smoothedFilename = P.testSmoothedResultFilename)
     smooth(noSmoothedFilename = P.validResultFilename, smoothedFilename = P.validSmoothedResultFilename)
+"""
     tfit.transform(beforeTransformFilename = P.testSmoothedResultFilename, afterTransformFilename = '../result/final_result/' + P.outputFilename + '_smoothed.csv')
 """

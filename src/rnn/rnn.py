@@ -14,12 +14,12 @@ DEBUG = False
 FER_PER_SENT = True
 PAUSE = False
 OUTPUT_DETAIL = False
+THRESHOLD = 0.27
 
 parameterFilename = sys.argv[1]
 np.set_printoptions(threshold=np.nan) # for print np array
 
-def trainDNN(datasets, P):
-
+def trainRNN(datasets, P):
     
     trainSetX, trainSetY, trainSetName = rnnUtils.makeDataSentence(datasets[0])
     validSetX, validSetY, validSetName = rnnUtils.makeDataSentence(datasets[1])
@@ -80,10 +80,12 @@ def trainDNN(datasets, P):
     doneLooping = False
     prevFER = np.inf
     random.seed(P.seed)
-    
-    # Adagrad, RMSProp
-    prevGradSqrs = None
-    prevSigmaSqrs = None
+    bestModelName = ''
+
+    # Momentum, Adagrad, RMSProp parameters
+    prevVelocitys = 0.
+    prevGradSqrs  = 0.
+    prevSigmaSqrs = 0.
    
     # Total Center Index
     totalTrainSentNum = len(trainSetX)
@@ -132,50 +134,60 @@ def trainDNN(datasets, P):
         # Evaluate validation FER
         validLosses = [ validModel( np.array(validSetX[validSentIdx[i]]).astype(dtype='float32'), np.array(validSetY[validSentIdx[i]]).astype(dtype='int32') ) for i in xrange(totalValidSentNum)]
         validFER = np.mean(validLosses)
-
+        
         prevModel = nowModel
+
         if validFER < prevFER:
+            if bestModelName != '':
+                os.remove(prevModelName)
             prevFER = validFER
             prevModel = nowModel
+            bestModelName = '../model/' + P.outputFilename + str(validFER) 
+            rnnUtils.saveModelPkl( nowModel, P, bestModelName ) 
             curEarlyStop = 0
-        elif curEarlyStop < P.earlyStop:
-            rnnUtils.setParamsValue(prevModel, classifier.params)
-            print (('====,%i,\t%f,\t%f') % (epoch, trainFER * 100, validFER * 100. ))
+        else:
             curEarlyStop += 1
-            if epoch > 10:
-                if P.updateMethod == 'Momentum':
-                    globalParam.lr = globalParam.lr * P.learningRateDecay
-                elif P.updateMethod == 'Adagrad':
-                    globalParam.gradSqrs = prevGradSqrs
-                elif P.updateMethod == 'RMSProp':
-                    globalParam.sigmaSqrs = prevSigmaSqrs
+
+        # Learning rate decay
+        if validFER < THRESHOLD and curEarlyStop > P.earlyStop:
+            rnnUtils.setParamsValue(prevModel, classifier.params)
+            print ((' ====,%i,\t%f,\t%f') % (epoch, trainFER * 100, validFER * 100. ))
+            globalParam.lr = globalParam.lr * P.learningRateDecay
+            if P.updateMethod == 'Momentum':
+                globalParam.velocitys = prevVelocitys
+            if P.updateMethod == 'Adagrad':
+                globalParam.gradSqrs = prevGradSqrs
+            if P.updateMethod == 'RMSProp':
+                globalParam.sigmaSqrs = prevSigmaSqrs
             epoch -= 1
             continue
-        else:
-            doneLooping = True
-            continue
-
-        # Print the result of this epoch
-        print (('%i,%f,%f') % (epoch, trainFER * 100, validFER * 100. ))
 
         # Record the Adagrad, RMSProp parameter
+        if P.updateMethod == 'Momentum':
+            prevVelocitys = globalParam.velocitys
         if P.updateMethod == 'Adagrad':
             prevGradSqrs = globalParam.gradSqrs
         if P.updateMethod == 'RMSProp':
             prevSigmaSqrs = globalParam.sigmaSqrs
+
+        # Print the result of this epoch
+        print (('%i,%f,%f') % (epoch, trainFER * 100, validFER * 100. ))
     # end of training
         
     endTime = timeit.default_timer()
     print (('time %.2fm' % ((endTime - startTime) / 60.)))
 
-    return prevModel
+    return bestModelName
 
-def getResult(bestModel, datasets, P):
-
+def getResult(bestModelName, datasets):
     print "... getting result"
+
+    print "... load model"
+    bestModel, P = rnnUtils.readModelPkl(bestModelName)     
 
     validSetX, validSetY, validSetName = rnnUtils.makeDataSentence(datasets[1])
     testSetX, testSetY, testSetName = rnnUtils.makeDataSentence(datasets[2])
+
     if P.cutSentSize > 0:
         validSetX, validSetY, validSetName = rnnUtils.cutSentence([validSetX, validSetY, validSetName], P.cutSentSize)
         testSetX, testSetY, testSetName = rnnUtils.cutSentence([testSetX, testSetY, testSetName], P.cutSentSize)

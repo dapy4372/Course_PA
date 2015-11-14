@@ -3,6 +3,18 @@ import numpy as np
 import theano
 import theano.tensor as T
 import updateMethod
+import cPickle
+
+# Save model
+def saveModelPkl(model, P, modelFilename):
+    modelPkl = [model, P]
+    utils.makePkl(modelPkl, modelFilename)
+
+# Read model
+def readModelPkl(filename):
+    f = open(filename, 'rb')
+    model, P = cPickle.load(f)
+    return model, P
 
 # SpeakerNameList should be a total setName. (e.g. trainSetName)
 # It will return the idex of each sentence interval. ( e.g. (200, 456) )
@@ -122,7 +134,6 @@ def EvalandResult(Model, totalSentNum, setX, setY, modelType):
 # Write the result into a ".lab" file
 def writeResult(result, filename, setNameList):
     f = open(filename, 'w')
-    print result
     for i in xrange(len(result)):
         for j in xrange(len(result[i])):
             f.write(setNameList[i][j] + ',' + str(result[i][j]) + '\n')
