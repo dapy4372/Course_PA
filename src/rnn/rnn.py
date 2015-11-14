@@ -107,11 +107,12 @@ def trainDNN(datasets, P):
             trainLosses.append(outputs[0])
             
             # Print output detail
-#if OUTPUT_DETAIL:
-#                rnnUtils.printOutputDetail(outputs[])
+            """if OUTPUT_DETAIL:
+#                  rnnUtils.printOutputDetail(outputs[])"""
+
             if FER_PER_SENT:
                 trainFER = np.mean(trainLosses)
-                print (('   %i,%f') % (sentNum, trainFER * 100))
+                print (('    %i,%f') % (sentNum, trainFER * 100))
                 sentNum+=1
             # Print parameter value for debug
             if DEBUG:
@@ -131,29 +132,30 @@ def trainDNN(datasets, P):
         # Evaluate validation FER
         validLosses = [ validModel( np.array(validSetX[validSentIdx[i]]).astype(dtype='float32'), np.array(validSetY[validSentIdx[i]]).astype(dtype='int32') ) for i in xrange(totalValidSentNum)]
         validFER = np.mean(validLosses)
-        """
+
         prevModel = nowModel
         if validFER < prevFER:
             prevFER = validFER
             prevModel = nowModel
             curEarlyStop = 0
-        else:
-            if curEarlyStop < P.earlyStop:
-                epoch -= 1
-                rnnUtils.setParamsValue(prevModel, classifier.params)
-                print (('====,%i,\t%f,\t%f') % (epoch, trainFER * 100, validFER * 100. ))
-                curEarlyStop += 1
+        elif curEarlyStop < P.rnnUtils.earlyStop:
+            rnnUtils.setParamsValue(prevModel, classifier.params)
+            print (('====,%i,\t%f,\t%f') % (epoch, trainFER * 100, validFER * 100. ))
+            curEarlyStop += 1
+            if epoch > 10:
                 if P.updateMethod == 'Momentum':
                     globalParam.lr = globalParam.lr * P.learningRateDecay
                 elif P.updateMethod == 'Adagrad':
                     globalParam.gradSqrs = prevGradSqrs
                 elif P.updateMethod == 'RMSProp':
                     globalParam.sigmaSqrs = prevSigmaSqrs
-                continue
-            else:
-                doneLooping = True
-                continue
-        """
+            epoch -= 1
+            continue
+        else:
+            doneLooping = True
+            continue
+
+        # Print the result of this epoch
         print (('%i,%f,%f') % (epoch, trainFER * 100, validFER * 100. ))
 
         # Record the Adagrad, RMSProp parameter
@@ -170,80 +172,35 @@ def trainDNN(datasets, P):
 
 def getResult(bestModel, datasets, P):
 
-    print "...getting result"
+    print "... getting result"
 
-    validSetX, validSetY, validSetName = datasets[1]
-    testSetX, testSetY, testSetName = datasets[2]
-    sharedValidSetX, sharedValidSetY, castSharedValidSetY = rnnUtils.sharedDataXY(validSetX, validSetY)
-    sharedTestSetX, sharedTestSetY, castSharedTestSetY = rnnUtils.sharedDataXY(testSetX, testSetY)
+    validSetX, validSetY, validSetName = rnnUtils.makeDataSentence(datasets[1])
+    testSetX, testSetY, testSetName = rnnUtils.makeDataSentence(datasets[2])
+    if P.cutSentSize > 0:
+        validSetX, validSetY, validSetName = rnnUtils.cutSentence([validSetX, validSetY, validSetName], P.cutSentSize)
+        testSetX, testSetY, testSetName = rnnUtils.cutSentence([testSetX, testSetY, testSetName], P.cutSentSize)
     
-    print "...buliding model"
-    idx = T.ivector('i')
-    sX = T.matrix(dtype=theano.config.floatX)
-    sY = T.ivector()
+    print '... building the model'
+    idx = T.iscalar('i')
+    x = T.matrix()
+    y = T.ivector()
     
-    # bulid best DNN  model
-    predicter = RNN( input = sX, P = P, params = bestModel )
+    # bulid best RNN  model
+    predicter = RNN( input = x, P = P, params = bestModel )
     
-    # Center Index
-    validCenterIdx = rnnUtils.findCenterIdxList(validSetY)
-    testCenterIdx = rnnUtils.findCenterIdxList(testSetY)
+    # Total number of sentence
+    totalValidSentNum = len(validSetX)
+    totalTestSentNum = len(testSetX)
+
+    # Sentence Index
+    validSentIdx = list(range(totalValidSentNum))
+    testSentIdx = list(range(totalTestSentNum))
     
-    # Total Center Index
-#totalValidSize = len(validCenterIdx)
-#totalTestSize = len(testCenterIdx)
+    # best model
+    model = theano.function( inputs = [x, y], outputs = [predicter.errors(y), predicter.yPred] )
     
-    # Make mini-Batch
-#validBatchIdx = rnnUtils.makeBatch(totalValidSize, 16384)
-#testBatchIdx = rnnUtils.makeBatch(totalTestSize, 16384)
-    totalTestSentSize = len(testSetX)
-    totalValidSentSize = len(validSetX)
-    
-    # Validation model
-    validModel = theano.function( inputs = [idx], outputs = [predicter.errors(sY),predicter.yPred],
-                                  givens={sX:sharedValidSetX, sY:castSharedValidSetY})
-    
-    # bulid test model
-    testModel = theano.function( inputs = [idx], outputs = [predicter.errors(sY),predicter.yPred],
-                                  givens={sX:sharedTestSetX, sY:castSharedTestSetY})
-    
-    validResult = rnnUtils.EvalandResult(validModel, totalValidSize, 'valid') 
-    testResult = rnnUtils.EvalandResult(testModel, totalTestSize, 'test')
+    validResult = rnnUtils.EvalandResult(model, totalValidSentNum, validSetX, validSetY, 'valid') 
+    testResult = rnnUtils.EvalandResult(model, totalTestSentNum, testSetX, testSetY, 'test')
     
     rnnUtils.writeResult(validResult, P.validResultFilename, validSetName)
     rnnUtils.writeResult(testResult, P.testResultFilename, testSetName)
-    
-    rnnUtils.clearSharedDataXY(sharedTestSetX, sharedTestSetY)
-    rnnUtils.clearSharedDataXY(sharedValidSetX, sharedValidSetY)
-
-
-def getProb(bestModel, dataset, probFilename):
-
-    print "...getting probability"
-    # For getting prob
-    setX, setY, setName = dataset
-    sharedSetX, sharedSetY, castSharedSetY = rnnUtils.sharedDataXY(setX, setY)
-
-    idx = T.ivector('i')
-    sX = T.matrix(dtype=theano.config.floatX)
-    sY = T.ivector()
-
-    # bulid best DNN model
-    predicter = DNN( input = rnnUtils.splicedX(sX, idx), P = P, params = bestModel )
-
-    Model = theano.function( inputs = [idx], outputs = predicter.p_y_given_x, 
-                                  givens={sX:sharedSetX, sY:castSharedSetY}, on_unused_input='ignore')
-    
-    # Center Index
-    centerIdx = rnnUtils.findCenterIdxList(setY)
-
-    # Total Center Index
-    totalSize = len(centerIdx)
-    
-    # Make mini-Batch
-    batchIdx = rnnUtils.makeBatch(totalSize, 16384)
-    
-    # Writing Probability
-    rnnUtils.writeProb(Model, batchIdx, centerIdx, setName, probFilename)
-
-    rnnUtils.clearSharedDataXY(sharedSetX, sharedSetY)

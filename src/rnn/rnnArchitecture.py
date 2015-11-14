@@ -90,7 +90,7 @@ class HiddenLayer(object):
         self.output.append(a_seq_reverse)
         
         # Save parameters
-        self.params = [self.W_i1, self.W_i2, self.W_h1, self.b_h1, self.W_h2, self.b_h2]
+        self.params = [self.W_i1, self.W_h1, self.b_h1, self.W_i2, self.W_h2, self.b_h2]
         
 class OutputLayer(object):
     def __init__(self, input, inputNum, outputNum, rng, W_o = None, b_o = None):

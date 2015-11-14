@@ -39,8 +39,8 @@ if __name__ == '__main__':
         bestModel = utils.loadPkl(bestModelFilename)
     
     rnn.getResult(bestModel, datasets, P)
-    rnn.getProb(bestModel, datasets, P)
-
+"""
     smooth(noSmoothedFilename = P.testResultFilename, smoothedFilename = P.testSmoothedResultFilename)
     smooth(noSmoothedFilename = P.validResultFilename, smoothedFilename = P.validSmoothedResultFilename)
     tfit.transform(beforeTransformFilename = P.testSmoothedResultFilename, afterTransformFilename = '../result/final_result/' + P.outputFilename + '_smoothed.csv')
+"""

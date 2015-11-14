@@ -115,12 +115,12 @@ def printNpArrayMeanStdMaxMin(name, npArray):
 """
 
 
-def EvalandResult(Model, batchIdx, centerIdx, modelType):
+def EvalandResult(Model, totalSentNum, setX, setY, modelType):
     result = []
     Losses = []
-    for i in xrange(len(batchIdx)):
-        thisLoss, thisResult = Model(centerIdx[batchIdx[i][0]:batchIdx[i][1]])
-        result += thisResult.tolist()
+    for i in xrange(totalSentNum):
+        thisLoss, thisResult = Model( np.array(setX[i]).astype(dtype='float32'), np.array(setY[i]).astype(dtype='int32') )
+        result.append(thisResult.tolist())
         Losses.append(thisLoss)
     FER = np.mean(Losses)
     print ((modelType + ' FER,%f') % (FER * 100))
@@ -128,25 +128,12 @@ def EvalandResult(Model, batchIdx, centerIdx, modelType):
 
 def writeResult(result, filename, setNameList):
     f = open(filename, 'w')
+    print result
     for i in xrange(len(result)):
-        f.write(setNameList[i] + ',' + str(result[i]) + '\n')
+        for j in xrange(len(result[i])):
+            f.write(setNameList[i][j] + ',' + str(result[i][j]) + '\n')
     f.close()
 
-def writeProb(Model, batchIdx, centerIdx, nameList, filename):
-    f = open(filename, 'w')
-    for i in xrange(len(batchIdx)):
-        tmpProb = Model(centerIdx[batchIdx[i][0]:batchIdx[i][1]]).tolist()
-        for j in xrange(batchIdx[i][1]-batchIdx[i][0]):
-            f.write(nameList[j] + ' ' + " ".join(map(str, tmpProb[j])) + '\n')
-    f.close()
-"""
-def writeProb(prob, filename, setNameList):
-    print "123"
-    f = open(filename, 'w')
-    for i in xrange(len(prob)):
-        f.write( setNameList[i] + ' ' + " ".join(map(str, prob[i])) + '\n')
-    f.close()
-"""
 def makeBatch(totalSize, batchSize = 32):
     numBatchSize = totalSize / batchSize
     indexList = [[i * batchSize, (i + 1) * batchSize] for i in xrange(numBatchSize)]

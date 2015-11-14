@@ -7,9 +7,9 @@ cutSentSize:100
 clipRange:0.01
 learningRate:0.001
 learningRateDecay:1
-dataSetFilename:../pkl/t26v31.pkl
+dataSetFilename:../pkl/small_data.pkl
 dataSetType:clip20
-maxEpoch:2000
+maxEpoch:1
 inputDimNum:48
 outputPhoneNum:48
 seed:168
