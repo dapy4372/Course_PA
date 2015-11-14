@@ -142,7 +142,7 @@ def trainRNN(datasets, P):
                 os.remove(prevModelName)
             prevFER = validFER
             prevModel = nowModel
-            bestModelName = '../model/' + P.outputFilename + str(validFER) 
+            bestModelName = '../model/' + P.outputFilename + '_validFER_' + str(validFER * 100.) 
             rnnUtils.saveModelPkl( nowModel, P, bestModelName ) 
             curEarlyStop = 0
         else:
