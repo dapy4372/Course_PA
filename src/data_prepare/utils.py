@@ -4,8 +4,6 @@ import os
 import sys
 import timeit
 import numpy
-import theano
-import theano.tensor as T
 
 def loadDataset(filename, totalSetNum):
     print '... loading data'

@@ -13,16 +13,10 @@ DNNResult=t26v31
 # It will be remove after the shell sript finish.
 
 dim=48
-tmp=./tmp_$DNNResult.pkl
 probDataPath=/home/roylu/datashare/DNNResult/$DNNResult/
 outputFilename=../../pkl/$DNNResult.pkl
 
 echo '... coverting data to pkl'
-python ./make_pkl.py $dim $probDataPath $tmp
-
-echo '... preprocessing'
-python ./preprocessing.py $tmp $outputFilename
-
-rm -f $tmp
+python ./make_pkl.py $dim $probDataPath $outputFilename
 
 echo 'done'
