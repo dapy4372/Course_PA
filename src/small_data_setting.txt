@@ -6,7 +6,7 @@ depth:1
 cutSentSize:0
 clipRange:0.01
 truncate:-1
-learningRate:0.05
+learningRate:0.01
 learningRateDecay:1
 dataSetFilename:../pkl/small_data.pkl
 dataSetType:fbank

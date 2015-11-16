@@ -18,7 +18,7 @@ def softmax(z):
     return expZ /expZsum
 
 class HiddenLayer(object):
-    def __init__(self, rng, input, inputNum, outputNum, W_i1 = None, W_h1 = None, b_h1 = None, W_i2 = None, W_h2 = None, b_h2 = None):
+    def __init__(self, rng, input, inputNum, outputNum, truncate = -1, W_i1 = None, W_h1 = None, b_h1 = None, W_i2 = None, W_h2 = None, b_h2 = None):
         
         # For in order input
         if W_i1 is None:
@@ -86,7 +86,7 @@ class HiddenLayer(object):
             return sigmoid( (z_t + T.dot(a_tm1, self.W_h1) + self.b_h1 ), 1.0)
 
         self.z_seq = sigmoid(T.dot(input[0], W_i1), 1.0)
-        a_seq, _ = theano.scan(inOrderStep, sequences = self.z_seq, outputs_info = self.a_0, truncate_gradient = -1)
+        a_seq, _ = theano.scan(inOrderStep, sequences = self.z_seq, outputs_info = self.a_0, truncate_gradient = truncate)
         self.output.append(a_seq)
         
         # In reverse  
@@ -94,7 +94,7 @@ class HiddenLayer(object):
             return sigmoid( (z_t + T.dot(a_tm1, self.W_h2) + self.b_h2 ), 1.0)
 
         z_seq_reverse = T.dot(input[1], W_i2)
-        a_seq_reverse, _ = theano.scan(inReverseStep, sequences = z_seq_reverse, outputs_info = self.a_0_reverse, truncate_gradient = -1)
+        a_seq_reverse, _ = theano.scan(inReverseStep, sequences = z_seq_reverse, outputs_info = self.a_0_reverse, truncate_gradient = truncate)
         self.output.append(a_seq_reverse)
         
         # Save parameters
@@ -162,7 +162,7 @@ class RNN(object):
         
         # First hidden layer
         self.hiddenLayerList.append(
-            HiddenLayer( input = bidirectionalInput, rng = P.rng, inputNum = P.inputDimNum, outputNum = P.rnnWidth, 
+            HiddenLayer( input = bidirectionalInput, rng = P.rng, inputNum = P.inputDimNum, outputNum = P.rnnWidth, truncate = P.truncate,
                          W_i1 = params[0], W_h1 = params[1], b_h1 = params[2], 
                          W_i2 = params[3], W_h2 = params[4], b_h2 = params[5] ))
         
