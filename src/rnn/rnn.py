@@ -24,8 +24,8 @@ def trainRNN(datasets, P):
     trainSetX, trainSetY, trainSetName = rnnUtils.makeDataSentence(datasets[0])
     validSetX, validSetY, validSetName = rnnUtils.makeDataSentence(datasets[1])
     if P.cutSentSize > 0:
-        trainSetX, trainSetY, trainSetName = rnnUtils.cutSentence([trainSetX, trainSetY, trainSetName], P.cutSentSize)
-        validSetX, validSetY, validSetName = rnnUtils.cutSentence([validSetX, validSetY, validSetName], P.cutSentSize)
+        trainSetX, trainSetY, trainSetName = rnnUtils.cutSentenceAndFill([trainSetX, trainSetY, trainSetName], P.cutSentSize)
+        validSetX, validSetY, validSetName = rnnUtils.cutSentenceAndFill([validSetX, validSetY, validSetName], P.cutSentSize)
 
     ###############
     # BUILD MODEL #
@@ -33,7 +33,7 @@ def trainRNN(datasets, P):
     print '... building the model'
     idx = T.iscalar('i')
     x = T.matrix()
-    y = T.ivector()
+    y = T.imatrix()
 
     # For create a new model
     dummyParams = [None] * (6 * (P.rnnDepth) + 2)  # +2 for outputlayer W_o and b_o
@@ -104,8 +104,12 @@ def trainRNN(datasets, P):
         # Training
         trainLosses=[]
         sentNum = 1
-        for i in xrange(totalTrainSentNum):
-            outputs = trainModel(np.array(trainSetX[trainSentIdx[i]]).astype(dtype='float32'), np.array(trainSetY[trainSentIdx[i]]).astype(dtype='int32'))
+        BatchSize = 10
+        for i in xrange(totalTrainSentNum/BatchSize):
+            setX = trainSetX[i * BatchSize : (i+1) * BatchSize]
+            setX.shape
+            setX = setX.dimshuffle(0,2,1)
+            outputs = trainModel(np.array(setX).astype(dtype='float32'), np.array(trainSetY[trainSentIdx[i]]).astype(dtype='int32'))
             trainLosses.append(outputs[0])
             
             # Print output detail

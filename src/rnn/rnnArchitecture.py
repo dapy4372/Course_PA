@@ -5,6 +5,10 @@ import theano.tensor as T
 init = 1.
 bias = 0.1
 STD = 0.1
+
+CutSize = 100
+BatchSize = 10
+
 def sigmoid(z, alpha):
     return ( 1/(1+T.exp((-z) )) ).astype(dtype=theano.config.floatX)
 
@@ -125,7 +129,14 @@ class OutputLayer(object):
     
     # Cross entropy
     def crossEntropy(self, y):
-        return -T.sum( T.log(self.p_y_given_x)[T.arange(y.shape[0]), y] )
+        tmp = T.log(self.p_y_given_x)
+        sumAll = 0
+        for i in xrange(CutSize):
+            for j in xrange(BatchSize):
+                if y[j][i] != -1:
+                    sumAll += tmp[i][j][ y[j][i] ] 
+        return sumAll / BatchSize 
+        # return -T.sum( T.log(self.p_y_given_x)[T.arange(y.shape[0]), y] )
 
     def errors(self, y):
         # Check y and y_pred dimension

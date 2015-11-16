@@ -7,7 +7,7 @@ cutSentSize:100
 clipRange:0.01
 learningRate:0.001
 learningRateDecay:1
-dataSetFilename:../pkl/small_data.pkl
+dataSetFilename:../pkl/t26v31.pkl
 dataSetType:clip20
 maxEpoch:5
 inputDimNum:48
