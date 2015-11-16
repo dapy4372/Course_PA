@@ -10,7 +10,7 @@ import globalParam
 from rnnUtils import Parameters
 from rnnArchitecture import HiddenLayer, OutputLayer, RNN
 
-DEBUG = False
+DEBUG = False 
 FER_PER_SENT = True
 PAUSE = False
 OUTPUT_DETAIL = False
@@ -118,7 +118,7 @@ def trainRNN(datasets, P):
                 sentNum+=1
             # Print parameter value for debug
             if DEBUG:
-                rnnUtils.printGradsParams(outputs[7:7 + 6 * P.rnnDepth + 2], outputs[7 + 6 * P.rnnDepth:], P.rnnDepth)
+                rnnUtils.printGradsParams(outputs[7:7 + 8 * P.rnnDepth + 2], outputs[7 + 8 * P.rnnDepth+2:], P.rnnDepth)
 
             # Pause every iteration
             if PAUSE:

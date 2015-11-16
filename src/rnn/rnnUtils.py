@@ -86,25 +86,29 @@ def chooseUpdateMethod(grads, params, P):
 
 # Used to debug
 def printGradsParams(grads, params, rnnDepth):
-    for i in xrange(0, (3 * rnnDepth), 6):
-        print ( '================ Layer %d ================' % (i/3 + 1))
+    for i in xrange(0, rnnDepth):
+        print ( '================ Layer %d ================' % i)
         printNpArrayMeanStdMaxMin("Gradient of Wi1", grads[i])
         printNpArrayMeanStdMaxMin("Gradient of Wh1", grads[i+1])
         printNpArrayMeanStdMaxMin("Gradient of bh1", grads[i+2])
         printNpArrayMeanStdMaxMin("Gradient of Wi2", grads[i+3])
         printNpArrayMeanStdMaxMin("Gradient of Wh2", grads[i+4])
         printNpArrayMeanStdMaxMin("Gradient of bh2", grads[i+5])
+        printNpArrayMeanStdMaxMin("Gradient of a0 ", grads[i+6])
+        printNpArrayMeanStdMaxMin("Gradient of a0r", grads[i+7])
         printNpArrayMeanStdMaxMin("Wi1 ", params[i])   
         printNpArrayMeanStdMaxMin("Wh1 ", params[i+1])
         printNpArrayMeanStdMaxMin("bh1 ", params[i+2])
         printNpArrayMeanStdMaxMin("Wi1 ", params[i+3])  
         printNpArrayMeanStdMaxMin("Wh1 ", params[i+4])
         printNpArrayMeanStdMaxMin("bh1 ", params[i+5])
+        printNpArrayMeanStdMaxMin("a0  ", params[i+6])
+        printNpArrayMeanStdMaxMin("a0r ", params[i+7])
     print ( '================ Output Layer ================' )
-    printNpArrayMeanStdMaxMin("Gradient of Wo", grads[6*rnnDepth])
-    printNpArrayMeanStdMaxMin("Gradient of bo", grads[6*rnnDepth+1])
-    printNpArrayMeanStdMaxMin("Wo ", params[6*rnnDepth]) 
-    printNpArrayMeanStdMaxMin("bo ", params[6*rnnDepth+1])
+    printNpArrayMeanStdMaxMin("Gradient of Wo", grads[8*rnnDepth])
+    printNpArrayMeanStdMaxMin("Gradient of bo", grads[8*rnnDepth+1])
+    printNpArrayMeanStdMaxMin("Wo ", params[8*rnnDepth]) 
+    printNpArrayMeanStdMaxMin("bo ", params[8*rnnDepth+1])
 
 # Used to debug
 def printNpArrayMeanStdMaxMin(name, npArray):
