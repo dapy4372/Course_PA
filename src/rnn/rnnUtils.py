@@ -222,6 +222,7 @@ class Parameters(object):
                               + '_cs_'+ str(self.cutSentSize)
                               + '_cr_'+ str(self.clipRange)
                               + '_tc_'+ str(self.truncate)
+                              + '_MaxE_' + str(self.maxEpoch)
 #+ '_b_' + str(self.batchSizeForTrain)
                               + '_lr_'+ str(self.learningRate)
                               + '_lrd_' + str(self.learningRateDecay) )
