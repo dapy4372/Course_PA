@@ -79,6 +79,8 @@ def clearSharedDataXY(sharedX, sharedY):
 def chooseUpdateMethod(grads, params, P):
     if P.updateMethod == 'Momentum':
         return updateMethod.Momentum(grads, params, P.momentum)
+    if P.updateMethod == 'NAG':
+        return updateMethod.NAG(grads, params, P.momentum)
     if P.updateMethod == 'RMSProp':
         return updateMethod.RMSProp(grads, params)
     if P.updateMethod == 'Adagrad':
