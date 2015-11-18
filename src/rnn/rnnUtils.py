@@ -58,7 +58,7 @@ def cutSentence(Set,size):
 
 def cutSentenceAndFill(Set,size):
     finalSet = []
-    for i in range (3):
+    for i in range (4):
         finalSet.append([])
     for i in xrange(len(Set[0])):
         sentLen = len(Set[0][i])
@@ -66,18 +66,21 @@ def cutSentenceAndFill(Set,size):
             finalSet[0].append(Set[0][i][j*size:(j+1)*size])
             finalSet[1].append(Set[1][i][j*size:(j+1)*size])
             finalSet[2].append(Set[2][i][j*size:(j+1)*size])
+            finalSet[3].append(np.ones(size))
         if sentLen % size != 0:
             j = sentLen / size
             tmpSize = size - (sentLen % size)
-            tmpSet = [ Set[0][i][j*size:sentLen], Set[1][i][j*size:sentLen], Set[2][i][j*size:sentLen] ]
+            tmpSet = [ Set[0][i][j*size:sentLen], Set[1][i][j*size:sentLen], Set[2][i][j*size:sentLen], np.ones(sentLen%size) ]
             zs = np.zeros(48).astype(dtype = theano.config.floatX)
             for k in xrange(tmpSize):
                 tmpSet[0] = np.vstack((tmpSet[0], zs))
-                tmpSet[1] = np.append(tmpSet[1], -1)
+                tmpSet[1] = np.append(tmpSet[1], 0)
                 tmpSet[2] = np.append(tmpSet[2], "null")
+                tmpSet[3] = np.append(tmpSet[3], 0)
             finalSet[0].append(tmpSet[0])
             finalSet[1].append(tmpSet[1])
             finalSet[2].append(tmpSet[2])
+            finalSet[3].append(tmpSet[3])
     return finalSet
 
 # make original data sentenced

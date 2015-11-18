@@ -128,7 +128,10 @@ class OutputLayer(object):
         self.params = [self.W_o, self.b_o]
     
     # Cross entropy
-    def crossEntropy(self, y):
+    def crossEntropy(self, y, m):
+
+        -T.sum( T.log(self.p_y_given_x) [T.arange(y.shape[0]), y] )
+        """
         tmp = T.log(self.p_y_given_x)
         sumAll = 0
         for i in xrange(CutSize):
@@ -136,7 +139,7 @@ class OutputLayer(object):
                 if y[j][i] != -1:
                     sumAll += tmp[i][j][ y[j][i] ] 
         return sumAll / BatchSize 
-        # return -T.sum( T.log(self.p_y_given_x)[T.arange(y.shape[0]), y] )
+        """
 
     def errors(self, y):
         # Check y and y_pred dimension

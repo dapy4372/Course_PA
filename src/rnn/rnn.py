@@ -24,16 +24,17 @@ def trainRNN(datasets, P):
     trainSetX, trainSetY, trainSetName = rnnUtils.makeDataSentence(datasets[0])
     validSetX, validSetY, validSetName = rnnUtils.makeDataSentence(datasets[1])
     if P.cutSentSize > 0:
-        trainSetX, trainSetY, trainSetName = rnnUtils.cutSentenceAndFill([trainSetX, trainSetY, trainSetName], P.cutSentSize)
-        validSetX, validSetY, validSetName = rnnUtils.cutSentenceAndFill([validSetX, validSetY, validSetName], P.cutSentSize)
+        trainSetX, trainSetY, trainSetName, trainSetMask= rnnUtils.cutSentenceAndFill([trainSetX, trainSetY, trainSetName], P.cutSentSize)
+        validSetX, validSetY, validSetName, validSetMask = rnnUtils.cutSentenceAndFill([validSetX, validSetY, validSetName], P.cutSentSize)
 
     ###############
     # BUILD MODEL #
     ###############
     print '... building the model'
     idx = T.iscalar('i')
-    x = T.matrix()
+    x = T.tensor3()
     y = T.imatrix()
+    m = T.imatrix()
 
     # For create a new model
     dummyParams = [None] * (6 * (P.rnnDepth) + 2)  # +2 for outputlayer W_o and b_o
@@ -52,10 +53,10 @@ def trainRNN(datasets, P):
     globalParam.initGlobalgradSqrs()
     
     # Cost function 1.cross entropy 2.weight decay
-    cost = ( classifier.crossEntropy(y) + P.L1Reg * classifier.L1 + P.L2Reg * classifier.L2_sqr )
+    cost = ( classifier.crossEntropy(y, m) + P.L1Reg * classifier.L1 + P.L2Reg * classifier.L2_sqr )
     
     grads = [ (T.grad(cost, param)).clip(-1 * P.clipRange, P.clipRange) for param in classifier.params]
-    myOutputs = ( [classifier.errors(y)] +[cost]+ classifier.hiddenLayerList[0].output 
+    myOutputs = ( [classifier.errors(y, m)] +[cost]+ classifier.hiddenLayerList[0].output 
                  + [classifier.p_y_given_x] + [classifier.yPred] + grads + classifier.params )
     myUpdates = rnnUtils.chooseUpdateMethod(grads, classifier.params, P)
 
@@ -63,7 +64,7 @@ def trainRNN(datasets, P):
     trainModel = theano.function( inputs = [x, y], outputs = myOutputs, updates = myUpdates )
 
     # Validation model
-    validModel = theano.function( inputs = [x, y], outputs = predicter.errors(y))
+    validModel = theano.function( inputs = [x, y], outputs = predicter.errors(y, m))
 
     ###################
     # TRAIN DNN MODEL #
