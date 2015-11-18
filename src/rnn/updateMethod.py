@@ -14,6 +14,17 @@ def Momentum(grads, params, m):
     paramsUpdate = [ (param, param + velocity) for param, velocity in zip(params, globalParam.velocitys) ]
     return paramsUpdate
 
+# NAG
+def NAG(grads, params, m):
+    if(globalParam.flag):
+        paramsUpdate = [ (param, param ) for param in params ]
+        globalParam.velocitys = [ -globalParam.lr * grad for grad in grads ]
+        globalParam.flag = False
+    else:
+        paramsUpdate = [ (param, param + velocity) for param, velocity in zip(params, globalParam.velocitys) ]
+        globalParam.velocitys = [ m * velocity - globalParam.lr * (1 - m) * grad for velocity, grad in zip(globalParam.velocitys, grads) ]
+    return paramsUpdate
+
 # RMSProp        
 def RMSProp(grads, params):
     alpha = 0.9

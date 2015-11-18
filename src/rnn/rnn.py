@@ -155,6 +155,8 @@ def trainRNN(datasets, P):
             globalParam.lr = globalParam.lr * P.learningRateDecay
             if P.updateMethod == 'Momentum':
                 globalParam.velocitys = prevVelocitys
+            if P.updateMethod == 'NAG':
+                globalParam.velocitys = prevVelocitys
             if P.updateMethod == 'Adagrad':
                 globalParam.gradSqrs = prevGradSqrs
             if P.updateMethod == 'RMSProp':
@@ -164,6 +166,8 @@ def trainRNN(datasets, P):
 
         # Record the Adagrad, RMSProp parameter
         if P.updateMethod == 'Momentum':
+            prevVelocitys = globalParam.velocitys
+        if P.updateMethod == 'NAG':
             prevVelocitys = globalParam.velocitys
         if P.updateMethod == 'Adagrad':
             prevGradSqrs = globalParam.gradSqrs
