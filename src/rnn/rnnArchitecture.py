@@ -75,7 +75,7 @@ class HiddenLayer(object):
         """ self.alp = theano.shared(value=0.5)  """
 
         # Output_info for scan 
-        a_0 = theano.shared(numpy.zeros(outputNum).astype(dtype = theano.config.floatX), borrow = True)
+        a_0 = theano.shared(numpy.zeros((BatchSize, outputNum)).astype(dtype = theano.config.floatX), borrow = True)
 
         # In order
         def inOrderStep(z_t, a_tm1):

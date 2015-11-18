@@ -73,7 +73,7 @@ def cutSentenceAndFill(Set,size):
             zs = np.zeros(48).astype(dtype = theano.config.floatX)
             for k in xrange(tmpSize):
                 tmpSet[0] = np.vstack((tmpSet[0], zs))
-                tmpSet[1] = np.append(tmpSet[1], 0)
+                tmpSet[1] = np.append(tmpSet[1], -1)
                 tmpSet[2] = np.append(tmpSet[2], "null")
             finalSet[0].append(tmpSet[0])
             finalSet[1].append(tmpSet[1])
