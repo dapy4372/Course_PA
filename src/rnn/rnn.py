@@ -24,8 +24,11 @@ def trainRNN(datasets, P):
     trainSetX, trainSetY, trainSetName = rnnUtils.makeDataSentence(datasets[0])
     validSetX, validSetY, validSetName = rnnUtils.makeDataSentence(datasets[1])
     if P.cutSentSize > 0:
-        trainSetX, trainSetY, trainSetName, trainSetMask= rnnUtils.cutSentenceAndFill([trainSetX, trainSetY, trainSetName], P.cutSentSize)
-        validSetX, validSetY, validSetName, validSetMask = rnnUtils.cutSentenceAndFill([validSetX, validSetY, validSetName], P.cutSentSize)
+        trainSetX, trainSetY, trainSetName, trainSetM = rnnUtils.cutSentenceAndFill([trainSetX, trainSetY, trainSetName], P.cutSentSize)
+        validSetX, validSetY, validSetName, validSetM = rnnUtils.cutSentenceAndFill([validSetX, validSetY, validSetName], P.cutSentSize)
+    
+#print np.array(trainSetMask[0]).shape
+#print trainSetMask[0]
 
     ###############
     # BUILD MODEL #
@@ -61,10 +64,10 @@ def trainRNN(datasets, P):
     myUpdates = rnnUtils.chooseUpdateMethod(grads, classifier.params, P)
 
     # Training mode
-    trainModel = theano.function( inputs = [x, y], outputs = myOutputs, updates = myUpdates )
+    trainModel = theano.function( inputs = [x, y, m], outputs = myOutputs, updates = myUpdates )
 
     # Validation model
-    validModel = theano.function( inputs = [x, y], outputs = predicter.errors(y, m))
+    validModel = theano.function( inputs = [x, y, m], outputs = predicter.errors(y, m))
 
     ###################
     # TRAIN DNN MODEL #
@@ -108,9 +111,19 @@ def trainRNN(datasets, P):
         BatchSize = 10
         for i in xrange(totalTrainSentNum/BatchSize):
             setX = trainSetX[i * BatchSize : (i+1) * BatchSize]
-            setX.shape
-            setX = setX.dimshuffle(0,2,1)
-            outputs = trainModel(np.array(setX).astype(dtype='float32'), np.array(trainSetY[trainSentIdx[i]]).astype(dtype='int32'))
+            setY = trainSetY[i * BatchSize : (i+1) * BatchSize]
+            setM = trainSetM[i * BatchSize : (i+1) * BatchSize]
+            setX = np.array(setX).astype(dtype='float32')
+            setY = np.array(setY).astype(dtype='int32')
+            setM = np.array(setM).astype(dtype='int32')
+            setX = np.transpose(setX, (1, 0, 2))
+            setY = np.transpose(setY, (1, 0))
+            setM = np.transpose(setM, (1, 0))
+            print setX.shape    
+            print setX[0].shape    
+            print setY.shape    
+            print setM.shape    
+            outputs = trainModel(setX, setY, setM)
             trainLosses.append(outputs[0])
             
             # Print output detail

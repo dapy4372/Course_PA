@@ -26,7 +26,8 @@ class HiddenLayer(object):
         
         # For in order input
         if W_i1 is None:
-            W_i1Values = rng.normal( loc = 0.0, scale = STD, size = (inputNum, outputNum) ).astype( dtype=theano.config.floatX ) 
+#W_i1Values = rng.normal( loc = 0.0, scale = STD, size = (inputNum, outputNum) ).astype( dtype=theano.config.floatX ) 
+            W_i1Values = rng.normal( loc = 0.0, scale = STD, size = (outputNum, inputNum) ).astype( dtype=theano.config.floatX ) 
             W_i1 = theano.shared(value = W_i1Values, name = 'W', borrow = True)
         else:
             W_i1 = theano.shared( value = numpy.array(W_i1, dtype = theano.config.floatX), name='W', borrow = True )
@@ -45,7 +46,8 @@ class HiddenLayer(object):
         
         # For in reverse input
         if W_i2 is None:
-            W_i2Values = rng.normal( loc = 0.0, scale = STD, size = (inputNum, outputNum) ).astype( dtype=theano.config.floatX ) 
+#W_i2Values = rng.normal( loc = 0.0, scale = STD, size = (inputNum, outputNum) ).astype( dtype=theano.config.floatX ) 
+            W_i2Values = rng.normal( loc = 0.0, scale = STD, size = (outputNum, inputNum) ).astype( dtype=theano.config.floatX ) 
             W_i2 = theano.shared(value = W_i2Values, name = 'W', borrow = True)
         else:
             W_i2 = theano.shared( value = numpy.array(W_i2, dtype = theano.config.floatX), name='W', borrow = True )
@@ -99,7 +101,8 @@ class HiddenLayer(object):
 class OutputLayer(object):
     def __init__(self, input, inputNum, outputNum, rng, W_o = None, b_o = None):
         if W_o is None:
-            W_values = rng.normal( loc = 0.0, scale = STD, size = (inputNum, outputNum) ).astype( dtype=theano.config.floatX ) 
+#W_values = rng.normal( loc = 0.0, scale = STD, size = (inputNum, outputNum) ).astype( dtype=theano.config.floatX ) 
+            W_values = rng.normal( loc = 0.0, scale = STD, size = (outputNum, inputNum) ).astype( dtype=theano.config.floatX ) 
             W_o = theano.shared(value = W_values, name = 'W', borrow = True)
         else:
             W_o = theano.shared( value = numpy.array(W_o, dtype = theano.config.floatX), name='W', borrow=True )
@@ -129,8 +132,8 @@ class OutputLayer(object):
     
     # Cross entropy
     def crossEntropy(self, y, m):
-
-        -T.sum( T.log(self.p_y_given_x) [T.arange(y.shape[0]), y] )
+        #return -T.sum( T.log(self.p_y_given_x) [T.arange(y.shape[0]), y] )
+        return -T.sum([ T.mean( frames[ T.arange(y_row.shape[0]), y_row ] * m_row ) for frames, y_row, m_row in zip([T.log(self.p_y_given_x)], [y], [m]) ])
         """
         tmp = T.log(self.p_y_given_x)
         sumAll = 0
@@ -141,14 +144,15 @@ class OutputLayer(object):
         return sumAll / BatchSize 
         """
 
-    def errors(self, y):
+    def errors(self, y, m):
         # Check y and y_pred dimension
         if y.ndim != self.y_pred.ndim:
             raise TypeError( 'y should have the same shape as self.y_pred', ('y', y.type, 'y_pred', self.y_pred.type) )
         # Check if y is the correct datatype
         if y.dtype.startswith('int'):
             # the T.neq operator returns a vector of 0s and 1s, where 1 represents a mistake in prediction
-            return T.mean(T.neq(self.y_pred, y))
+#return T.mean(T.neq(self.y_pred, y))
+            return T.sum( T.neq(self.y_pred, y) * m ) / T.sum(m)
         else:
             raise NotImplementedError()
 
