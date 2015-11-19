@@ -29,6 +29,8 @@ def trainRNN(datasets, P):
     
 #print np.array(trainSetMask[0]).shape
     print np.array(trainSetX).shape
+    trantrainSetX, trainSetY, trainSetName, trainSetM = rnnUtils.fillBatch([trainSetX, trainSetY, trainSetName, trainSetM], 10)
+    print np.array(trainSetX).shape
 
     ###############
     # BUILD MODEL #
