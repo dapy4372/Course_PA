@@ -19,19 +19,22 @@ THRESHOLD = 0.27
 parameterFilename = sys.argv[1]
 np.set_printoptions(threshold=np.nan) # for print np array
 
+move = 30
+
 def trainRNN(datasets, P):
     
     trainSetX, trainSetY, trainSetName = rnnUtils.makeDataSentence(datasets[0])
     validSetX, validSetY, validSetName = rnnUtils.makeDataSentence(datasets[1])
     if P.cutSentSize > 0:
-        trainSetX, trainSetY, trainSetName, trainSetM = rnnUtils.cutSentenceAndFill([trainSetX, trainSetY, trainSetName], P.cutSentSize)
-        validSetX, validSetY, validSetName, validSetM = rnnUtils.cutSentenceAndFill([validSetX, validSetY, validSetName], P.cutSentSize)
+        trainSetX, trainSetY, trainSetName, trainSetM = rnnUtils.cutSentenceAndSlide([trainSetX, trainSetY, trainSetName], P.cutSentSize, move)
+        validSetX, validSetY, validSetName, validSetM = rnnUtils.cutSentenceAndSlide([validSetX, validSetY, validSetName], P.cutSentSize, move)
     trainSetX = np.array(trainSetX)
     trainSetY = np.array(trainSetY)
     trainSetM = np.array(trainSetM)
     print trainSetX[-1].shape
     print trainSetY[-1].shape
     print trainSetM[-1].shape
+
     ###############
     # BUILD MODEL #
     ###############
@@ -159,7 +162,6 @@ def trainRNN(datasets, P):
         # Evaluate validation FER
         validLosses = [ validModel( np.array(validSetX[validSentIdx[i]]).astype(dtype='float32'), np.array(validSetY[validSentIdx[i]]).astype(dtype='int32') ) for i in xrange(totalValidSentNum)]
         validFER = np.mean(validLosses)
-        
         prevModel = nowModel
 
         if validFER < prevFER:
