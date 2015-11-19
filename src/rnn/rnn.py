@@ -115,7 +115,7 @@ def trainRNN(datasets, P):
         epoch = epoch + 1
 
         if P.shuffle:
-            p = np.random.permutation(totalBatchNum)
+            p = np.random.permutation(totalTrainSentNum)
 #random.shuffle(trainSentIdx)
 
         # Training
@@ -128,13 +128,6 @@ def trainRNN(datasets, P):
             setX = np.array(setX).astype(dtype='float32')
             setY = np.array(setY).astype(dtype='int32')
             setM = np.array(setM).astype(dtype='int32')
-            if setX.shape[0] != 25:
-                print setX
-                print setY
-                print setM
-            print setX.shape
-            print setY.shape
-            print setM.shape
             setX = np.transpose(setX, (1, 0, 2))
             setY = np.transpose(setY, (1, 0))
             setM = np.transpose(setM, (1, 0))
