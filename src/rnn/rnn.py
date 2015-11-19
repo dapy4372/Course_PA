@@ -107,7 +107,7 @@ def trainRNN(datasets, P):
     validSentIdx = list(range(totalValidSentNum))
 
     # the number of batch
-    BatchSize = 30
+    BatchSize = 25
     totalBatchNum = totalTrainSentNum/BatchSize
 
     startTime  = timeit.default_timer()
@@ -128,6 +128,13 @@ def trainRNN(datasets, P):
             setX = np.array(setX).astype(dtype='float32')
             setY = np.array(setY).astype(dtype='int32')
             setM = np.array(setM).astype(dtype='int32')
+            if setX.shape[0] != 25:
+                print setX
+                print setY
+                print setM
+            print setX.shape
+            print setY.shape
+            print setM.shape
             setX = np.transpose(setX, (1, 0, 2))
             setY = np.transpose(setY, (1, 0))
             setM = np.transpose(setM, (1, 0))

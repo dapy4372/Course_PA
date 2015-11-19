@@ -7,7 +7,7 @@ bias = 0.1
 STD = 0.1
 
 CutSize = 200
-BatchSize = 30
+BatchSize = 25
 
 def sigmoid(z, alpha):
     return ( 1/(1+T.exp((-z) )) ).astype(dtype=theano.config.floatX)
