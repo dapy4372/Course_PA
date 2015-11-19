@@ -54,7 +54,7 @@ def trainRNN(datasets, P):
     globalParam.initGlobalVelocitys()
     globalParam.initGlobalSigmas()
     globalParam.initGlobalgradSqrs()
-    
+    """
     # Cost function 1.cross entropy 2.weight decay
     cost = ( classifier.crossEntropy(y, m) + P.L1Reg * classifier.L1 + P.L2Reg * classifier.L2_sqr )
     
@@ -62,12 +62,14 @@ def trainRNN(datasets, P):
     myOutputs = ( [classifier.errors(y, m)] +[cost]+ classifier.hiddenLayerList[0].output 
                  + [classifier.p_y_given_x] + [classifier.yPred] + grads + classifier.params )
     myUpdates = rnnUtils.chooseUpdateMethod(grads, classifier.params, P)
-
+    """
     # Training mode
-    trainModel = theano.function( inputs = [x, y, m], outputs = myOutputs, updates = myUpdates )
+#trainModel = theano.function( inputs = [x, y, m], outputs = myOutputs, updates = myUpdates )
+    trainModel = theano.function( inputs = [x, y, m], outputs = classifier.outputLayer.y_pred, on_unused_input='ignore')
 
     # Validation model
-    validModel = theano.function( inputs = [x, y, m], outputs = predicter.errors(y, m))
+#validModel = theano.function( inputs = [x, y, m], outputs = predicter.errors(y, m))
+    validModel = theano.function( inputs = [x, y, m], outputs = predicter.outputLayer.y_pred,  on_unused_input='ignore')
 
     ###################
     # TRAIN DNN MODEL #
@@ -117,15 +119,17 @@ def trainRNN(datasets, P):
             setY = np.array(setY).astype(dtype='int32')
             setM = np.array(setM).astype(dtype='int32')
             setX = np.transpose(setX, (1, 0, 2))
-            setY = np.transpose(setY, (1, 0))
-            setM = np.transpose(setM, (1, 0))
+#setY = np.transpose(setY, (1, 0))
+#setM = np.transpose(setM, (1, 0))
+            """
             print setX.shape    
             print setX[0].shape    
             print setY.shape    
             print setM.shape    
+            """
             outputs = trainModel(setX, setY, setM)
             trainLosses.append(outputs[0])
-            
+            print outputs.shape
             # Print output detail
             """if OUTPUT_DETAIL:
 #                  rnnUtils.printOutputDetail(outputs[])"""

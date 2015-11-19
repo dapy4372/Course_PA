@@ -3,7 +3,7 @@ updateMethod:Momentum
 momentum:0.8
 width:512
 depth:1
-cutSentSize:100
+cutSentSize:20
 clipRange:0.01
 learningRate:0.001
 learningRateDecay:1
@@ -11,7 +11,7 @@ dataSetFilename:../pkl/t26v31.pkl
 dataSetType:clip20
 maxEpoch:5
 inputDimNum:48
-outputPhoneNum:48
+outputPhoneNum:64
 seed:168
 earlyStop:2
 L1Reg:0.00

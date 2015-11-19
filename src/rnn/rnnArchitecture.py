@@ -13,12 +13,12 @@ def sigmoid(z, alpha):
     return ( 1/(1+T.exp((-z) )) ).astype(dtype=theano.config.floatX)
 
 def softmax(z):
-    maxZ = T.max(z, axis=1).astype(dtype = theano.config.floatX)
+    maxZ = T.max(z, axis=2).astype(dtype = theano.config.floatX)
     absMaxZ = T.abs_(maxZ)
-    absMaxZ = T.reshape(absMaxZ, (absMaxZ.shape[0], 1))
+    absMaxZ = T.reshape(absMaxZ, (absMaxZ.shape[0], absMaxZ.shape[1], 1))
     expZ = T.exp( z*10  / absMaxZ)
-    expZsum = T.sum(expZ, axis=1).astype(dtype = theano.config.floatX)
-    expZsum = T.reshape(expZsum, (expZsum.shape[0],1))
+    expZsum = T.sum(expZ, axis=2).astype(dtype = theano.config.floatX)
+    expZsum = T.reshape(expZsum, (expZsum.shape[0],expZsum.shape[1], 1))
     return expZ /expZsum
 
 class HiddenLayer(object):
@@ -27,7 +27,7 @@ class HiddenLayer(object):
         # For in order input
         if W_i1 is None:
 #W_i1Values = rng.normal( loc = 0.0, scale = STD, size = (inputNum, outputNum) ).astype( dtype=theano.config.floatX ) 
-            W_i1Values = rng.normal( loc = 0.0, scale = STD, size = (outputNum, inputNum) ).astype( dtype=theano.config.floatX ) 
+            W_i1Values = rng.normal( loc = 0.0, scale = STD, size = (inputNum, outputNum) ).astype( dtype=theano.config.floatX ) 
             W_i1 = theano.shared(value = W_i1Values, name = 'W', borrow = True)
         else:
             W_i1 = theano.shared( value = numpy.array(W_i1, dtype = theano.config.floatX), name='W', borrow = True )
@@ -47,7 +47,7 @@ class HiddenLayer(object):
         # For in reverse input
         if W_i2 is None:
 #W_i2Values = rng.normal( loc = 0.0, scale = STD, size = (inputNum, outputNum) ).astype( dtype=theano.config.floatX ) 
-            W_i2Values = rng.normal( loc = 0.0, scale = STD, size = (outputNum, inputNum) ).astype( dtype=theano.config.floatX ) 
+            W_i2Values = rng.normal( loc = 0.0, scale = STD, size = (inputNum, outputNum) ).astype( dtype=theano.config.floatX ) 
             W_i2 = theano.shared(value = W_i2Values, name = 'W', borrow = True)
         else:
             W_i2 = theano.shared( value = numpy.array(W_i2, dtype = theano.config.floatX), name='W', borrow = True )
@@ -102,7 +102,7 @@ class OutputLayer(object):
     def __init__(self, input, inputNum, outputNum, rng, W_o = None, b_o = None):
         if W_o is None:
 #W_values = rng.normal( loc = 0.0, scale = STD, size = (inputNum, outputNum) ).astype( dtype=theano.config.floatX ) 
-            W_values = rng.normal( loc = 0.0, scale = STD, size = (outputNum, inputNum) ).astype( dtype=theano.config.floatX ) 
+            W_values = rng.normal( loc = 0.0, scale = STD, size = (inputNum, outputNum) ).astype( dtype=theano.config.floatX ) 
             W_o = theano.shared(value = W_values, name = 'W', borrow = True)
         else:
             W_o = theano.shared( value = numpy.array(W_o, dtype = theano.config.floatX), name='W', borrow=True )
@@ -120,12 +120,13 @@ class OutputLayer(object):
         averageInput = (input[0] + input[1]) / 2
 
         y_seq = softmax( T.dot(averageInput, self.W_o) + b_o )
+#        y_seq = T.dot(averageInput, self.W_o) + b_o
 
         # Find probability, given x
         self.p_y_given_x = y_seq
         
         # Find largest y_i
-        self.y_pred = T.argmax(self.p_y_given_x, axis=1)
+        self.y_pred = T.argmax(self.p_y_given_x, axis=2)
 
         # Save parameters
         self.params = [self.W_o, self.b_o]
