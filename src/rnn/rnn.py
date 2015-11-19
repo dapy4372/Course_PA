@@ -111,7 +111,9 @@ def trainRNN(datasets, P):
 
     # the number of batch
     BatchSize = 25
-    totalBatchNum = totalTrainSentNum/BatchSize
+
+    totalTrainBatchNum = totalTrainSentNum/BatchSize
+    totalValidBatchNum = totalValidSentNum/BatchSize
 
     startTime  = timeit.default_timer()
     while (epoch < P.maxEpoch) and (not doneLooping):
@@ -122,7 +124,7 @@ def trainRNN(datasets, P):
 #random.shuffle(trainSentIdx)
 
         # Training
-        trainLosses=[]
+        trainLosses = []
         sentNum = 0
         for i in xrange(totalBatchNum):
             setX = trainSetX[p][i * BatchSize : (i+1) * BatchSize]
@@ -158,11 +160,32 @@ def trainRNN(datasets, P):
         # Set the now train model's parameters to valid model
         nowModel = rnnUtils.getParamsValue(classifier.params)
         rnnUtils.setParamsValue(nowModel, predicter.params)
+      
+
+        validLosses = []
+        for i in xrange(totalValidSentNum):
+            setX = validSetX[p][i * BatchSize : (i+1) * BatchSize]
+            setY = validSetY[p][i * BatchSize : (i+1) * BatchSize]
+            setM = validSetM[p][i * BatchSize : (i+1) * BatchSize]
+            setX = np.array(setX).astype(dtype='float32')
+            setY = np.array(setY).astype(dtype='int32')
+            setM = np.array(setM).astype(dtype='int32')
+            setX = np.transpose(setX, (1, 0, 2))
+            setY = np.transpose(setY, (1, 0))
+            setM = np.transpose(setM, (1, 0))
+            outputs = validModel(setX, setY, setM)
+            validLosses.append(outputs[0])
+        validFER = np.mean(validLosses)
+        prevModel = nowModel
+
+           
         """ 
         # Evaluate validation FER
         validLosses = [ validModel( np.array(validSetX[validSentIdx[i]]).astype(dtype='float32'), np.array(validSetY[validSentIdx[i]]).astype(dtype='int32') ) for i in xrange(totalValidSentNum)]
         validFER = np.mean(validLosses)
         prevModel = nowModel
+        """ 
+        """ 
 
         if validFER < prevFER:
             if bestModelName != '':
