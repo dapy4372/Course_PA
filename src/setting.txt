@@ -12,7 +12,7 @@ dataSetType:clip20
 maxEpoch:5
 inputDimNum:48
 outputPhoneNum:48
-seed:168
+seed:118
 earlyStop:2
 L1Reg:0.00
 L2Reg:0.00001

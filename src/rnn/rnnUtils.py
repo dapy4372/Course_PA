@@ -81,6 +81,7 @@ def cutSentenceAndFill(Set,size):
             finalSet[1].append(tmpSet[1])
             finalSet[2].append(tmpSet[2])
             finalSet[3].append(tmpSet[3])
+
     return finalSet
 
 # make original data sentenced

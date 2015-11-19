@@ -26,10 +26,12 @@ def trainRNN(datasets, P):
     if P.cutSentSize > 0:
         trainSetX, trainSetY, trainSetName, trainSetM = rnnUtils.cutSentenceAndFill([trainSetX, trainSetY, trainSetName], P.cutSentSize)
         validSetX, validSetY, validSetName, validSetM = rnnUtils.cutSentenceAndFill([validSetX, validSetY, validSetName], P.cutSentSize)
-    
-#print np.array(trainSetMask[0]).shape
-#print trainSetMask[0]
-
+    trainSetX = np.array(trainSetX)
+    trainSetY = np.array(trainSetY)
+    trainSetM = np.array(trainSetM)
+    print trainSetX[-1].shape
+    print trainSetY[-1].shape
+    print trainSetM[-1].shape
     ###############
     # BUILD MODEL #
     ###############
@@ -38,7 +40,6 @@ def trainRNN(datasets, P):
     x = T.tensor3()
     y = T.imatrix()
     m = T.imatrix()
-
     # For create a new model
     dummyParams = [None] * (8 * (P.rnnDepth) + 2)  # +2 for outputlayer W_o and b_o
     
@@ -65,11 +66,15 @@ def trainRNN(datasets, P):
 
     # Training mode
     trainModel = theano.function( inputs = [x, y, m], outputs = myOutputs, updates = myUpdates )
+#trainModel = theano.function( inputs = [start, end], outputs = myOutputs, updates = myUpdates,
+#givens = { x:trainSetX[start:end], y:trainSetY[start:end], m: trainSetM[start:end] } )
 #trainModel = theano.function( inputs = [x, y, m], outputs = classifier.outputLayer.y_pred, on_unused_input='ignore')
 
     # Validation model
-    validModel = theano.function( inputs = [x, y, m], outputs = predicter.errors(y, m))
-#validModel = theano.function( inputs = [x, y, m], outputs = predicter.outputLayer.y_pred,  on_unused_input='ignore')
+    validModel = theano.function( inputs = [x, y, m], outputs = predicter.errors(y, m) )
+#validModel = theano.function( inputs = [start, end], outputs = predicter.errors(y, m),
+#                                 givens = { x:validSetX[start:end], y:validSetY[start:end], m: validSetM[start:end] } )
+    validModel = theano.function( inputs = [x, y, m], outputs = predicter.outputLayer.y_pred,  on_unused_input='ignore')
 
     ###################
     # TRAIN DNN MODEL #
@@ -101,39 +106,36 @@ def trainRNN(datasets, P):
     trainSentIdx = list(range(totalTrainSentNum))
     validSentIdx = list(range(totalValidSentNum))
 
+    # the number of batch
+    BatchSize = 30
+    totalBatchNum = totalTrainSentNum/BatchSize
+
     startTime  = timeit.default_timer()
     while (epoch < P.maxEpoch) and (not doneLooping):
         epoch = epoch + 1
 
         if P.shuffle:
-            random.shuffle(trainSentIdx)
+            p = np.random.permutation(totalBatchNum)
+#random.shuffle(trainSentIdx)
+
         # Training
         trainLosses=[]
         sentNum = 0
-        BatchSize = 30
-        for i in xrange(totalTrainSentNum/BatchSize):
-            setX = trainSetX[i * BatchSize : (i+1) * BatchSize]
-            setY = trainSetY[i * BatchSize : (i+1) * BatchSize]
-            setM = trainSetM[i * BatchSize : (i+1) * BatchSize]
+        for i in xrange(totalBatchNum):
+            setX = trainSetX[p][i * BatchSize : (i+1) * BatchSize]
+            setY = trainSetY[p][i * BatchSize : (i+1) * BatchSize]
+            setM = trainSetM[p][i * BatchSize : (i+1) * BatchSize]
             setX = np.array(setX).astype(dtype='float32')
             setY = np.array(setY).astype(dtype='int32')
             setM = np.array(setM).astype(dtype='int32')
             setX = np.transpose(setX, (1, 0, 2))
             setY = np.transpose(setY, (1, 0))
             setM = np.transpose(setM, (1, 0))
-            """
-            print setX.shape    
-            print setX[0].shape    
-            print setY.shape    
-            print setM.shape    
-            """
             outputs = trainModel(setX, setY, setM)
             trainLosses.append(outputs[0])
-#print outputs[5]
-#print (('%f') % outputs[0])
-            # Print output detail
+
             """if OUTPUT_DETAIL:
-#                  rnnUtils.printOutputDetail(outputs[])"""
+                  rnnUtils.printOutputDetail(outputs[])"""
 
             if FER_PER_SENT:
                 trainFER = np.mean(trainLosses)
@@ -153,7 +155,7 @@ def trainRNN(datasets, P):
         # Set the now train model's parameters to valid model
         nowModel = rnnUtils.getParamsValue(classifier.params)
         rnnUtils.setParamsValue(nowModel, predicter.params)
-        
+        """ 
         # Evaluate validation FER
         validLosses = [ validModel( np.array(validSetX[validSentIdx[i]]).astype(dtype='float32'), np.array(validSetY[validSentIdx[i]]).astype(dtype='int32') ) for i in xrange(totalValidSentNum)]
         validFER = np.mean(validLosses)
@@ -196,7 +198,7 @@ def trainRNN(datasets, P):
         # Print the result of this epoch
         print (('%i,%f,%f') % (epoch, trainFER * 100, validFER * 100. ))
     # end of training
-        
+        """
     endTime = timeit.default_timer()
     print (('time %.2fm' % ((endTime - startTime) / 60.)))
 
