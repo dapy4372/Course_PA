@@ -40,7 +40,7 @@ def trainRNN(datasets, P):
     m = T.imatrix()
 
     # For create a new model
-    dummyParams = [None] * (6 * (P.rnnDepth) + 2)  # +2 for outputlayer W_o and b_o
+    dummyParams = [None] * (8 * (P.rnnDepth) + 2)  # +2 for outputlayer W_o and b_o
     
     # Build the RNN object for training
     classifier = RNN( input = x, params = dummyParams, P = P)
