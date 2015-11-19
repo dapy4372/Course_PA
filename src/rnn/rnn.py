@@ -28,12 +28,16 @@ def trainRNN(datasets, P):
     if P.cutSentSize > 0:
         trainSetX, trainSetY, trainSetName, trainSetM = rnnUtils.cutSentenceAndSlide([trainSetX, trainSetY, trainSetName], P.cutSentSize, move)
         validSetX, validSetY, validSetName, validSetM = rnnUtils.cutSentenceAndSlide([validSetX, validSetY, validSetName], P.cutSentSize, move)
+
+    trantrainSetX, trainSetY, trainSetName, trainSetM = rnnUtils.fillBatch([trainSetX, trainSetY, trainSetName, trainSetM], 25)
+    validSetX, validSetY, validSetName, validSetM = rnnUtils.fillBatch([validSetX, validSetY, validSetName, validSetM], 25)
+
     trainSetX = np.array(trainSetX)
     trainSetY = np.array(trainSetY)
     trainSetM = np.array(trainSetM)
-    print trainSetX[-1].shape
-    print trainSetY[-1].shape
-    print trainSetM[-1].shape
+    print trainSetX.shape
+    print trainSetY.shape
+    print trainSetM.shape
 
     ###############
     # BUILD MODEL #
@@ -126,7 +130,7 @@ def trainRNN(datasets, P):
         # Training
         trainLosses = []
         sentNum = 0
-        for i in xrange(totalBatchNum):
+        for i in xrange(totalTrainBatchNum):
             setX = trainSetX[p][i * BatchSize : (i+1) * BatchSize]
             setY = trainSetY[p][i * BatchSize : (i+1) * BatchSize]
             setM = trainSetM[p][i * BatchSize : (i+1) * BatchSize]

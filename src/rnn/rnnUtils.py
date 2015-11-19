@@ -112,6 +112,22 @@ def cutSentenceAndSlide(Set, size, move):
             finalSet[3].append(tmpSet[3])
     return finalSet
 
+def fillBatch(Set, batchSize):
+    sentAmount = len(Set[0])
+    sentLen = len(Set[0][0])
+    if sentAmount % batchSize != 0:
+        tmpSent = [[], [], [], []]
+        tmpSent[0] = np.zeros((sentLen,48)).astype(dtype = theano.config.floatX)
+#tmpSent[1] = tmpSent[2] = tmpSent[3] = np.zeros(sentLen).astype(dtype = theano.config.floatX)
+        tmpSent[1] = tmpSent[3] = np.zeros(sentLen).astype(dtype = theano.config.floatX)
+        tmpSent[2] = ["null"] * sentLen
+        for i in xrange(batchSize - (sentAmount % batchSize)):
+            Set[0].append(tmpSent[0])
+            Set[1].append(tmpSent[1])
+            Set[2].append(tmpSent[2])
+            Set[3].append(tmpSent[3])
+    return Set
+
 # make original data sentenced
 def makeDataSentence(dataset):
     datasetX, datasetY, datasetName = dataset
