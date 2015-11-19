@@ -219,11 +219,11 @@ def trainRNN(datasets, P):
             prevGradSqrs = globalParam.gradSqrs
         if P.updateMethod == 'RMSProp':
             prevSigmaSqrs = globalParam.sigmaSqrs
+      """
 
         # Print the result of this epoch
         print (('%i,%f,%f') % (epoch, trainFER * 100, validFER * 100. ))
     # end of training
-        """
     endTime = timeit.default_timer()
     print (('time %.2fm' % ((endTime - startTime) / 60.)))
 
