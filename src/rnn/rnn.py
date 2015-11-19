@@ -14,12 +14,12 @@ DEBUG = False
 FER_PER_SENT = True
 PAUSE = False
 OUTPUT_DETAIL = False
-THRESHOLD = 0.27
+THRESHOLD = 0.35
 
 parameterFilename = sys.argv[1]
 np.set_printoptions(threshold=np.nan) # for print np array
 
-def trainRNN(datasets, P):
+def trainRNN(datasets, P, exist_model_name = False):
     
     trainSetX, trainSetY, trainSetName = rnnUtils.makeDataSentence(datasets[0])
     validSetX, validSetY, validSetName = rnnUtils.makeDataSentence(datasets[1])
@@ -36,7 +36,10 @@ def trainRNN(datasets, P):
     y = T.ivector()
 
     # For create a new model
-    dummyParams = [None] * (6 * (P.rnnDepth) + 2)  # +2 for outputlayer W_o and b_o
+    if(exist_model_name == False):
+        dummyParams = [None] * (6 * (P.rnnDepth) + 2)  # +2 for outputlayer W_o and b_o
+    else:
+        dummyParams, P = rnnUtils.readModelPkl(exist_model_name)
     
     # Build the RNN object for training
     classifier = RNN( input = x, params = dummyParams, P = P)
