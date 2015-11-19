@@ -6,8 +6,8 @@ init = 1.
 bias = 0.1
 STD = 0.1
 
-CutSize = 100
-BatchSize = 10
+CutSize = 200
+BatchSize = 30
 
 def sigmoid(z, alpha):
     return ( 1/(1+T.exp((-z) )) ).astype(dtype=theano.config.floatX)
@@ -102,7 +102,7 @@ class OutputLayer(object):
     def __init__(self, input, inputNum, outputNum, rng, W_o = None, b_o = None):
         if W_o is None:
 #W_values = rng.normal( loc = 0.0, scale = STD, size = (inputNum, outputNum) ).astype( dtype=theano.config.floatX ) 
-            W_values = rng.normal( loc = 0.0, scale = STD, size = (inputNum, outputNum) ).astype( dtype=theano.config.floatX ) 
+            W_values = rng.normal( loc = 0.0, scale = STD, size = (2 * inputNum, outputNum) ).astype( dtype=theano.config.floatX ) 
             W_o = theano.shared(value = W_values, name = 'W', borrow = True)
         else:
             W_o = theano.shared( value = numpy.array(W_o, dtype = theano.config.floatX), name='W', borrow=True )
@@ -117,9 +117,10 @@ class OutputLayer(object):
         self.b_o = b_o
         
         # get average of in order input and in reverse input
-        averageInput = (input[0] + input[1]) / 2
-
-        y_seq = softmax( T.dot(averageInput, self.W_o) + b_o )
+        
+#averageInput = (input[0] + input[1]) / 2
+        concatenateInput = T.concatenate([input[0], input[1][::-1]], axis=2)
+        y_seq = softmax( T.dot(concatenateInput, self.W_o) + b_o )
 #        y_seq = T.dot(averageInput, self.W_o) + b_o
 
         # Find probability, given x
@@ -134,7 +135,8 @@ class OutputLayer(object):
     # Cross entropy
     def crossEntropy(self, y, m):
         #return -T.sum( T.log(self.p_y_given_x) [T.arange(y.shape[0]), y] )
-        return -T.sum([ T.mean( frames[ T.arange(y_row.shape[0]), y_row ] * m_row ) for frames, y_row, m_row in zip([T.log(self.p_y_given_x)], [y], [m]) ])
+        return -T.sum(T.stacklists([ T.mean( T.log(self.p_y_given_x)[i][T.arange(y[i].shape[0]), y[i]] * m[0] ) for i in xrange(200) ]))
+# return -T.sum([ T.mean( frames[ T.arange(y_row.shape[0]), y_row ] * m_row ) for frames, y_row, m_row in zip([T.log(self.p_y_given_x)], [y], [m]) ])
         """
         tmp = T.log(self.p_y_given_x)
         sumAll = 0
@@ -153,7 +155,7 @@ class OutputLayer(object):
         if y.dtype.startswith('int'):
             # the T.neq operator returns a vector of 0s and 1s, where 1 represents a mistake in prediction
 #return T.mean(T.neq(self.y_pred, y))
-            return T.sum( T.neq(self.y_pred, y) * m ) / T.sum(m)
+            return T.sum( T.neq(self.y_pred, y) * m ).__truediv__(T.sum(m))
         else:
             raise NotImplementedError()
 
