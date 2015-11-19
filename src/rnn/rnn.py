@@ -24,11 +24,11 @@ def trainRNN(datasets, P):
     trainSetX, trainSetY, trainSetName = rnnUtils.makeDataSentence(datasets[0])
     validSetX, validSetY, validSetName = rnnUtils.makeDataSentence(datasets[1])
     if P.cutSentSize > 0:
-        trainSetX, trainSetY, trainSetName, trainSetM = rnnUtils.cutSentenceAndFill([trainSetX, trainSetY, trainSetName], P.cutSentSize)
-        validSetX, validSetY, validSetName, validSetM = rnnUtils.cutSentenceAndFill([validSetX, validSetY, validSetName], P.cutSentSize)
+        trainSetX, trainSetY, trainSetName, trainSetM = rnnUtils.cutSentenceAndSlide([trainSetX, trainSetY, trainSetName], P.cutSentSize, 100)
+        validSetX, validSetY, validSetName, validSetM = rnnUtils.cutSentenceAndSlide([validSetX, validSetY, validSetName], P.cutSentSize, 100)
     
 #print np.array(trainSetMask[0]).shape
-#print trainSetMask[0]
+    print np.array(trainSetX).shape
 
     ###############
     # BUILD MODEL #

@@ -83,6 +83,34 @@ def cutSentenceAndFill(Set,size):
             finalSet[3].append(tmpSet[3])
     return finalSet
 
+def cutSentenceAndSlide(Set, size, move):
+    finalSet = []
+    for i in range (4):
+        finalSet.append([])
+    for i in xrange(len(Set[0])):
+        sentLen = len(Set[0][i])
+        j = 0
+        while (j+size) <= sentLen:
+            finalSet[0].append(Set[0][i][j:(j+size)])
+            finalSet[1].append(Set[1][i][j:(j+size)])
+            finalSet[2].append(Set[2][i][j:(j+size)])
+            finalSet[3].append(np.ones(size))
+            j += move
+        if j < sentLen:
+            tmpSize = j + size - sentLen
+            tmpSet = [ Set[0][i][j:sentLen], Set[1][i][j:sentLen], Set[2][i][j:sentLen], np.ones(sentLen%size) ]
+            zs = np.zeros(48).astype(dtype = theano.config.floatX)
+            for k in xrange(tmpSize):
+                tmpSet[0] = np.vstack((tmpSet[0], zs))
+                tmpSet[1] = np.append(tmpSet[1], 0)
+                tmpSet[2] = np.append(tmpSet[2], "null")
+                tmpSet[3] = np.append(tmpSet[3], 0)
+            finalSet[0].append(tmpSet[0])
+            finalSet[1].append(tmpSet[1])
+            finalSet[2].append(tmpSet[2])
+            finalSet[3].append(tmpSet[3])
+    return finalSet
+
 # make original data sentenced
 def makeDataSentence(dataset):
     datasetX, datasetY, datasetName = dataset
