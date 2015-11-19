@@ -11,33 +11,43 @@ from rnnUtils import Parameters
 from rnnArchitecture import HiddenLayer, OutputLayer, RNN
 
 DEBUG = False
+
+# Print PER for each training iteration
 FER_PER_SENT = True
+
+# Pause traing for each training iteration
 PAUSE = False
+
+# For learning rate decay threshould
+THRESHOLD = 0.35 
+
 OUTPUT_DETAIL = False
-THRESHOLD = 0.27
 
 parameterFilename = sys.argv[1]
 np.set_printoptions(threshold=np.nan) # for print np array
 
-move = 30
-
 def trainRNN(datasets, P):
     
+    # make data to be sentence
     trainSetX, trainSetY, trainSetName = rnnUtils.makeDataSentence(datasets[0])
     validSetX, validSetY, validSetName = rnnUtils.makeDataSentence(datasets[1])
-    if P.cutSentSize > 0:
-        trainSetX, trainSetY, trainSetName, trainSetM = rnnUtils.cutSentenceAndSlide([trainSetX, trainSetY, trainSetName], P.cutSentSize, move)
-        validSetX, validSetY, validSetName, validSetM = rnnUtils.cutSentenceAndSlide([validSetX, validSetY, validSetName], P.cutSentSize, move)
+    
+    # Cut sentence to be sub-sentence and fill with 0
+    trainSetX, trainSetY, trainSetName, trainSetM = rnnUtils.cutSentenceAndSlide([trainSetX, trainSetY, trainSetName], P.cutSentSize, P.move)
+    validSetX, validSetY, validSetName, validSetM = rnnUtils.cutSentenceAndFill([validSetX, validSetY, validSetName], P.cutSentSize)
 
-    trantrainSetX, trainSetY, trainSetName, trainSetM = rnnUtils.fillBatch([trainSetX, trainSetY, trainSetName, trainSetM], 25)
-    validSetX, validSetY, validSetName, validSetM = rnnUtils.fillBatch([validSetX, validSetY, validSetName, validSetM], 25)
-
+    # make the total number of sub-sentence mod batchSize equals to zero 
+    trantrainSetX, trainSetY, trainSetName, trainSetM = rnnUtils.fillBatch([trainSetX, trainSetY, trainSetName, trainSetM], P.batchSize)
+    validSetX, validSetY, validSetName, validSetM = rnnUtils.fillBatch([validSetX, validSetY, validSetName, validSetM], P.batchSize)
+    
+    # make data to be numpy.array
     trainSetX = np.array(trainSetX)
     trainSetY = np.array(trainSetY)
     trainSetM = np.array(trainSetM)
-    print trainSetX.shape
-    print trainSetY.shape
-    print trainSetM.shape
+
+    validSetX = np.array(validSetX)
+    validSetY = np.array(validSetY)
+    validSetM = np.array(validSetM)
 
     ###############
     # BUILD MODEL #
@@ -47,8 +57,11 @@ def trainRNN(datasets, P):
     x = T.tensor3()
     y = T.imatrix()
     m = T.imatrix()
+
     # For create a new model
-    dummyParams = [None] * (8 * (P.rnnDepth) + 2)  # +2 for outputlayer W_o and b_o
+    # 8 for W_i1, W_h1, b_h1, W_i2, W_h2, b_h2, a_0, a_0_reverse   
+    # +2 for outputlayer W_o and b_o
+    dummyParams = [None] * (8 * (P.rnnDepth) + 2)  
     
     # Build the RNN object for training
     classifier = RNN( input = x, params = dummyParams, P = P)
@@ -73,15 +86,9 @@ def trainRNN(datasets, P):
 
     # Training mode
     trainModel = theano.function( inputs = [x, y, m], outputs = myOutputs, updates = myUpdates )
-#trainModel = theano.function( inputs = [start, end], outputs = myOutputs, updates = myUpdates,
-#givens = { x:trainSetX[start:end], y:trainSetY[start:end], m: trainSetM[start:end] } )
-#trainModel = theano.function( inputs = [x, y, m], outputs = classifier.outputLayer.y_pred, on_unused_input='ignore')
 
     # Validation model
     validModel = theano.function( inputs = [x, y, m], outputs = predicter.errors(y, m) )
-#validModel = theano.function( inputs = [start, end], outputs = predicter.errors(y, m),
-#                                 givens = { x:validSetX[start:end], y:validSetY[start:end], m: validSetM[start:end] } )
-    validModel = theano.function( inputs = [x, y, m], outputs = predicter.outputLayer.y_pred,  on_unused_input='ignore')
 
     ###################
     # TRAIN DNN MODEL #
@@ -105,19 +112,13 @@ def trainRNN(datasets, P):
     prevGradSqrs  = 0.
     prevSigmaSqrs = 0.
    
-    # Total Center Index
+    # Total number of sub-sentence
     totalTrainSentNum = len(trainSetX)
     totalValidSentNum = len(validSetX)
 
-    # Sentence Index
-    trainSentIdx = list(range(totalTrainSentNum))
-    validSentIdx = list(range(totalValidSentNum))
-
     # the number of batch
-    BatchSize = 25
-
-    totalTrainBatchNum = totalTrainSentNum/BatchSize
-    totalValidBatchNum = totalValidSentNum/BatchSize
+    totalTrainBatchNum = totalTrainSentNum / P.batchSize
+    totalValidBatchNum = totalValidSentNum / P.batchSize
 
     startTime  = timeit.default_timer()
     while (epoch < P.maxEpoch) and (not doneLooping):
@@ -125,15 +126,14 @@ def trainRNN(datasets, P):
 
         if P.shuffle:
             p = np.random.permutation(totalTrainSentNum)
-#random.shuffle(trainSentIdx)
 
         # Training
         trainLosses = []
         sentNum = 0
         for i in xrange(totalTrainBatchNum):
-            setX = trainSetX[p][i * BatchSize : (i+1) * BatchSize]
-            setY = trainSetY[p][i * BatchSize : (i+1) * BatchSize]
-            setM = trainSetM[p][i * BatchSize : (i+1) * BatchSize]
+            setX = trainSetX[p][i * P.batchSize : (i+1) * P.batchSize]
+            setY = trainSetY[p][i * P.batchSize : (i+1) * P.batchSize]
+            setM = trainSetM[p][i * P.batchSize : (i+1) * P.batchSize]
             setX = np.array(setX).astype(dtype='float32')
             setY = np.array(setY).astype(dtype='int32')
             setM = np.array(setM).astype(dtype='int32')
@@ -168,9 +168,9 @@ def trainRNN(datasets, P):
 
         validLosses = []
         for i in xrange(totalValidSentNum):
-            setX = validSetX[p][i * BatchSize : (i+1) * BatchSize]
-            setY = validSetY[p][i * BatchSize : (i+1) * BatchSize]
-            setM = validSetM[p][i * BatchSize : (i+1) * BatchSize]
+            setX = validSetX[i * P.batchSize : (i+1) * P.batchSize]
+            setY = validSetY[i * P.batchSize : (i+1) * P.batchSize]
+            setM = validSetM[i * P.batchSize : (i+1) * P.batchSize]
             setX = np.array(setX).astype(dtype='float32')
             setY = np.array(setY).astype(dtype='int32')
             setM = np.array(setM).astype(dtype='int32')
@@ -179,17 +179,10 @@ def trainRNN(datasets, P):
             setM = np.transpose(setM, (1, 0))
             outputs = validModel(setX, setY, setM)
             validLosses.append(outputs[0])
-        validFER = np.mean(validLosses)
-        prevModel = nowModel
 
-           
-        """ 
         # Evaluate validation FER
-        validLosses = [ validModel( np.array(validSetX[validSentIdx[i]]).astype(dtype='float32'), np.array(validSetY[validSentIdx[i]]).astype(dtype='int32') ) for i in xrange(totalValidSentNum)]
         validFER = np.mean(validLosses)
         prevModel = nowModel
-        """ 
-        """ 
 
         if validFER < prevFER:
             if bestModelName != '':
@@ -223,10 +216,10 @@ def trainRNN(datasets, P):
             prevGradSqrs = globalParam.gradSqrs
         if P.updateMethod == 'RMSProp':
             prevSigmaSqrs = globalParam.sigmaSqrs
-      """
 
         # Print the result of this epoch
         print (('%i,%f,%f') % (epoch, trainFER * 100, validFER * 100. ))
+
     # end of training
     endTime = timeit.default_timer()
     print (('time %.2fm' % ((endTime - startTime) / 60.)))

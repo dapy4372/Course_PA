@@ -6,9 +6,6 @@ init = 1.
 bias = 0.1
 STD = 0.1
 
-CutSize = 200
-BatchSize = 25
-
 def sigmoid(z, alpha):
     return ( 1/(1+T.exp((-z) )) ).astype(dtype=theano.config.floatX)
 
@@ -22,7 +19,7 @@ def softmax(z):
     return expZ /expZsum
 
 class HiddenLayer(object):
-    def __init__(self, rng, input, inputNum, outputNum, W_i1 = None, W_h1 = None, b_h1 = None, W_i2 = None, W_h2 = None, b_h2 = None, a_0 = None, a_0_reverse = None):
+    def __init__(self, rng, input, inputNum, outputNum, batchSize, W_i1 = None, W_h1 = None, b_h1 = None, W_i2 = None, W_h2 = None, b_h2 = None, a_0 = None, a_0_reverse = None):
         
         # For in order input
         if W_i1 is None:
@@ -81,7 +78,7 @@ class HiddenLayer(object):
         """ self.alp = theano.shared(value=0.5)  """
 
         # Output_info for scan 
-        self.a_0 = theano.shared( value = rng.uniform(low = -1.0, high = 1.0, size = (BatchSize, outputNum)).astype(dtype = theano.config.floatX), borrow = True)
+        self.a_0 = theano.shared( value = rng.uniform(low = -1.0, high = 1.0, size = (batchSize, outputNum)).astype(dtype = theano.config.floatX), borrow = True)
 
         # In order
         def inOrderStep(z_t, a_tm1):
@@ -92,8 +89,7 @@ class HiddenLayer(object):
         self.output.append(a_seq)
 
         # Output_info for scan 
-        self.a_0_reverse = theano.shared( value = rng.uniform(low = -1.0, high = 1.0, size = (BatchSize, outputNum)).astype(dtype = theano.config.floatX), borrow = True)
-#self.a_0_reverse = theano.shared(numpy.zeros((BatchSize, outputNum)).astype(dtype = theano.config.floatX), borrow = True)
+        self.a_0_reverse = theano.shared( value = rng.uniform(low = -1.0, high = 1.0, size = (batchSize, outputNum)).astype(dtype = theano.config.floatX), borrow = True)
         
         # In reverse  
         def inReverseStep(z_t, a_tm1):
@@ -144,18 +140,7 @@ class OutputLayer(object):
     
     # Cross entropy
     def crossEntropy(self, y, m):
-        #return -T.sum( T.log(self.p_y_given_x) [T.arange(y.shape[0]), y] )
         return -T.sum(T.stacklists([ T.mean( T.log(self.p_y_given_x)[i][T.arange(y[i].shape[0]), y[i]] * m[0] ) for i in xrange(200) ]))
-# return -T.sum([ T.mean( frames[ T.arange(y_row.shape[0]), y_row ] * m_row ) for frames, y_row, m_row in zip([T.log(self.p_y_given_x)], [y], [m]) ])
-        """
-        tmp = T.log(self.p_y_given_x)
-        sumAll = 0
-        for i in xrange(CutSize):
-            for j in xrange(BatchSize):
-                if y[j][i] != -1:
-                    sumAll += tmp[i][j][ y[j][i] ] 
-        return sumAll / BatchSize 
-        """
 
     def errors(self, y, m):
         # Check y and y_pred dimension
@@ -164,7 +149,6 @@ class OutputLayer(object):
         # Check if y is the correct datatype
         if y.dtype.startswith('int'):
             # the T.neq operator returns a vector of 0s and 1s, where 1 represents a mistake in prediction
-#return T.mean(T.neq(self.y_pred, y))
             return T.sum( T.neq(self.y_pred, y) * m ).__truediv__(T.sum(m))
         else:
             raise NotImplementedError()
@@ -179,7 +163,8 @@ class RNN(object):
         
         # First hidden layer
         self.hiddenLayerList.append(
-            HiddenLayer( input = bidirectionalInput, rng = P.rng, inputNum = P.inputDimNum, outputNum = P.rnnWidth, 
+            HiddenLayer( input = bidirectionalInput, rng = P.rng, 
+                         inputNum = P.inputDimNum, outputNum = P.rnnWidth, batchSize = P.batchSize,
                          W_i1 = params[0], W_h1 = params[1], b_h1 = params[2], 
                          W_i2 = params[3], W_h2 = params[4], b_h2 = params[5], 
                          a_0 = params[6], a_0_reverse = params[7] ) )
@@ -187,7 +172,8 @@ class RNN(object):
         # Other hidden layers 
         for i in xrange (P.rnnDepth - 1):
             self.hiddenLayerList.append(
-                HiddenLayer( input = self.hiddenLayerList[i].output, rng = P.rng, inputNum = P.rnnWidth, outputNum = P.rnnWidth,
+                HiddenLayer( input = self.hiddenLayerList[i].output, rng = P.rng, 
+                             inputNum = P.rnnWidth, outputNum = P.rnnWidth, batchSize = P.batchSize,
                              W_i1 = params[8 * (i + 1)], W_h1 = params[8 * (i + 1) + 1], b_h1 = params[8 * (i + 1) + 2], 
                              W_i2 = params[8 * (i + 1) + 3], W_h2 = params[8 * (i + 1) + 4], b_h2 = params[8 * (i + 1) + 5],
                              a_0 = params[8 * (i + 1) + 6], a_0_reverse = params[8 * (i + 1) + 7] ) )

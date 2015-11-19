@@ -5,6 +5,8 @@ width:512
 depth:1
 cutSentSize:200
 clipRange:0.1
+move:30
+batchSize:30
 learningRate:0.01
 learningRateDecay:1
 dataSetFilename:../pkl/t26v31.pkl
