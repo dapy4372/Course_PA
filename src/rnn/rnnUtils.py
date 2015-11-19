@@ -98,7 +98,7 @@ def cutSentenceAndSlide(Set, size, move):
             j += move
         if j < sentLen:
             tmpSize = j + size - sentLen
-            tmpSet = [ Set[0][i][j:sentLen], Set[1][i][j:sentLen], Set[2][i][j:sentLen], np.ones(sentLen%size) ]
+            tmpSet = [ Set[0][i][j:sentLen], Set[1][i][j:sentLen], Set[2][i][j:sentLen], np.ones(sentLen-j) ]
             zs = np.zeros(48).astype(dtype = theano.config.floatX)
             for k in xrange(tmpSize):
                 tmpSet[0] = np.vstack((tmpSet[0], zs))
