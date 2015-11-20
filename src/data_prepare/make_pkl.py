@@ -1,9 +1,8 @@
 import sys
-import gzip
 import random
 import cPickle
 import numpy as np
-import utils
+import data_prepare_utils
 from operator import itemgetter, attrgetter
 
 random.seed(1234)
@@ -35,7 +34,7 @@ def covertData(fileArkName, LineNum, fileLabelName = None, existY = True):
     for curLine in fileForX:
         curLine = curLine.strip()
         curLine = curLine.split()
-        name, number = utils.namepick(curLine[0])
+        name, number = data_prepare_utils.namepick(curLine[0])
         feature = []
         for i in xrange(dim):
             feature.append(float(curLine[i+1]))
@@ -49,7 +48,7 @@ def covertData(fileArkName, LineNum, fileLabelName = None, existY = True):
         for curLine in fileForY:
             curLine = curLine.strip()
             curLine = curLine.split(',')
-            name, number = utils.namepick(curLine[0])
+            name, number = data_prepare_utils.namepick(curLine[0])
             label = int(curLine[1])
             dataY.append([name, number, label])
         if existY:
@@ -75,4 +74,4 @@ if __name__ == '__main__':
     testLineNum = countLineNum(testArkFilename)
     testSet = covertData(fileArkName = testArkFilename, LineNum = testLineNum, existY = False)
     print '... make pkl file'
-    utils.makePkl([trainSet, validSet, testSet], outputPklFilename)
+    data_prepare_utils.makePkl([trainSet, validSet, testSet], outputPklFilename)

@@ -10,6 +10,7 @@ import globalParam
 from rnnUtils import Parameters
 from rnnArchitecture import HiddenLayer, OutputLayer, RNN
 
+# Print Weight matrix and bias
 DEBUG = False
 
 # Print PER for each training iteration
@@ -19,9 +20,10 @@ FER_PER_SENT = True
 PAUSE = False
 
 # For learning rate decay threshould
-THRESHOLD = 0.35 
+THRESHOLD = 0.3 
 
-OUTPUT_DETAIL = False
+# TODO
+"""OUTPUT_DETAIL = False"""
 
 parameterFilename = sys.argv[1]
 np.set_printoptions(threshold=np.nan) # for print np array
@@ -53,7 +55,6 @@ def trainRNN(datasets, P):
     # BUILD MODEL #
     ###############
     print '... building the model'
-    idx = T.iscalar('i')
     x = T.tensor3()
     y = T.imatrix()
     m = T.imatrix()
@@ -64,10 +65,10 @@ def trainRNN(datasets, P):
     dummyParams = [None] * (8 * (P.rnnDepth) + 2)  
     
     # Build the RNN object for training
-    classifier = RNN( input = x, params = dummyParams, P = P)
+    classifier = RNN( input = x, params = dummyParams, P = P )
     
     # Build the DNN object for Validation
-    predicter = RNN( input = x, P = P, params = dummyParams )
+    predicter = RNN( input = x, params = dummyParams, P = P )
    
     # Global parameters setting
     globalParam.initGlobalLearningRate(P)
@@ -127,9 +128,12 @@ def trainRNN(datasets, P):
         if P.shuffle:
             p = np.random.permutation(totalTrainSentNum)
 
-        # Training
         trainLosses = []
+
+        # For printing FER per sub-sentence
         sentNum = 0
+
+        # Training
         for i in xrange(totalTrainBatchNum):
             setX = trainSetX[p][i * P.batchSize : (i+1) * P.batchSize]
             setY = trainSetY[p][i * P.batchSize : (i+1) * P.batchSize]
@@ -150,6 +154,7 @@ def trainRNN(datasets, P):
                 trainFER = np.mean(trainLosses)
                 print (('    %i,%f') % (i, trainFER * 100))
                 sentNum+=1
+
             # Print parameter value for debug
             if DEBUG:
                 rnnUtils.printGradsParams(outputs[7:7 + 6 * P.rnnDepth + 2], outputs[7 + 6 * P.rnnDepth:], P.rnnDepth)
@@ -157,6 +162,7 @@ def trainRNN(datasets, P):
             # Pause every iteration
             if PAUSE:
                 sys.stdin.read(1)
+#break
 
         # Evaluate training FER 
         trainFER = np.mean(trainLosses)
@@ -167,7 +173,7 @@ def trainRNN(datasets, P):
       
 
         validLosses = []
-        for i in xrange(totalValidSentNum):
+        for i in xrange(totalValidBatchNum):
             setX = validSetX[i * P.batchSize : (i+1) * P.batchSize]
             setY = validSetY[i * P.batchSize : (i+1) * P.batchSize]
             setM = validSetM[i * P.batchSize : (i+1) * P.batchSize]
@@ -177,8 +183,7 @@ def trainRNN(datasets, P):
             setX = np.transpose(setX, (1, 0, 2))
             setY = np.transpose(setY, (1, 0))
             setM = np.transpose(setM, (1, 0))
-            outputs = validModel(setX, setY, setM)
-            validLosses.append(outputs[0])
+            validLosses.append( validModel(setX, setY, setM) )
 
         # Evaluate validation FER
         validFER = np.mean(validLosses)
@@ -186,7 +191,7 @@ def trainRNN(datasets, P):
 
         if validFER < prevFER:
             if bestModelName != '':
-                os.remove(prevModelName)
+                os.remove(bestModelName)
             prevFER = validFER
             prevModel = nowModel
             bestModelName = '../model/' + P.outputFilename + '_validFER_' + str(validFER * 100.) 
@@ -236,30 +241,41 @@ def getResult(bestModelName, datasets):
     testSetX, testSetY, testSetName = rnnUtils.makeDataSentence(datasets[2])
 
     if P.cutSentSize > 0:
-        validSetX, validSetY, validSetName = rnnUtils.cutSentence([validSetX, validSetY, validSetName], P.cutSentSize)
-        testSetX, testSetY, testSetName = rnnUtils.cutSentence([testSetX, testSetY, testSetName], P.cutSentSize)
+        validSetX, validSetY, validSetName, validSetM = rnnUtils.cutSentenceAndFill([validSetX, validSetY, validSetName], P.cutSentSize)
+        testSetX, testSetY, testSetName, testSetM = rnnUtils.cutSentenceAndFill([testSetX, testSetY, testSetName], P.cutSentSize)
     
+    validSetX, validSetY, validSetName, validSetM = rnnUtils.fillBatch([validSetX, validSetY, validSetName, validSetM], P.batchSize)
+    testSetX, testSetY, testSetName, testSetM = rnnUtils.fillBatch([testSetX, testSetY, testSetName, testSetM], P.batchSize)
+
+    validSetX = np.array(validSetX)
+    validSetY = np.array(validSetY)
+    validSetM = np.array(validSetM)
+
+    testSetX = np.array(testSetX)
+    testSetY = np.array(testSetY)
+    testSetM = np.array(testSetM)
+
     print '... building the model'
-    idx = T.iscalar('i')
-    x = T.matrix()
-    y = T.ivector()
+    x = T.tensor3()
+    y = T.imatrix()
+    m = T.imatrix()
     
     # bulid best RNN  model
     predicter = RNN( input = x, P = P, params = bestModel )
     
-    # Total number of sentence
+    # Total number of sub-sentence
     totalValidSentNum = len(validSetX)
     totalTestSentNum = len(testSetX)
+    
+    # the number of batch
+    totalValidBatchNum = totalValidSentNum / P.batchSize
+    totalTestBatchNum = totalTestSentNum / P.batchSize
 
-    # Sentence Index
-    validSentIdx = list(range(totalValidSentNum))
-    testSentIdx = list(range(totalTestSentNum))
-    
     # best model
-    model = theano.function( inputs = [x, y], outputs = [predicter.errors(y), predicter.yPred] )
+    model = theano.function( inputs = [x, y, m], outputs = [predicter.errors(y, m), predicter.yPred] )
     
-    validResult = rnnUtils.EvalandResult(model, totalValidSentNum, validSetX, validSetY, 'valid') 
-    testResult = rnnUtils.EvalandResult(model, totalTestSentNum, testSetX, testSetY, 'test')
+    validResult = rnnUtils.EvalandResult(model, totalValidBatchNum, validSetX, validSetY, validSetM, P.batchSize, 'valid') 
+    testResult = rnnUtils.EvalandResult(model, totalTestBatchNum, testSetX, testSetY, testSetM, P.batchSize, 'test')
     
     rnnUtils.writeResult(validResult, P.validResultFilename, validSetName)
     rnnUtils.writeResult(testResult, P.testResultFilename, testSetName)

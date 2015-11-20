@@ -6,7 +6,7 @@ mkdir -p ../../pkl ../../model ../../log ../../result \
 # Genally, you should only change the variable "DNNResult".
 # t means train and v means valid.
 # The integers follow t and v are the FER.
-DNNResult=t26v31
+DNNResult=t21v30
 
 # "dim" is the dimension of the probability.
 # "tmp" is for the data which is without preprocessing.

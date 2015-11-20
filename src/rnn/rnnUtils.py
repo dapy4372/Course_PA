@@ -134,18 +134,6 @@ def makeDataSentence(dataset):
     sentenceInterval = findSentenceInterval(datasetName)
     return toBeSentence(datasetX, sentenceInterval), toBeSentence(datasetY, sentenceInterval), toBeSentence(datasetName, sentenceInterval)
 
-# Not used in RNN
-"""
-def sharedDataXY(dataX, dataY, borrow=True):
-    sharedX = theano.shared(np.asarray(dataX, dtype=theano.config.floatX), borrow=True)
-    #TODO does't work in GPU for sharedY
-    sharedY = theano.shared(np.asarray(dataY, dtype=theano.config.floatX), borrow=True)
-    return [sharedX, sharedY, T.cast(sharedY,'int32')]
-
-def clearSharedDataXY(sharedX, sharedY):
-    sharedX.set_value([[]])
-    sharedY.set_value([])
-"""
 
 # Used to bulid model
 def chooseUpdateMethod(grads, params, P):
@@ -191,11 +179,22 @@ def printNpArrayMeanStdMaxMin(name, npArray):
     print np.amin(npArray, axis=1)
 
 # Used in getResult
-def EvalandResult(Model, totalSentNum, setX, setY, modelType):
+def EvalandResult(Model, totalBatchNum, oriSetX, oriSetY, oriSetM, batchSize, modelType):
     result = []
     Losses = []
-    for i in xrange(totalSentNum):
-        thisLoss, thisResult = Model( np.array(setX[i]).astype(dtype='float32'), np.array(setY[i]).astype(dtype='int32') )
+    for i in xrange(totalBatchNum):
+        setX = oriSetX[i * batchSize : (i+1) * batchSize]
+        setY = oriSetY[i * batchSize : (i+1) * batchSize]
+        setM = oriSetM[i * batchSize : (i+1) * batchSize]
+        setX = np.array(setX).astype(dtype='float32')
+        setY = np.array(setY).astype(dtype='int32')
+        setM = np.array(setM).astype(dtype='int32')
+        setX = np.transpose(setX, (1, 0, 2))
+        setY = np.transpose(setY, (1, 0))
+        setM = np.transpose(setM, (1, 0))
+        thisLoss, thisResult = Model( setX, setY, setM )
+        thisResult = numpy.array(thisResult)
+        thisResult = np.transpose(thisResult, (1,0))
         result.append(thisResult.tolist())
         Losses.append(thisLoss)
     FER = np.mean(Losses)
@@ -204,21 +203,18 @@ def EvalandResult(Model, totalSentNum, setX, setY, modelType):
 
 # Used in getResult
 # Write the result into a ".lab" file
-def writeResult(result, filename, setNameList):
+def writeResult(result, filename, setN):
     f = open(filename, 'w')
+    # number of batch
     for i in xrange(len(result)):
+        # number of sub-sentence
         for j in xrange(len(result[i])):
-            f.write(setNameList[i][j] + ',' + str(result[i][j]) + '\n')
+            for k in xrange(len(result[i][j])):
+                if(setN[i][j][k] == "null"):
+                    continue
+                else:
+                    f.write(setN[i][j] + ',' + str(result[i][j][k]) + '\n')
     f.close()
-
-# Not used in RNN
-"""
-def makeBatch(totalSize, batchSize = 32):
-    numBatchSize = totalSize / batchSize
-    indexList = [[i * batchSize, (i + 1) * batchSize] for i in xrange(numBatchSize)]
-    indexList.append([numBatchSize * batchSize, totalSize])
-    return indexList
-"""
 
 # Used to get the current parameters of the model   
 def getParamsValue(nowParams):
@@ -232,33 +228,6 @@ def setParamsValue(preParams, nowParams):
     for i in xrange(len(preParams)):
         nowParams[i].set_value(preParams[i])
 
-# Used in RNN Architecture
-def Dropout(rng, input, inputNum, D = None, dropoutProb = 1):
-    D_values = np.asarray(
-              rng.binomial( size = (inputNum,), n = 1, p = dropoutProb ),
-              dtype=theano.config.floatX )
-    D = theano.shared( value=D_values, name='D', borrow=True )
-    return input * D
-
-# Not used in RNN
-"""
-def findCenterIdxList(dataY):
-    spliceIdxList = []
-    for i in xrange(len(dataY)):
-        if dataY[i] == -1:
-            continue
-        else:
-            spliceIdxList.append(i)
-    return spliceIdxList
-
-def splicedX(x, idx):
-    spliceWidth = 4
-    return T.concatenate([ (T.stacklists([x[j+i] for j in [idx] ])) for i in xrange(-spliceWidth, spliceWidth+1)])
-
-def splicedY(y, idx):    
-    return T.concatenate([y[i] for i in [idx]])
-"""
-    
 class Parameters(object):
     def __init__(self, filename):
        title, parameter           = utils.readSetting(filename)
