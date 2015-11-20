@@ -7,6 +7,7 @@ import postprocessing as pp
 import transformIntToLabel as tfit
 setting = sys.argv[1]
 USE_EXIST_MODEL = False
+Half_Done_Model_Name = sys.argv[2]
 
 def smooth(noSmoothedFilename, smoothedFilename):
     name, label = utils.readFile(noSmoothedFilename)
@@ -32,7 +33,7 @@ if __name__ == '__main__':
     sys.stdout = Logger(P.logFilename)
 
     # train RNN model
-    bestModelFilename = rnn.trainRNN(datasets, P)
+    bestModelFilename = rnn.trainRNN(datasets, P, Half_Done_Model_Name)
     
     # Get result
     rnn.getResult(bestModelFilename, datasets)

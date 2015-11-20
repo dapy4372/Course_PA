@@ -1,0 +1,6 @@
+preLabelFilename:raw.csv
+maxAllow:3
+outputFilename:test.csv
+twoMap:48_39.map
+threeMap:48_idx_chr.map_b
+smoothFilename:test_smooth.csv
