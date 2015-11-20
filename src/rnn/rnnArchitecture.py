@@ -64,7 +64,7 @@ class HiddenLayer(object):
             b_h2 = theano.shared(value = b_h2Values, name = 'b', borrow = True)
         else:
             b_h2 = theano.shared( value = numpy.array(b_h2, dtype = theano.config.floatX), name='b', borrow = True )
-
+        
         self.W_i1 = W_i1
         self.W_h1 = W_h1
         self.b_h1 = b_h1
@@ -78,7 +78,16 @@ class HiddenLayer(object):
         """ self.alp = theano.shared(value=0.5)  """
 
         # Output_info for scan 
-        self.a_0 = theano.shared( value = rng.uniform(low = -1.0, high = 1.0, size = (batchSize, outputNum)).astype(dtype = theano.config.floatX), borrow = True)
+        if a_0 is None:
+            self.a_0 = theano.shared( value = rng.uniform(low = -1.0, high = 1.0, size = (batchSize, outputNum)).astype(dtype = theano.config.floatX), borrow = True)
+        else:
+            self.a_0 = theano.shared( value = a_0, borrow = True )
+
+        # Output_info for scan 
+        if a_0 is None:
+            self.a_0_reverse = theano.shared( value = rng.uniform(low = -1.0, high = 1.0, size = (batchSize, outputNum)).astype(dtype = theano.config.floatX), borrow = True)
+        else:
+            self.a_0_reverse = theano.shared( value = a_0_reverse, borrow = True )
 
         # In order
         def inOrderStep(z_t, a_tm1):
@@ -88,8 +97,6 @@ class HiddenLayer(object):
         a_seq, _ = theano.scan(inOrderStep, sequences = self.z_seq, outputs_info = self.a_0, truncate_gradient = -1)
         self.output.append(a_seq)
 
-        # Output_info for scan 
-        self.a_0_reverse = theano.shared( value = rng.uniform(low = -1.0, high = 1.0, size = (batchSize, outputNum)).astype(dtype = theano.config.floatX), borrow = True)
         
         # In reverse  
         def inReverseStep(z_t, a_tm1):
@@ -179,7 +186,7 @@ class RNN(object):
                              a_0 = params[8 * (i + 1) + 6], a_0_reverse = params[8 * (i + 1) + 7] ) )
         # Output Layer
         self.outputLayer = OutputLayer( input = self.hiddenLayerList[P.rnnDepth - 1].output, rng = P.rng, inputNum = P.rnnWidth, 
-                                        outputNum = P.outputPhoneNum, W_o = params[6 * P.rnnDepth], b_o = params[6 * P.rnnDepth+1] )
+                                        outputNum = P.outputPhoneNum, W_o = params[8 * P.rnnDepth], b_o = params[8 * P.rnnDepth+1] )
         
         # Weight decay
         # L1 norm ; one regularization option is to enforce L1 norm to be small

@@ -6,7 +6,6 @@ import rnn.rnnUtils as rnnUtils
 import postprocessing as pp 
 import transformIntToLabel as tfit
 setting = sys.argv[1]
-USE_EXIST_MODEL = False
 
 def smooth(noSmoothedFilename, smoothedFilename):
     name, label = utils.readFile(noSmoothedFilename)
@@ -40,6 +39,3 @@ if __name__ == '__main__':
     # Smooth
     smooth(noSmoothedFilename = P.testResultFilename, smoothedFilename = P.testSmoothedResultFilename)
     smooth(noSmoothedFilename = P.validResultFilename, smoothedFilename = P.validSmoothedResultFilename)
-"""
-    tfit.transform(beforeTransformFilename = P.testSmoothedResultFilename, afterTransformFilename = '../result/final_result/' + P.outputFilename + '_smoothed.csv')
-"""

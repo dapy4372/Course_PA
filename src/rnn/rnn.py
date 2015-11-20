@@ -157,12 +157,11 @@ def trainRNN(datasets, P):
 
             # Print parameter value for debug
             if DEBUG:
-                rnnUtils.printGradsParams(outputs[7:7 + 6 * P.rnnDepth + 2], outputs[7 + 6 * P.rnnDepth:], P.rnnDepth)
+                rnnUtils.printGradsParams(outputs[7:7 + 8 * P.rnnDepth + 2], outputs[7 + 8 * P.rnnDepth:], P.rnnDepth)
 
             # Pause every iteration
             if PAUSE:
                 sys.stdin.read(1)
-#break
 
         # Evaluate training FER 
         trainFER = np.mean(trainLosses)
@@ -236,16 +235,15 @@ def getResult(bestModelName, datasets):
 
     print "... load model"
     bestModel, P = rnnUtils.readModelPkl(bestModelName)     
-
-    validSetX, validSetY, validSetName = rnnUtils.makeDataSentence(datasets[1])
-    testSetX, testSetY, testSetName = rnnUtils.makeDataSentence(datasets[2])
+    validSetX, validSetY, validSetN = rnnUtils.makeDataSentence(datasets[1])
+    testSetX, testSetY, testSetN = rnnUtils.makeDataSentence(datasets[2])
 
     if P.cutSentSize > 0:
-        validSetX, validSetY, validSetName, validSetM = rnnUtils.cutSentenceAndFill([validSetX, validSetY, validSetName], P.cutSentSize)
-        testSetX, testSetY, testSetName, testSetM = rnnUtils.cutSentenceAndFill([testSetX, testSetY, testSetName], P.cutSentSize)
+        validSetX, validSetY, validSetN, validSetM = rnnUtils.cutSentenceAndFill([validSetX, validSetY, validSetN], P.cutSentSize)
+        testSetX, testSetY, testSetN, testSetM = rnnUtils.cutSentenceAndFill([testSetX, testSetY, testSetN], P.cutSentSize)
     
-    validSetX, validSetY, validSetName, validSetM = rnnUtils.fillBatch([validSetX, validSetY, validSetName, validSetM], P.batchSize)
-    testSetX, testSetY, testSetName, testSetM = rnnUtils.fillBatch([testSetX, testSetY, testSetName, testSetM], P.batchSize)
+    validSetX, validSetY, validSetN, validSetM = rnnUtils.fillBatch([validSetX, validSetY, validSetN, validSetM], P.batchSize)
+    testSetX, testSetY, testSetN, testSetM = rnnUtils.fillBatch([testSetX, testSetY, testSetN, testSetM], P.batchSize)
 
     validSetX = np.array(validSetX)
     validSetY = np.array(validSetY)
@@ -266,7 +264,7 @@ def getResult(bestModelName, datasets):
     # Total number of sub-sentence
     totalValidSentNum = len(validSetX)
     totalTestSentNum = len(testSetX)
-    
+
     # the number of batch
     totalValidBatchNum = totalValidSentNum / P.batchSize
     totalTestBatchNum = totalTestSentNum / P.batchSize
@@ -274,8 +272,7 @@ def getResult(bestModelName, datasets):
     # best model
     model = theano.function( inputs = [x, y, m], outputs = [predicter.errors(y, m), predicter.yPred] )
     
-    validResult = rnnUtils.EvalandResult(model, totalValidBatchNum, validSetX, validSetY, validSetM, P.batchSize, 'valid') 
-    testResult = rnnUtils.EvalandResult(model, totalTestBatchNum, testSetX, testSetY, testSetM, P.batchSize, 'test')
-    
-    rnnUtils.writeResult(validResult, P.validResultFilename, validSetName)
-    rnnUtils.writeResult(testResult, P.testResultFilename, testSetName)
+    rnnUtils.EvalnSaveResult(model, totalValidBatchNum, validSetX, validSetY, validSetN, validSetM, 
+                             P.validResultFilename, P.batchSize, 'valid') 
+    rnnUtils.EvalnSaveResult(model, totalTestBatchNum, testSetX, testSetY, testSetN, testSetM, 
+                             P.testResultFilename, P.batchSize, 'test')

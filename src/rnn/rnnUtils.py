@@ -26,18 +26,24 @@ def findSentenceInterval(datasetName):
     for i in xrange(1, len(datasetName)):
         curName, _ = utils.namepick(datasetName[i])
         if(prevName != curName):
-            end = i+1
+            end = i + 1 # +1 Cuz of being idx 
             sentenceInterval.append( (start, end) )
             start = i
         prevName = curName
-    sentenceInterval.append( (start, len(datasetName)-1) )
+    sentenceInterval.append( (start, len(datasetName)+1) ) # +1 Cuz of being idx 
     return sentenceInterval
 
 def toBeSentence(subset, interval):
     sentencedSubset = []
     for i in xrange(len(interval)):
-        sentencedSubset.append( subset[ interval[i][0] : (interval[i][1]+1) ] )  # Cuz the index will be -1, plusing 1 to avoid.
+        sentencedSubset.append( subset[ interval[i][0] : (interval[i][1]) -1] )  # Cuz the index will be -1, plusing 1 to avoid.
     return sentencedSubset
+
+# make original data sentenced
+def makeDataSentence(dataset):
+    datasetX, datasetY, datasetName = dataset
+    sentenceInterval = findSentenceInterval(datasetName)
+    return toBeSentence(datasetX, sentenceInterval), toBeSentence(datasetY, sentenceInterval), toBeSentence(datasetName, sentenceInterval)
 
 def cutSentence(Set,size):
     finalSet=[]
@@ -81,7 +87,6 @@ def cutSentenceAndFill(Set,size):
             finalSet[1].append(tmpSet[1])
             finalSet[2].append(tmpSet[2])
             finalSet[3].append(tmpSet[3])
-
     return finalSet
 
 def cutSentenceAndSlide(Set, size, move):
@@ -118,7 +123,6 @@ def fillBatch(Set, batchSize):
     if sentAmount % batchSize != 0:
         tmpSent = [[], [], [], []]
         tmpSent[0] = np.zeros((sentLen,48)).astype(dtype = theano.config.floatX)
-#tmpSent[1] = tmpSent[2] = tmpSent[3] = np.zeros(sentLen).astype(dtype = theano.config.floatX)
         tmpSent[1] = tmpSent[3] = np.zeros(sentLen).astype(dtype = theano.config.floatX)
         tmpSent[2] = ["null"] * sentLen
         for i in xrange(batchSize - (sentAmount % batchSize)):
@@ -127,13 +131,6 @@ def fillBatch(Set, batchSize):
             Set[2].append(tmpSent[2])
             Set[3].append(tmpSent[3])
     return Set
-
-# make original data sentenced
-def makeDataSentence(dataset):
-    datasetX, datasetY, datasetName = dataset
-    sentenceInterval = findSentenceInterval(datasetName)
-    return toBeSentence(datasetX, sentenceInterval), toBeSentence(datasetY, sentenceInterval), toBeSentence(datasetName, sentenceInterval)
-
 
 # Used to bulid model
 def chooseUpdateMethod(grads, params, P):
@@ -179,12 +176,14 @@ def printNpArrayMeanStdMaxMin(name, npArray):
     print np.amin(npArray, axis=1)
 
 # Used in getResult
-def EvalandResult(Model, totalBatchNum, oriSetX, oriSetY, oriSetM, batchSize, modelType):
+def EvalnSaveResult(Model, totalBatchNum, oriSetX, oriSetY, oriSetN, oriSetM, filename, batchSize, modelType):
     result = []
     Losses = []
+    f = open(filename, 'w')
     for i in xrange(totalBatchNum):
         setX = oriSetX[i * batchSize : (i+1) * batchSize]
         setY = oriSetY[i * batchSize : (i+1) * batchSize]
+        setN = oriSetN[i * batchSize : (i+1) * batchSize]
         setM = oriSetM[i * batchSize : (i+1) * batchSize]
         setX = np.array(setX).astype(dtype='float32')
         setY = np.array(setY).astype(dtype='int32')
@@ -192,29 +191,18 @@ def EvalandResult(Model, totalBatchNum, oriSetX, oriSetY, oriSetM, batchSize, mo
         setX = np.transpose(setX, (1, 0, 2))
         setY = np.transpose(setY, (1, 0))
         setM = np.transpose(setM, (1, 0))
+        setN = np.asarray(setN)
+
         thisLoss, thisResult = Model( setX, setY, setM )
-        thisResult = numpy.array(thisResult)
+        thisResult = np.array(thisResult)
         thisResult = np.transpose(thisResult, (1,0))
-        result.append(thisResult.tolist())
+        for i in xrange(len(setN)):
+            for j in xrange(len(setN[i])):
+                if setN[i][j] != "null":
+                    f.write(setN[i][j] + ',' + str(thisResult[i][j]) + '\n')
         Losses.append(thisLoss)
     FER = np.mean(Losses)
     print ((modelType + ' FER,%f') % (FER * 100))
-    return result
-
-# Used in getResult
-# Write the result into a ".lab" file
-def writeResult(result, filename, setN):
-    f = open(filename, 'w')
-    # number of batch
-    for i in xrange(len(result)):
-        # number of sub-sentence
-        for j in xrange(len(result[i])):
-            for k in xrange(len(result[i][j])):
-                if(setN[i][j][k] == "null"):
-                    continue
-                else:
-                    f.write(setN[i][j] + ',' + str(result[i][j][k]) + '\n')
-    f.close()
 
 # Used to get the current parameters of the model   
 def getParamsValue(nowParams):

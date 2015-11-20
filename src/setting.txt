@@ -6,12 +6,12 @@ depth:1
 cutSentSize:200
 clipRange:0.1
 move:20
-batchSize:90
+batchSize:30
 learningRate:0.01
 learningRateDecay:1
 dataSetFilename:../pkl/t26v31.pkl
 dataSetType:fbank
-maxEpoch:20
+maxEpoch:10
 inputDimNum:48
 outputPhoneNum:48
 seed:118
