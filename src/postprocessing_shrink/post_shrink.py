@@ -147,20 +147,6 @@ def clearLabel(label):
     for i in xrange(len(label)):
         label[i] = label[i].replace("\n", "")
     return label
-''' 
-if __name__ == '__main__':
-  name, label = readFile(preShrunkFilename)
-
-  twoMap     = readMap_old(twoMapName)
-  word, alph = readMap(threeMapName)
-
-  name, label = shrinkPhonemes(name, label)
-
-  label = remap_48_39(name, label, twoMap)
-  label = remap_39_alph(name, label, word, alph)
-
-  writeFile2(ShrunkFilename + '_remap', name, label)
-  '''
 
 if __name__ == '__main__':
     settingFile = sys.argv[1]

@@ -1,8 +1,6 @@
-import cPickle
-import gzip
-import os
 import sys
 import timeit
+import cPickle
 import numpy
 import theano
 import theano.tensor as T

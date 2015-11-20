@@ -5,65 +5,61 @@ import theano.tensor as T
 init = 1.
 bias = 0.1
 STD = 0.1
+
 def sigmoid(z, alpha):
     return ( 1/(1+T.exp((-z) )) ).astype(dtype=theano.config.floatX)
 
 def softmax(z):
-    maxZ = T.max(z, axis=1).astype(dtype = theano.config.floatX)
+    maxZ = T.max(z, axis=2).astype(dtype = theano.config.floatX)
     absMaxZ = T.abs_(maxZ)
-    absMaxZ = T.reshape(absMaxZ, (absMaxZ.shape[0], 1))
+    absMaxZ = T.reshape(absMaxZ, (absMaxZ.shape[0], absMaxZ.shape[1], 1))
     expZ = T.exp( z*10  / absMaxZ)
-    expZsum = T.sum(expZ, axis=1).astype(dtype = theano.config.floatX)
-    expZsum = T.reshape(expZsum, (expZsum.shape[0],1))
+    expZsum = T.sum(expZ, axis=2).astype(dtype = theano.config.floatX)
+    expZsum = T.reshape(expZsum, (expZsum.shape[0],expZsum.shape[1], 1))
     return expZ /expZsum
 
 class HiddenLayer(object):
-    def __init__(self, rng, input, inputNum, outputNum, truncate = -1, W_i1 = None, W_h1 = None, b_h1 = None, W_i2 = None, W_h2 = None, b_h2 = None):
+    def __init__(self, rng, input, inputNum, outputNum, batchSize, W_i1 = None, W_h1 = None, b_h1 = None, W_i2 = None, W_h2 = None, b_h2 = None, a_0 = None, a_0_reverse = None):
         
         # For in order input
         if W_i1 is None:
-            #W_i1Values = rng.normal( loc = 0.0, scale = STD, size = (inputNum, outputNum) ).astype( dtype=theano.config.floatX ) 
-            W_i1Values = rng.uniform( low = -1 * init, high = init, size = (inputNum, outputNum) ).astype( dtype=theano.config.floatX ) 
+#W_i1Values = rng.normal( loc = 0.0, scale = STD, size = (inputNum, outputNum) ).astype( dtype=theano.config.floatX ) 
+            W_i1Values = rng.uniform(  low = -1.0, high = 1.0, size = (inputNum, outputNum) ).astype( dtype=theano.config.floatX ) 
             W_i1 = theano.shared(value = W_i1Values, name = 'W', borrow = True)
         else:
             W_i1 = theano.shared( value = numpy.array(W_i1, dtype = theano.config.floatX), name='W', borrow = True )
 
         if W_h1 is None:
-            #W_h1Values = rng.normal( loc = 0.0, scale = STD, size = (outputNum, outputNum) ).astype( dtype=theano.config.floatX ) 
-            W_h1Values = rng.uniform( low = -1 * init, high = init, size = (outputNum, outputNum) ).astype( dtype=theano.config.floatX ) 
+            W_h1Values = rng.uniform( low = -1.0, high = 1.0, size = (outputNum, outputNum) ).astype( dtype=theano.config.floatX ) 
             W_h1 = theano.shared(value = W_h1Values, name = 'W', borrow = True)
         else:
             W_h1 = theano.shared( value = numpy.array(W_h1, dtype = theano.config.floatX), name='W', borrow = True )
 
         if b_h1 is None:
-            #b_h1Values = rng.normal( loc = 0.0, scale = 0.1, size = (outputNum, ) ).astype( dtype=theano.config.floatX ) 
-            b_h1Values = rng.uniform( low = -1 * bias, high = bias, size = (outputNum, ) ).astype( dtype=theano.config.floatX ) 
+            b_h1Values = rng.uniform( low = -1.0, high = 1.0, size = (outputNum, ) ).astype( dtype=theano.config.floatX ) 
             b_h1 = theano.shared(value = b_h1Values, name = 'b', borrow = True)
         else:
             b_h1 = theano.shared( value = numpy.array(b_h1, dtype = theano.config.floatX), name='b', borrow = True )
         
         # For in reverse input
         if W_i2 is None:
-            #W_i2Values = rng.normal( loc = 0.0, scale = STD, size = (inputNum, outputNum) ).astype( dtype=theano.config.floatX ) 
-            W_i2Values = rng.uniform( low = -1 * init, high = init, size = (inputNum, outputNum) ).astype( dtype=theano.config.floatX ) 
+            W_i2Values = rng.uniform(  low = -1.0, high = 1.0, size = (inputNum, outputNum) ).astype( dtype=theano.config.floatX ) 
             W_i2 = theano.shared(value = W_i2Values, name = 'W', borrow = True)
         else:
             W_i2 = theano.shared( value = numpy.array(W_i2, dtype = theano.config.floatX), name='W', borrow = True )
         
         if W_h2 is None:
-            #W_h2Values = rng.normal( loc = 0.0, scale = STD, size = (outputNum, outputNum) ).astype( dtype=theano.config.floatX ) 
-            W_h2Values = rng.uniform( low = -1 * init, high = init, size = (outputNum, outputNum) ).astype( dtype=theano.config.floatX ) 
+            W_h2Values = rng.uniform( low = -1.0, high = 1.0, size = (outputNum, outputNum) ).astype( dtype=theano.config.floatX ) 
             W_h2 = theano.shared(value = W_h2Values, name = 'W', borrow = True)
         else:
             W_h2 = theano.shared( value = numpy.array(W_h2, dtype = theano.config.floatX), name='W', borrow = True )
 
         if b_h2 is None:
-            #b_h2Values = rng.normal( loc = 0.0, scale = 0.1, size = (outputNum, ) ).astype( dtype=theano.config.floatX ) 
-            b_h2Values = rng.uniform( low = -1 * bias, high = bias, size = (outputNum, ) ).astype( dtype=theano.config.floatX ) 
+            b_h2Values = rng.uniform( low = -1.0, high = 1.0, size = (outputNum, ) ).astype( dtype=theano.config.floatX ) 
             b_h2 = theano.shared(value = b_h2Values, name = 'b', borrow = True)
         else:
             b_h2 = theano.shared( value = numpy.array(b_h2, dtype = theano.config.floatX), name='b', borrow = True )
-
+        
         self.W_i1 = W_i1
         self.W_h1 = W_h1
         self.b_h1 = b_h1
@@ -77,42 +73,47 @@ class HiddenLayer(object):
         """ self.alp = theano.shared(value=0.5)  """
 
         # Output_info for scan 
-        #a_0 = theano.shared(numpy.zeros(outputNum).astype(dtype = theano.config.floatX), borrow = True)
-        self.a_0 = theano.shared( rng.uniform(low = -1, high = 1, size = outputNum ).astype(dtype = theano.config.floatX), borrow = True )
-        self.a_0_reverse = theano.shared( rng.uniform(low = -1, high = 1, size = outputNum ).astype(dtype = theano.config.floatX), borrow = True )
+        if a_0 is None:
+            self.a_0 = theano.shared( value = rng.uniform(low = -1.0, high = 1.0, size = (batchSize, outputNum)).astype(dtype = theano.config.floatX), borrow = True)
+        else:
+            self.a_0 = theano.shared( value = a_0, borrow = True )
+
+        # Output_info for scan 
+        if a_0 is None:
+            self.a_0_reverse = theano.shared( value = rng.uniform(low = -1.0, high = 1.0, size = (batchSize, outputNum)).astype(dtype = theano.config.floatX), borrow = True)
+        else:
+            self.a_0_reverse = theano.shared( value = a_0_reverse, borrow = True )
 
         # In order
         def inOrderStep(z_t, a_tm1):
             return sigmoid( (z_t + T.dot(a_tm1, self.W_h1) + self.b_h1 ), 1.0)
 
         self.z_seq = sigmoid(T.dot(input[0], W_i1), 1.0)
-        a_seq, _ = theano.scan(inOrderStep, sequences = self.z_seq, outputs_info = self.a_0, truncate_gradient = truncate)
+        a_seq, _ = theano.scan(inOrderStep, sequences = self.z_seq, outputs_info = self.a_0, truncate_gradient = -1)
         self.output.append(a_seq)
+
         
         # In reverse  
         def inReverseStep(z_t, a_tm1):
             return sigmoid( (z_t + T.dot(a_tm1, self.W_h2) + self.b_h2 ), 1.0)
 
         z_seq_reverse = T.dot(input[1], W_i2)
-        a_seq_reverse, _ = theano.scan(inReverseStep, sequences = z_seq_reverse, outputs_info = self.a_0_reverse, truncate_gradient = truncate)
+        a_seq_reverse, _ = theano.scan(inReverseStep, sequences = z_seq_reverse, outputs_info = self.a_0_reverse, truncate_gradient = -1)
         self.output.append(a_seq_reverse)
         
         # Save parameters
-        self.params = [self.W_i1, self.W_h1, self.b_h1, self.W_i2, self.W_h2, self.b_h2]
-
+        self.params = [self.W_i1, self.W_h1, self.b_h1, self.W_i2, self.W_h2, self.b_h2, self.a_0, self.a_0_reverse]
         
 class OutputLayer(object):
     def __init__(self, input, inputNum, outputNum, rng, W_o = None, b_o = None):
         if W_o is None:
-            #W_values = rng.normal( loc = 0.0, scale = STD, size = (2 * inputNum, outputNum) ).astype( dtype=theano.config.floatX ) 
-            W_values = rng.uniform( low = -1 * init, high = init, size = (2 * inputNum, outputNum) ).astype( dtype=theano.config.floatX ) 
+            W_values = rng.uniform( low = -1.0, high = 1.0, size = (2 * inputNum, outputNum) ).astype( dtype=theano.config.floatX ) 
             W_o = theano.shared(value = W_values, name = 'W', borrow = True)
         else:
             W_o = theano.shared( value = numpy.array(W_o, dtype = theano.config.floatX), name='W', borrow=True )
 
         if b_o is None:
-            #b_values = rng.normal( loc = 0.0, scale = 0.1, size = (outputNum, ) ).astype( dtype=theano.config.floatX ) 
-            b_values = rng.uniform( low = -1 * bias, high = bias, size = (outputNum, ) ).astype( dtype=theano.config.floatX ) 
+            b_values = rng.uniform( low = -1.0, high = 1.0, size = (outputNum, ) ).astype( dtype=theano.config.floatX ) 
             b_o = theano.shared(value = b_values, name = 'b', borrow = True)
         else:
             b_o = theano.shared( value = numpy.array(b_o, dtype = theano.config.floatX), name='b', borrow=True )
@@ -121,34 +122,30 @@ class OutputLayer(object):
         self.b_o = b_o
         
         # get average of in order input and in reverse input
-        """averageInput = (input[0] + input[1][::-1]) / 2"""
-        # concatenate in order input and in reverse input
-        concatenateInput = T.concatenate( [input[0], input[1][::-1]], axis = 1)        
-
-        """y_seq = softmax( T.dot(averageInput, self.W_o) + b_o )"""
-        y_seq = softmax( T.dot(concatenateInput,self.W_o) + b_o ) 
+        concatenateInput = T.concatenate([input[0], input[1][::-1]], axis=2)
+        y_seq = softmax( T.dot(concatenateInput, self.W_o) + b_o )
 
         # Find probability, given x
         self.p_y_given_x = y_seq
         
         # Find largest y_i
-        self.y_pred = T.argmax(self.p_y_given_x, axis=1)
+        self.y_pred = T.argmax(self.p_y_given_x, axis=2)
 
         # Save parameters
         self.params = [self.W_o, self.b_o]
     
     # Cross entropy
-    def crossEntropy(self, y):
-        return -T.sum( T.log(self.p_y_given_x)[T.arange(y.shape[0]), y] )
+    def crossEntropy(self, y, m):
+        return -T.sum(T.stacklists([ T.mean( T.log(self.p_y_given_x)[i][T.arange(y[i].shape[0]), y[i]] * m[0] ) for i in xrange(200) ]))
 
-    def errors(self, y):
+    def errors(self, y, m):
         # Check y and y_pred dimension
         if y.ndim != self.y_pred.ndim:
             raise TypeError( 'y should have the same shape as self.y_pred', ('y', y.type, 'y_pred', self.y_pred.type) )
         # Check if y is the correct datatype
         if y.dtype.startswith('int'):
             # the T.neq operator returns a vector of 0s and 1s, where 1 represents a mistake in prediction
-            return T.mean(T.neq(self.y_pred, y))
+            return T.sum( T.neq(self.y_pred, y) * m ).__truediv__(T.sum(m))
         else:
             raise NotImplementedError()
 
@@ -162,19 +159,23 @@ class RNN(object):
         
         # First hidden layer
         self.hiddenLayerList.append(
-            HiddenLayer( input = bidirectionalInput, rng = P.rng, inputNum = P.inputDimNum, outputNum = P.rnnWidth, truncate = P.truncate,
+            HiddenLayer( input = bidirectionalInput, rng = P.rng, 
+                         inputNum = P.inputDimNum, outputNum = P.rnnWidth, batchSize = P.batchSize,
                          W_i1 = params[0], W_h1 = params[1], b_h1 = params[2], 
-                         W_i2 = params[3], W_h2 = params[4], b_h2 = params[5] ))
+                         W_i2 = params[3], W_h2 = params[4], b_h2 = params[5], 
+                         a_0 = params[6], a_0_reverse = params[7] ) )
         
         # Other hidden layers 
         for i in xrange (P.rnnDepth - 1):
             self.hiddenLayerList.append(
-                HiddenLayer( input = self.hiddenLayerList[i].output, rng = P.rng, inputNum = P.rnnWidth, outputNum = P.rnnWidth,
-                             W_i1 = params[6 * (i + 1)], W_h1 = params[6 * (i + 1) + 1], b_h1 = params[6 * (i + 1) + 2], 
-                             W_i2 = params[6 * (i + 1) + 3], W_h2 = params[6 * (i + 1) + 4], b_h2 = params[6 * (i + 1) + 5] ))
+                HiddenLayer( input = self.hiddenLayerList[i].output, rng = P.rng, 
+                             inputNum = P.rnnWidth, outputNum = P.rnnWidth, batchSize = P.batchSize,
+                             W_i1 = params[8 * (i + 1)], W_h1 = params[8 * (i + 1) + 1], b_h1 = params[8 * (i + 1) + 2], 
+                             W_i2 = params[8 * (i + 1) + 3], W_h2 = params[8 * (i + 1) + 4], b_h2 = params[8 * (i + 1) + 5],
+                             a_0 = params[8 * (i + 1) + 6], a_0_reverse = params[8 * (i + 1) + 7] ) )
         # Output Layer
         self.outputLayer = OutputLayer( input = self.hiddenLayerList[P.rnnDepth - 1].output, rng = P.rng, inputNum = P.rnnWidth, 
-                                        outputNum = P.outputPhoneNum, W_o = params[6 * P.rnnDepth], b_o = params[6 * P.rnnDepth+1] )
+                                        outputNum = P.outputPhoneNum, W_o = params[8 * P.rnnDepth], b_o = params[8 * P.rnnDepth+1] )
         
         # Weight decay
         # L1 norm ; one regularization option is to enforce L1 norm to be small

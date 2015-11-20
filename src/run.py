@@ -2,12 +2,11 @@ import os
 import sys
 import utils
 import rnn.rnn as rnn
+import postprocessing as pp
+import postprocessing_shrink.post_shrink as ps 
 import rnn.rnnUtils as rnnUtils
-import postprocessing as pp 
-import transformIntToLabel as tfit
 setting = sys.argv[1]
 USE_EXIST_MODEL = False
-Half_Done_Model_Name = sys.argv[2]
 
 def smooth(noSmoothedFilename, smoothedFilename):
     name, label = utils.readFile(noSmoothedFilename)
@@ -25,6 +24,7 @@ class Logger(object):
         self.log.write(message)  
 
 if __name__ == '__main__':
+
     P = rnnUtils.Parameters(setting)
     print P.outputFilename
     datasets  = utils.loadDataset(filename = P.datasetFilename, totalSetNum=3)
@@ -33,7 +33,7 @@ if __name__ == '__main__':
     sys.stdout = Logger(P.logFilename)
 
     # train RNN model
-    bestModelFilename = rnn.trainRNN(datasets, P, Half_Done_Model_Name)
+    bestModelFilename = rnn.trainRNN(datasets, P)
     
     # Get result
     rnn.getResult(bestModelFilename, datasets)
@@ -41,6 +41,18 @@ if __name__ == '__main__':
     # Smooth
     smooth(noSmoothedFilename = P.testResultFilename, smoothedFilename = P.testSmoothedResultFilename)
     smooth(noSmoothedFilename = P.validResultFilename, smoothedFilename = P.validSmoothedResultFilename)
-"""
-    tfit.transform(beforeTransformFilename = P.testSmoothedResultFilename, afterTransformFilename = '../result/final_result/' + P.outputFilename + '_smoothed.csv')
-"""
+  
+    # Postprocessing
+
+    smoothFinalResult = P.testSmoothedResultFilename
+    outputFilename = '../result/final_result.csv'
+    
+    new_name, new_label = ps.readFile_shrink(smoothFinalResult)
+    twoMap = ps.readMap_old('./postprocessing_shrink/48_39.map')
+    word, alph = ps.readMap('./postprocessing_shrink/48_idx_chr.map_b')
+    
+    new_name, new_label = ps.shrinkPhonemes(new_name, new_label)
+    label = ps.remap_48_39(new_name, new_label, twoMap)
+    label = ps.remap_39_alph(new_name, new_label, word, alph)
+
+    ps.writeFile2(outputFilename, new_name, new_label)

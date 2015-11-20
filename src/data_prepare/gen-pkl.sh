@@ -13,8 +13,12 @@ DNNResult=t21v30
 # It will be remove after the shell sript finish.
 
 dim=48
+<<<<<<< HEAD
 probDataPath=/home/roylu/datashare/DNNResult/$DNNResult/
 #probDataPath=/home/frankshyu/mlds_hw2/DNNResult/$DNNResult/
+=======
+probDataPath=/data/home/roylu/DNNResult/$DNNResult/
+>>>>>>> feature-batch
 outputFilename=../../pkl/$DNNResult.pkl
 
 echo '... coverting data to pkl'

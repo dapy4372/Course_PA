@@ -26,18 +26,24 @@ def findSentenceInterval(datasetName):
     for i in xrange(1, len(datasetName)):
         curName, _ = utils.namepick(datasetName[i])
         if(prevName != curName):
-            end = i+1
+            end = i + 1 # +1 Cuz of being idx 
             sentenceInterval.append( (start, end) )
             start = i
         prevName = curName
-    sentenceInterval.append( (start, len(datasetName)-1) )
+    sentenceInterval.append( (start, len(datasetName)+1) ) # +1 Cuz of being idx 
     return sentenceInterval
 
 def toBeSentence(subset, interval):
     sentencedSubset = []
     for i in xrange(len(interval)):
-        sentencedSubset.append( subset[ interval[i][0] : (interval[i][1]+1) ] )  # Cuz the index will be -1, plusing 1 to avoid.
+        sentencedSubset.append( subset[ interval[i][0] : (interval[i][1]) -1] )  # Cuz the index will be -1, plusing 1 to avoid.
     return sentencedSubset
+
+# make original data sentenced
+def makeDataSentence(dataset):
+    datasetX, datasetY, datasetName = dataset
+    sentenceInterval = findSentenceInterval(datasetName)
+    return toBeSentence(datasetX, sentenceInterval), toBeSentence(datasetY, sentenceInterval), toBeSentence(datasetName, sentenceInterval)
 
 def cutSentence(Set,size):
     finalSet=[]
@@ -56,24 +62,75 @@ def cutSentence(Set,size):
             finalSet[2].append(Set[2][i][j*size:len(Set[0][i])])
     return finalSet
 
-# make original data sentenced
-def makeDataSentence(dataset):
-    datasetX, datasetY, datasetName = dataset
-    sentenceInterval = findSentenceInterval(datasetName)
-    return toBeSentence(datasetX, sentenceInterval), toBeSentence(datasetY, sentenceInterval), toBeSentence(datasetName, sentenceInterval)
+def cutSentenceAndFill(Set,size):
+    finalSet = []
+    for i in range (4):
+        finalSet.append([])
+    for i in xrange(len(Set[0])):
+        sentLen = len(Set[0][i])
+        for j in xrange(sentLen/size):
+            finalSet[0].append(Set[0][i][j*size:(j+1)*size])
+            finalSet[1].append(Set[1][i][j*size:(j+1)*size])
+            finalSet[2].append(Set[2][i][j*size:(j+1)*size])
+            finalSet[3].append(np.ones(size))
+        if sentLen % size != 0:
+            j = sentLen / size
+            tmpSize = size - (sentLen % size)
+            tmpSet = [ Set[0][i][j*size:sentLen], Set[1][i][j*size:sentLen], Set[2][i][j*size:sentLen], np.ones(sentLen%size) ]
+            zs = np.zeros(48).astype(dtype = theano.config.floatX)
+            for k in xrange(tmpSize):
+                tmpSet[0] = np.vstack((tmpSet[0], zs))
+                tmpSet[1] = np.append(tmpSet[1], 0)
+                tmpSet[2] = np.append(tmpSet[2], "null")
+                tmpSet[3] = np.append(tmpSet[3], 0)
+            finalSet[0].append(tmpSet[0])
+            finalSet[1].append(tmpSet[1])
+            finalSet[2].append(tmpSet[2])
+            finalSet[3].append(tmpSet[3])
+    return finalSet
 
-# Not used in RNN
-"""
-def sharedDataXY(dataX, dataY, borrow=True):
-    sharedX = theano.shared(np.asarray(dataX, dtype=theano.config.floatX), borrow=True)
-    #TODO does't work in GPU for sharedY
-    sharedY = theano.shared(np.asarray(dataY, dtype=theano.config.floatX), borrow=True)
-    return [sharedX, sharedY, T.cast(sharedY,'int32')]
+def cutSentenceAndSlide(Set, size, move):
+    finalSet = []
+    for i in range (4):
+        finalSet.append([])
+    for i in xrange(len(Set[0])):
+        sentLen = len(Set[0][i])
+        j = 0
+        while (j+size) <= sentLen:
+            finalSet[0].append(Set[0][i][j:(j+size)])
+            finalSet[1].append(Set[1][i][j:(j+size)])
+            finalSet[2].append(Set[2][i][j:(j+size)])
+            finalSet[3].append(np.ones(size))
+            j += move
+        if j < sentLen:
+            tmpSize = j + size - sentLen
+            tmpSet = [ Set[0][i][j:sentLen], Set[1][i][j:sentLen], Set[2][i][j:sentLen], np.ones(sentLen-j) ]
+            zs = np.zeros(48).astype(dtype = theano.config.floatX)
+            for k in xrange(tmpSize):
+                tmpSet[0] = np.vstack((tmpSet[0], zs))
+                tmpSet[1] = np.append(tmpSet[1], 0)
+                tmpSet[2] = np.append(tmpSet[2], "null")
+                tmpSet[3] = np.append(tmpSet[3], 0)
+            finalSet[0].append(tmpSet[0])
+            finalSet[1].append(tmpSet[1])
+            finalSet[2].append(tmpSet[2])
+            finalSet[3].append(tmpSet[3])
+    return finalSet
 
-def clearSharedDataXY(sharedX, sharedY):
-    sharedX.set_value([[]])
-    sharedY.set_value([])
-"""
+def fillBatch(Set, batchSize):
+    sentAmount = len(Set[0])
+    sentLen = len(Set[0][0])
+    if sentAmount % batchSize != 0:
+        tmpSent = [[], [], [], []]
+        tmpSent[0] = np.zeros((sentLen,48)).astype(dtype = theano.config.floatX)
+        tmpSent[1] = tmpSent[3] = np.zeros(sentLen).astype(dtype = theano.config.floatX)
+        tmpSent[2] = ["null"] * sentLen
+        for i in xrange(batchSize - (sentAmount % batchSize)):
+            Set[0].append(tmpSent[0])
+            Set[1].append(tmpSent[1])
+            Set[2].append(tmpSent[2])
+            Set[3].append(tmpSent[3])
+    return Set
 
 # Used to bulid model
 def chooseUpdateMethod(grads, params, P):
@@ -125,34 +182,33 @@ def printNpArrayMeanStdMaxMin(name, npArray):
     print np.amin(npArray, axis=1)
 
 # Used in getResult
-def EvalandResult(Model, totalSentNum, setX, setY, modelType):
+def EvalnSaveResult(Model, totalBatchNum, oriSetX, oriSetY, oriSetN, oriSetM, filename, batchSize, modelType):
     result = []
     Losses = []
-    for i in xrange(totalSentNum):
-        thisLoss, thisResult = Model( np.array(setX[i]).astype(dtype='float32'), np.array(setY[i]).astype(dtype='int32') )
-        result.append(thisResult.tolist())
+    f = open(filename, 'w')
+    for i in xrange(totalBatchNum):
+        setX = oriSetX[i * batchSize : (i+1) * batchSize]
+        setY = oriSetY[i * batchSize : (i+1) * batchSize]
+        setN = oriSetN[i * batchSize : (i+1) * batchSize]
+        setM = oriSetM[i * batchSize : (i+1) * batchSize]
+        setX = np.array(setX).astype(dtype='float32')
+        setY = np.array(setY).astype(dtype='int32')
+        setM = np.array(setM).astype(dtype='int32')
+        setX = np.transpose(setX, (1, 0, 2))
+        setY = np.transpose(setY, (1, 0))
+        setM = np.transpose(setM, (1, 0))
+        setN = np.asarray(setN)
+
+        thisLoss, thisResult = Model( setX, setY, setM )
+        thisResult = np.array(thisResult)
+        thisResult = np.transpose(thisResult, (1,0))
+        for i in xrange(len(setN)):
+            for j in xrange(len(setN[i])):
+                if setN[i][j] != "null":
+                    f.write(setN[i][j] + ',' + str(thisResult[i][j]) + '\n')
         Losses.append(thisLoss)
     FER = np.mean(Losses)
     print ((modelType + ' FER,%f') % (FER * 100))
-    return result
-
-# Used in getResult
-# Write the result into a ".lab" file
-def writeResult(result, filename, setNameList):
-    f = open(filename, 'w')
-    for i in xrange(len(result)):
-        for j in xrange(len(result[i])):
-            f.write(setNameList[i][j] + ',' + str(result[i][j]) + '\n')
-    f.close()
-
-# Not used in RNN
-"""
-def makeBatch(totalSize, batchSize = 32):
-    numBatchSize = totalSize / batchSize
-    indexList = [[i * batchSize, (i + 1) * batchSize] for i in xrange(numBatchSize)]
-    indexList.append([numBatchSize * batchSize, totalSize])
-    return indexList
-"""
 
 # Used to get the current parameters of the model   
 def getParamsValue(nowParams):
@@ -166,33 +222,6 @@ def setParamsValue(preParams, nowParams):
     for i in xrange(len(preParams)):
         nowParams[i].set_value(preParams[i])
 
-# Used in RNN Architecture
-def Dropout(rng, input, inputNum, D = None, dropoutProb = 1):
-    D_values = np.asarray(
-              rng.binomial( size = (inputNum,), n = 1, p = dropoutProb ),
-              dtype=theano.config.floatX )
-    D = theano.shared( value=D_values, name='D', borrow=True )
-    return input * D
-
-# Not used in RNN
-"""
-def findCenterIdxList(dataY):
-    spliceIdxList = []
-    for i in xrange(len(dataY)):
-        if dataY[i] == -1:
-            continue
-        else:
-            spliceIdxList.append(i)
-    return spliceIdxList
-
-def splicedX(x, idx):
-    spliceWidth = 4
-    return T.concatenate([ (T.stacklists([x[j+i] for j in [idx] ])) for i in xrange(-spliceWidth, spliceWidth+1)])
-
-def splicedY(y, idx):    
-    return T.concatenate([y[i] for i in [idx]])
-"""
-    
 class Parameters(object):
     def __init__(self, filename):
        title, parameter           = utils.readSetting(filename)
@@ -202,8 +231,8 @@ class Parameters(object):
        self.rnnDepth              = int(parameter[title.index('depth')])
        self.cutSentSize           = int(parameter[title.index('cutSentSize')])
        self.clipRange             = float(parameter[title.index('clipRange')])
-       self.truncate              = int(parameter[title.index('truncate')])
-#       self.batchSizeForTrain     = int(parameter[title.index('batchSize')])
+       self.move                  = int(parameter[title.index('move')])
+       self.batchSize             = int(parameter[title.index('batchSize')])
        self.learningRate          = float(parameter[title.index('learningRate')])
        self.learningRateDecay     = float(parameter[title.index('learningRateDecay')])
        self.datasetFilename       = parameter[(title.index('dataSetFilename'))].strip('\n')
@@ -223,9 +252,9 @@ class Parameters(object):
                               + '_dd_'+ str(self.rnnDepth)
                               + '_cs_'+ str(self.cutSentSize)
                               + '_cr_'+ str(self.clipRange)
-                              + '_tc_'+ str(self.truncate)
                               + '_MaxE_' + str(self.maxEpoch)
-#+ '_b_' + str(self.batchSizeForTrain)
+                              + '_mv_'+ str(self.move)
+                              + '_b_' + str(self.batchSize)
                               + '_lr_'+ str(self.learningRate)
                               + '_lrd_' + str(self.learningRateDecay) )
        self.bestModelFilename   = '../model/' + self.outputFilename
