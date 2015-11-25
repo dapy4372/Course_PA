@@ -1,0 +1,14 @@
+host.c: In function ‘check_key’:
+host.c:266:34: error: invalid type argument of unary ‘*’ (have ‘int’)
+         return isvalue_in_array((*key), key_arr), price;
+                                  ^
+host.c:266:16: error: too few arguments to function ‘isvalue_in_array’
+         return isvalue_in_array((*key), key_arr), price;
+                ^
+host.c:33:5: note: declared here
+ int isvalue_in_array(const int *, const int *, const int *);
+     ^
+host.c: In function ‘isvalue_in_array’:
+host.c:276:16: warning: comparison between pointer and integer
+         if(val == key_arr[i])
+                ^
