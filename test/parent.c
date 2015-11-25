@@ -43,8 +43,7 @@ int main(int argc, char **argv)
         close( c_to_p[0]);
         close( c_to_p[1]);
         
-        char msg[] = "I'm a child";
-        if( execl("./child", "child", msg, (char*)0 ) )
+        if( execl("./child", "child", (char*)0 ) )
             perror( "execl error\n");
     }
     else{  // parent
@@ -55,8 +54,8 @@ int main(int argc, char **argv)
         fpw = fdopen(p_to_c[1], "w");
         fpr = fdopen(c_to_p[0], "r");
 
-        char buf[20];
-        fprintf(fpw, "12345");
+        char buf[] = "12345";
+        fprintf(fpw, "%s\n", buf);
         fflush(fpw);
     }
 
