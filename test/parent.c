@@ -10,6 +10,13 @@
 #define WRITE_END 1
 #define BUF_SIZE 128
 
+void err_sys(const char *);
+void err_quit(const char *);
+void TELL_PARENT(pid_t , int);
+void WAIT_PARENT(int);
+void TELL_CHILD(int);
+void WAIT_CHILD(int);
+
 int main(int argc, char **argv)
 {
     
@@ -31,23 +38,43 @@ int main(int argc, char **argv)
     if(c_to_p[0] > max_fd)
         max_fd = c_to_p[0];
 
-    if( (pid = fork()) < 0){
+    if( (pid = fork()) < 0)
         perror( "fork error\n");
-    }
-    else if (pid == 0){  //child
-        dup2( p_to_c[0], STDIN_FILENO );
-        dup2( c_to_p[1], STDOUT_FILENO );
+    else if (pid == 0) {    /* beginning of first child */
+        if( ( pid = fork() ) < 0 )
+            err_sys("fork error");
+        else if(pid == 0){    /* beginning of second child */
 
-        close( p_to_c[0]);
-        close( p_to_c[1]);
-        close( c_to_p[0]);
-        close( c_to_p[1]);
+            /* first child go first */
+            /* child to parent pipe cuz it doesn't dup2 */
+            WAIT_PARENT(c_to_p[0]);
+            
+            /* redirect stdin and stdout */
+            dup2( p_to_c[0], STDIN_FILENO );
+            dup2( c_to_p[1], STDOUT_FILENO );
+
+            /* close unnecessary fd */
+            close( p_to_c[0]);
+            close( p_to_c[1]);
+            close( c_to_p[0]);
+            close( c_to_p[1]);
+            
+            /* exec */
+            if( execl("./child", "child", (char*)0 ) )
+                err_sys( "execl error\n");
+
+        }     /* end of second child */ 
+        else {
+            TELL_CHILD(c_to_p[1]);
+            exit(0); 
+        }    /* end of first child */
         
-        if( execl("./child", "child", (char*)0 ) )
-            perror( "execl error\n");
-    }
-    else{  // parent
-    
+    }    /* end of fork child to avoid Zombie */
+    else{
+        if(waitpid(pid, NULL, 0) != pid)
+            err_sys("waitpid error");
+
+        /* close unnecessary fd */
         close(p_to_c[0]);
         close(c_to_p[1]);
 
@@ -83,4 +110,44 @@ int main(int argc, char **argv)
         else
             printf("not yet found");
     }
+}
+
+void err_sys(const char * x)
+{
+    perror(x);
+}
+
+void err_quit(const char * x)
+{
+    perror(x);
+    exit(1);
+}
+
+void TELL_PARENT(pid_t pid, int fd)
+{
+    if(write(fd, "c", 1) != 1)
+        err_sys("write error");
+}
+
+void WAIT_PARENT(int fd)
+{
+    char c;
+    if(read(fd, &c, 1) != 1)
+        err_sys("read error");
+    if(c != 'p')
+        err_quit("WAIT_PARENT: incorrect data");
+}
+
+void TELL_CHILD(int fd)
+{
+    if(write(fd, "p", 1) != 1)
+      err_sys("write error");
+}
+void WAIT_CHILD(int fd)
+{
+    char c;
+    if(read(fd, &c, 1) != 1)
+        err_sys("read error");
+    if(c != 'c')
+        err_quit("WAIT_CHILD: incorrect data");
 }

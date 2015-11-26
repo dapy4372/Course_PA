@@ -21,23 +21,27 @@ int main(int argc, char **argv)
     //fflush(stdout);
 
     /* give FIFO name */
-    char FIFO_name1[] = "host_parent";
-    char FIFO_name2[] = "host";
+    char FIFO_name1[] = "c_to_gradc";
+    char FIFO_name2[] = "A";
+    char FIFO_name3[] = "B";
 
     /* make FIFOs */
-    int idx = 0;
-    mkfifo(FIFO_name1, 0666);
-    mkfifo(FIFO_name2, 0666);
+    int i;
+    for(i = 0; i < 3; ++i){
+        mkfifo(FIFO_name1, 0666);
+        mkfifo(FIFO_name2, 0666);
+        mkfifo(FIFO_name3, 0666);
+    }
     
     /* get player id from bidding system */
     char buf[BUF_SIZE];
     fgets(buf, BUF_SIZE, stdin);
-    fprintf(stdout, "%s\n", buf);
-    fflush(stdout);
+    //fprintf(stdout, "%s\n", buf);
+    //fflush(stdout);
 
-    char msg[] = "sent from child";
-
-    fprintf(stdout, "%s\n", msg);
+    //char msg[] = "sent from child";
+    pid_t ppid = getppid();
+    fprintf(stdout, "%d\n", ppid);
     fflush(stdout);
 
     return 0;
