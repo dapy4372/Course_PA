@@ -19,26 +19,17 @@ void WAIT_CHILD(int);
 
 int main(int argc, char **argv)
 {
-    
+    //int host_num = 
+    //int player_num =
     int p_to_c[2], c_to_p[2];
-    int child_pid;
+    pid_t pid;
     FILE *fpr;
     FILE *fpw;
-    pid_t pid;
-
-    fd_set reply_set, ready_read_set;
-    FD_ZERO(&reply_set);
 
     if( pipe(p_to_c) < 0 || pipe(c_to_p) < 0 )
         perror("pipe error\n");
-    
-    int max_fd = 0;
 
-    FD_SET(c_to_p[0], &reply_set);
-    if(c_to_p[0] > max_fd)
-        max_fd = c_to_p[0];
-
-    if( (pid = fork()) < 0)
+    if( (pid = vfork()) < 0)
         perror( "fork error\n");
     else if (pid == 0) {    /* beginning of first child */
         if( ( pid = fork() ) < 0 )
@@ -61,18 +52,18 @@ int main(int argc, char **argv)
             
             /* exec */
             if( execl("./child", "child", (char*)0 ) )
-                err_sys( "execl error\n");
+                err_sys( "execl error");
 
         }     /* end of second child */ 
         else {
             TELL_CHILD(c_to_p[1]);
-            exit(0); 
+            _exit(0); 
         }    /* end of first child */
         
     }    /* end of fork child to avoid Zombie */
     else{
-        if(waitpid(pid, NULL, 0) != pid)
-            err_sys("waitpid error");
+        //if(waitpid(pid, NULL, 0) != pid)
+          //  err_sys("waitpid error");
 
         /* close unnecessary fd */
         close(p_to_c[0]);
@@ -80,35 +71,46 @@ int main(int argc, char **argv)
 
         fpw = fdopen(p_to_c[1], "w");
         fpr = fdopen(c_to_p[0], "r");
-
-        char buf[] = "12345";
-        fprintf(fpw, "%s\n", buf);
+         
+        int i[4]={0,1,2,3};
+        //printf("%s\n", buf);
+        fprintf(fpw, "%d %d %d %d\n", i[0], i[1], i[2], i[3]);
         fflush(fpw);
     }
 
+    fd_set reply_set, ready_read_set;
+    FD_ZERO(&reply_set);
+    FD_ZERO(&ready_read_set);
+
+    int max_fd = 0;
+    FD_SET(c_to_p[0], &reply_set);
+    if(c_to_p[0] > max_fd)
+        max_fd = c_to_p[0];
+
+    struct timeval timeout;
     while(1){
         
         //fprintf(stderr, "max_fd = %d, c_to_p[0] = %d", max_fd, c_to_p[0]);
         ready_read_set = reply_set;
+        
+        timeout.tv_sec = 5;
+        timeout.tv_usec = 0;
         int sl;
-        sl = select(max_fd+1, &ready_read_set, NULL, NULL, NULL);
+        sl = select(max_fd+1, &ready_read_set, NULL, NULL, &timeout);
         if( sl == -1 )
-            perror( "select error\n");
+            err_sys( "select error\n");
 
-        char buf[20];
-        int cur_ready_host;
-        int find = -1;
-        for(cur_ready_host = 0; cur_ready_host < 1 && !find; ++cur_ready_host)
-            if(FD_ISSET(c_to_p[0], &ready_read_set))
-                find = 1;
+        char buf2[BUF_SIZE];
+        int tmp[4];
+        //printf("find should be -1\n find = %d\n", find);
 
-        if(find){
-            fgets(buf, 20, fpr); 
-            printf("%s", buf);
-            break;
+        if(FD_ISSET(c_to_p[0], &ready_read_set)){
+            fscanf(fpr, "%d %d %d %d", &tmp[0], &tmp[1], &tmp[2], &tmp[3]); 
+            fprintf(stderr,"%d %d %d %d", tmp[0], tmp[1], tmp[2], tmp[3]);
+            //fflush(stdout);
         }
-        else
-            printf("not yet found");
+
+
     }
 }
 
