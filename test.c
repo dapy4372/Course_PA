@@ -20,6 +20,11 @@ enum{true=1, false=0};
 
 int main()
 {
+    char aa[2] = "A";
+    aa[0] = aa[0] + 1;
+    printf("%s\n", aa);
+    int c = aa[0]-'A';
+    printf("%d\n", c);
 
     printf("\n === \n%d %d \n === \n", a, b);
     printf("\n === \n%d %d \n === \n", true, false);

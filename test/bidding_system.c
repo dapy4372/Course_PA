@@ -40,9 +40,12 @@ void WAIT_CHILD(int);
 void init_comps(Comp *, int);
 void init_host(Host *);
 void init_players(Player *, int);
+void init_comps_status(int *, int max_comps);
+int get_undone_comp(int *, int);
+int get_comps_idx(int *, int, int);
 void update_score(Host *, Player *, int);
-void print_rank(Player *);
 int cmp(const void *, const void *);
+void rank(Player *, int);
 
 int main(int argc, char **argv)
 {
@@ -51,13 +54,16 @@ int main(int argc, char **argv)
 
     int host_num = atoi(argv[1]);
     int player_num = atoi(argv[2]);
-    fprintf(stderr, "h = %d, p = %d", host_num, player_num);
+
+    if(host_num > 12 || host_num < 0 || player_num > 20 || player_num < 0)
+        err_sys("ERROR! 0 < host_num < 12, 0 < player_num < 20\n");
+
     int bid_to_host[host_num][2], host_to_bid[host_num][2];
     FILE *fpr[host_num];
     FILE *fpw[host_num];
     
-    int max_comp = (player_num)*(player_num-1)*(player_num-2)*(player_num-3)/24;
-    Comp comps[max_comp];
+    int max_comps = (player_num)*(player_num-1)*(player_num-2)*(player_num-3)/24;
+    Comp comps[max_comps];
     init_comps(comps, player_num); 
     
 
@@ -70,7 +76,14 @@ int main(int argc, char **argv)
     init_players(players, player_num);
 
     int host_pid[host_num];
-    int cur_comp_idx = 0;
+    //int cur_comp_idx = 0;
+
+    /* -1 means the competition doesn't be done. */
+    /* -2 means the competition is done. */
+    /* >0 means the competition is processed by host now */
+    int comps_status[max_comps]; 
+    init_comps_status(comps_status, max_comps);
+
     for(i = 0; i < host_num; ++i){
         if( pipe(bid_to_host[i]) < 0 || pipe(host_to_bid[i]) < 0 )
             err_sys("pipe error\n");
@@ -99,10 +112,10 @@ int main(int argc, char **argv)
                 close(host_to_bid[i][0]);
                 close(host_to_bid[i][1]);
                 
-                char host_id[2];
+                char host_id[3];
                 snprintf(host_id, sizeof(host_id), "%d", i+1);
                 /* exec */
-                if( execl("./host", "host", host_id, (char*)0) )
+                if( execl("./host", "host", host_id, (char*)0) == -1)
                     err_sys("execl error");
 
             }     /* end of second child */ 
@@ -122,21 +135,27 @@ int main(int argc, char **argv)
 
             fpw[i] = fdopen(bid_to_host[i][1], "w");
             fpr[i] = fdopen(host_to_bid[i][0], "r");
-            
+            /*
             if(cur_comp_idx > max_comp){
-                fprintf(fpw[i], "-1 -1 -1 -1\n");
-                fflush(fpw[i]);
-                hosts[i].off = true;
+                if(!hosts[i].off)
+                    fprintf(fpw[i], "-1 -1 -1 -1\n");
+                    fflush(fpw[i]);
+                    hosts[i].off = true;
             }
-            else{
-                fprintf(fpw[i], "%d %d %d %d\n", comps[cur_comp_idx].a, comps[cur_comp_idx].b, comps[cur_comp_idx].c, comps[cur_comp_idx].d);
+            else{*/
+            //TODO using array to record
+            int undone_idx = get_undone_comp(comps_status, max_comps);
+            if(undone_idx != -1){
+                fprintf(fpw[i], "%d %d %d %d\n", comps[undone_idx].a, comps[undone_idx].b, comps[undone_idx].c, comps[undone_idx].d);
                 fflush(fpw[i]);
-                ++cur_comp_idx;
                 hosts[i].idle = false;
+                //++cur_comp_idx;
+                comps_status[undone_idx] = i;
             }
             host_pid[i] = pid;
         }
     }
+
     fd_set reply_set, ready_read_set;
     FD_ZERO(&reply_set);
     FD_ZERO(&ready_read_set);
@@ -187,30 +206,40 @@ int main(int argc, char **argv)
   */    
         char buf[BUF_SIZE];
         int id, rank;
-        bool flag = false;
+        bool error_return = false;
         for(i = 0; i < 4; ++i){
             fgets(buf, sizeof(buf), fpr[cur_reply_host_idx]);
             sscanf(buf, "%d %d\n", &id, &rank);
             if(id < 0 || rank < 0 || id > player_num || rank > player_num){
-                flag = true;
+                error_return = true;
+                fprintf(stderr, "id rank error");
                 break;
             }
             players[id-1].score += (4 - rank);
         }
-        if(flag)
-            continue;
-        ++finish_comp;
 
-        if(cur_comp_idx > max_comp){
-//            fprintf(fpw[cur_reply_host_idx], "-1 -1 -1 -1\n");
-//            fflush(fpw[cur_reply_host_idx]);
+        int comps_idx = get_comps_idx(comps_status, max_comps, cur_reply_host_idx);
+        if(!error_return){
+            ++finish_comp;
+            comps_status[comps_idx] = -2;
+        }
+        else{
+            comps_status[comps_idx] = -1;
+        }
+
+        if(finish_comp > max_comps){
+            fprintf(fpw[cur_reply_host_idx], "-1 -1 -1 -1\n");
+            fflush(fpw[cur_reply_host_idx]);
             hosts[cur_reply_host_idx].off = true;
         }
         else{
-            fprintf(fpw[cur_reply_host_idx], "%d %d %d %d\n", comps[cur_comp_idx].a, comps[cur_comp_idx].b, comps[cur_comp_idx].c, comps[cur_comp_idx].d);
-            fflush(fpw[cur_reply_host_idx]);
-            ++cur_comp_idx;
-     //       hosts[cur_reply_host_idx].idle = false;
+            int undone_idx = get_undone_comp(comps_status, max_comps); 
+            if(undone_idx != -1){
+                fprintf(fpw[cur_reply_host_idx], "%d %d %d %d\n", comps[undone_idx].a, comps[undone_idx].b, comps[undone_idx].c, comps[undone_idx].d);
+                fflush(fpw[cur_reply_host_idx]);
+                hosts[cur_reply_host_idx].idle = false;
+                comps_status[undone_idx] = cur_reply_host_idx;
+            }
         }
         
         //int id, rank;
@@ -249,7 +278,7 @@ int main(int argc, char **argv)
         }*/
         //fprintf(stderr,"%d %d %d %d", tmp[0], tmp[1], tmp[2], tmp[3]);
 
-        if(finish_comp == max_comp)
+        if(finish_comp == max_comps)
             done_looping_select = true;
     }
 
@@ -261,28 +290,12 @@ int main(int argc, char **argv)
             hosts[i].off = true;
         }
     }
-    Player tmp_players[player_num];
-    memcpy(tmp_players, players, player_num * sizeof(Player));
-    qsort(tmp_players, player_num, sizeof(Player), cmp);
+    
+    rank(players, player_num);
 
-    int prev_score, cur_rank = 1, same_score_num = 0;
+    /* print rank */
     for(i = 0; i < player_num; ++i){
-        Player *tmp = &players[(tmp_players[i].id)];
-        if(i == 0){
-            (*tmp).rank = 1;    
-        }
-        else if(i != 0 && (*tmp).score == prev_score ){
-            (*tmp).rank = cur_rank;
-            ++same_score_num;
-        }
-        else{
-            (*tmp).rank = cur_rank = (cur_rank + same_score_num + 1);
-            same_score_num = 0;
-        }
-        prev_score = (*tmp).score;
-    }
-    for(i = 0; i < player_num; ++i){
-        fprintf(stdout, "%d %d\n", players[i].id, players[i].rank);
+        fprintf(stdout, "%d %d\n", (players[i].id+1), players[i].rank);
         fflush(stdout);
     }
     exit(0);
@@ -336,7 +349,6 @@ void init_comps(Comp *comps, int player_num)
                         comps[idx] = tmp; 
                         ++idx;
                     }
-
 }
 
 void init_host(Host *host)
@@ -361,6 +373,32 @@ void init_players(Player *players, int player_num)
     }
 }
 
+void init_comps_status(int *comps_status, int max_comps)
+{
+    int i;
+    for(i = 0; i < max_comps; ++i)
+        comps_status[i] = -1;
+}
+
+int get_undone_comp(int *comps_status, int max_comps)
+{
+    int i;
+    for(i = 0; i < max_comps; ++i){
+        if(comps_status[i] == -1)
+            return i;
+    }
+    /* retrun -1 means all comps are processed or done */
+    return -1;
+}
+
+int get_comps_idx(int *comps_status, int max_comps, int cur_reply_host_idx)
+{
+    int i;
+    for(i = 0; i < max_comps; ++i)
+        if(comps_status[i] == cur_reply_host_idx)
+            return i;
+}
+
 void update_score(Host *host, Player *players, int player_num)
 {
     int i;
@@ -375,4 +413,28 @@ void update_score(Host *host, Player *players, int player_num)
 int cmp(const void *a, const void *b)
 {
     return (*(Player*)b).score - (*(Player*)a).score;
+}
+
+void rank(Player *players, int player_num)
+{
+    Player tmp_players[player_num];
+    memcpy(tmp_players, players, player_num * sizeof(Player));
+    qsort(tmp_players, player_num, sizeof(Player), cmp);
+
+    int i, prev_score, cur_rank = 1, same_score_num = 0;
+    for(i = 0; i < player_num; ++i){
+        Player *tmp = &players[(tmp_players[i].id)];
+        if(i == 0){
+            (*tmp).rank = 1;    
+        }
+        else if(i != 0 && (*tmp).score == prev_score ){
+            (*tmp).rank = cur_rank;
+            ++same_score_num;
+        }
+        else{
+            (*tmp).rank = cur_rank = (cur_rank + same_score_num + 1);
+            same_score_num = 0;
+        }
+        prev_score = (*tmp).score;
+    }
 }
