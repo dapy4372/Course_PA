@@ -25,7 +25,7 @@ def trainHMM(datasets):
 
     trainSetX, trainSetY, trainSetName = rnnUtils.makeDataSentence(datasets[0])
     validSetX, validSetY, validSetName = rnnUtils.makeDataSentence(datasets[1])
-    testSetX,  testSetY,  testSetName  = rnnUtils.makeDataSentence(datasets[1])
+    testSetX,  testSetY,  testSetName  = rnnUtils.makeDataSentence(datasets[2])
 
     '''
     if P.cutSentSize > 0:
@@ -90,14 +90,14 @@ def trainHMM(datasets):
     errorRate=1
     print "... start training"
     #validSet test
-    
+    '''
     totalElement=0
     accumulateWrong=0
     for i in xrange(len(validSetX)):
         B_matrix=numpy.array(validSetX[i],dtype=theano.config.floatX)
         B_matrix=B_matrix.T
         print B_matrix.shape
-        y_result=classifier.Viterbi(B_matrix,stateNum)
+        y_result=classifier.Viterbi(B_matrix)
         y_ref=validSetY[i]
         for j in xrange(len(y_result)):#calculate total wrong estimated element
             #print "(",y_result[j],",",y_ref[j],")"
@@ -107,12 +107,13 @@ def trainHMM(datasets):
         print "wrongNum:",accumulateWrong  
         print "totalNum:",totalElement  
     print "current_error:",#if new errorRate<current errorRate: renew parameter
-
+    
     if (float(accumulateWrong)/float(totalElement))<errorRate:
         errorRate=float(accumulateWrong)/float(totalElement)
         best_A=classifier.A
         best_pi=classifier.pi
         print errorRate
+    '''
     #for i in xrange(len(trainSetY)):
     '''
     print dataSet[0][0][40],dataSet[0][1][40]
@@ -144,6 +145,9 @@ def trainHMM(datasets):
             best_A=classifier.A
             best_pi=classifier.pi   
     '''
+    outputTest(classifier,testSetX,testSetName)
+
+   
 def myUpDates(parameters,grads):
     parameters_updates=[(p,update_function(p,g))for (p,g) in izip(parameters,grads)]
     return parameters_updates
@@ -190,6 +194,24 @@ def get_conditional_prob(Name,File):#search each sequence by name
             break
     return returnArray  
 '''           
+def outputTest(classifier,testSetX,testSetName):
+    
+    fout = open('HMM_test_output', 'w')
+    for i in xrange(len(testSetX)):
+        B_matrix=numpy.array(testSetX[i],dtype=theano.config.floatX)
+        B_matrix=B_matrix.T
+        print B_matrix.shape
+        y_result=classifier.Viterbi(B_matrix)
+    
+        for j in xrange(len(testSetX[i])):
+            fout.write(testSetName[i][j])
+        
+            fout.write(",")
+            fout.write(str(y_result[j]))
+            fout.write("\n")
+
+
+
 
 def dataCorrectRate(Set):
     correct=0

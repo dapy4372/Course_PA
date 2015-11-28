@@ -76,9 +76,10 @@ class HMM_core(object):
         return P
                 
         
-    def Viterbi(self,B,stateNum):#pi for initial distribution;A for transition matrix A(i,j):state i to state j; B for conditional probability:B[i,j]=P(jth Output|state i);O output observe sequence
-        A_row=stateNum
+    def Viterbi(self,B):#pi for initial distribution;A for transition matrix A(i,j):state i to state j; B for conditional probability:B[i,j]=P(jth Output|state i);O output observe sequence
+        
         B_row,B_col=B.shape
+        A_row=B_row
         #B_col=10
         path=[]
         value=[]#current&remember value
