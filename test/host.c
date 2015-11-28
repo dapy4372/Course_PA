@@ -19,7 +19,7 @@ enum{A, B, C, D};
 typedef struct
 {
     char idx[2];
-    int id, money, score, rank;
+    int id, money, score, rank, price;
     unsigned short key;
 }Player;
 
@@ -31,12 +31,14 @@ void TELL_CHILD(int);
 void WAIT_CHILD(int);
 
 void name(char [15], const char *, const char *);
-void init_players(Player *, int);
-int find_winner(int *, int);
+void init_players(Player *);
+bool check_price(Player *);
+int cmp_price(const void *, const void *);
+int find_winner(Player *, int);
 bool check_key(Player, int);
-void update_player(int, Player *);
+void update_player(Player *);
 void add_money(Player *);
-int cmp(const void *, const void *);
+int cmp_score(const void *, const void *);
 void rank(Player *, int);
 
 int main(int argc, char **argv)
@@ -90,12 +92,12 @@ int main(int argc, char **argv)
     }
     //FILE *fpw[PLAYER_NUM];
     Player players[PLAYER_NUM];
-    init_players(players, PLAYER_NUM);
+    init_players(players);
 
     /* get player information from bidding system */
     char buf[BUF_SIZE];
-    //fgets(buf, sizeof(buf), stdin);
-    //sscanf(buf, "%d %d %d %d\n", &players[A].id, &players[B].id, &players[C].id, &players[D].id);
+    fgets(buf, sizeof(buf), stdin);
+    sscanf(buf, "%d %d %d %d\n", &players[A].id, &players[B].id, &players[C].id, &players[D].id);
 
     /* generate random key */
     //for(i = 0; i < PLAYER_NUM; ++i){
@@ -167,22 +169,17 @@ int main(int argc, char **argv)
     int cur_round;
     for(cur_round = 0; cur_round < MAX_ROUND; ++cur_round){
         /* information of each round */
-        int prices[PLAYER_NUM] = {0, 0, 0, 0};
         bool done[PLAYER_NUM] = {false, false, false, false};
-        int ii=0;
 
         /* get reply msg from players */
         while( !(done[0] && done[1] && done[2] && done[3]) ){
 
             ready_read_set = reply_set;
-            ++ii;
             /* select for players reply */
-            //fprintf(stderr, "==%d==\n", ii);
             int sl;
             sl = select(fdr + 1, &ready_read_set, NULL, NULL, NULL);
             if(sl == -1)
                 err_sys("select error\n");
-            //fprintf(stderr, "==2==\n");
             
             /* read reply from players */
             if( FD_ISSET(fdr, &ready_read_set) ){
@@ -194,19 +191,29 @@ int main(int argc, char **argv)
                 //read(fdr, msg, sizeof(msg));
                 sscanf(msg, "%s %d %d\n", idx, &key, &price);
                 //fprintf(stderr, "%s\n", msg);                
-                fseek(fpr, 0, SEEK_SET);
+                //fseek(fpr, 0, SEEK_SET);
                 int_idx = idx[0] - 'A';
                 if( check_key(players[int_idx], key) ){
-                    prices[int_idx] = price;
+                    players[int_idx].price = price;
                     done[int_idx] = true;
                 }
             }
         }
-        //fprintf(stderr, "==2==\n");
+
+        /* check price is smaller than player's money */
+        if(check_price(players)){
+            --cur_round;
+            continue;
+        }
 
         /* find winner in this round */
-        int winner_idx = find_winner(prices, PLAYER_NUM);
-        update_player(prices[winner_idx], &players[winner_idx]);
+        int winner_idx;
+        if( (winner_idx = find_winner(players, PLAYER_NUM)) < 0 ){
+            --cur_round;
+            continue;
+        }
+
+        update_player(&players[winner_idx]);
 
         /* add money for next round */
         add_money(players);
@@ -352,40 +359,54 @@ void name(char name[15], const char *id, const char *idx)
     strcat(name, str2);
 }
 
-void init_players(Player *p, int player_num)
+void init_players(Player *p)
 {
     int i;
     unsigned short tmpkey = ( ( (unsigned short)rand() ) % 65532 );
-    for(i = 0; i < player_num; ++i){
+    for(i = 0; i < PLAYER_NUM; ++i){
         p[i].id = i;
         p[i].money = 1000;
         p[i].score = 0;
-        p[i].key = tmpkey;
+        p[i].key = 0;
         p[i].idx[0] = ('A' + i);
         p[i].idx[1] = '\0';
         p[i].rank = 0;
-        tmpkey += 1;
+        p[i].price = 0;
     }
 }
 
-int find_winner(int *prices, int player_num)
-{
-    int frt_id = 0;
-    int snd_id = -1;
-    int same = -1;
+bool check_price(Player *players)
+{   
     int i;
-    for(i = 1; i < player_num; ++i){
-         if(prices[i] == prices[frt_id])
-             same = 1;
-         if(prices[i] > prices[frt_id]){
-             snd_id = frt_id;
-             frt_id = i;
-         }
-         if(same)
-           return snd_id;
-         else
-           return frt_id;
+    for(i = 0; i < PLAYER_NUM; ++i){
+        if(players[i].price > players[i].money)
+            return true;
     }
+    return false;
+}
+
+int cmp_price(const void *a, const void *b)
+{
+    return (*(Player*)b).price - (*(Player*)a).price;
+}
+
+int find_winner(Player *players, int player_num)
+{
+    Player tmp_players[player_num];
+    memcpy(tmp_players, players, player_num * sizeof(Player));
+    qsort(tmp_players, player_num, sizeof(Player), cmp_price);
+
+    if(tmp_players[0].price > tmp_players[1].price)
+        return (tmp_players[0].idx[0] - 'A');
+    else if(tmp_players[0].price > tmp_players[2].price){
+        if(tmp_players[2].price > tmp_players[3].price)
+            return (tmp_players[2].idx[0] - 'A');
+        else
+            return -1;
+    }
+    else if(tmp_players[0].price > tmp_players[3].price)
+        return (tmp_players[3].idx[0] - 'A');
+    return -1;
 }
 
 bool check_key(Player p, int key)
@@ -396,10 +417,10 @@ bool check_key(Player p, int key)
         return false;
 }
 
-void update_player(int price, Player *player)
+void update_player(Player *player)
 {
     ++(*player).score;
-    (*player).money -= price; 
+    (*player).money -= (*player).price; 
 }
 
 void add_money(Player *p)
@@ -409,17 +430,17 @@ void add_money(Player *p)
         p[i].money += 1000;
 }
 
-int cmp(const void *a, const void *b)
+int cmp_score(const void *a, const void *b)
 {
     return (*(Player*)b).score - (*(Player*)a).score;
 }
 
 //TODO check rank 
-void rank(Player* players, int player_num)
+void rank(Player *players, int player_num)
 {
     Player tmp_players[player_num];
     memcpy(tmp_players, players, player_num * sizeof(Player));
-    qsort(tmp_players, player_num, sizeof(Player), cmp);
+    qsort(tmp_players, player_num, sizeof(Player), cmp_score);
 
     int i, prev_score, cur_rank = 1, same_score_num = 0;
     for(i = 0; i < player_num; ++i){
