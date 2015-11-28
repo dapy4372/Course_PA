@@ -51,26 +51,12 @@ int main(int argc, char **argv)
     //fprintf(stderr,"%c %c %c", host_id[0], host_id[1], host_id[2]);
     /* give FIFO name */
     char FIFO_name[5][15];
-    /*
-    char *tmp0 = "host1_A.FIFO";
-    char *tmp1 = "host1_B.FIFO";
-    char *tmp2 = "host1_C.FIFO";
-    char *tmp3 = "host1_D.FIFO";
-    char *tmp4 = "host1.FIFO";
-    strcpy(FIFO_name[0], tmp0);
-    strcpy(FIFO_name[1], tmp1);
-    strcpy(FIFO_name[2], tmp2);
-    strcpy(FIFO_name[3], tmp3);
-    strcpy(FIFO_name[4], tmp4);*/
-
     name(FIFO_name[0], host_id, "_A");
     name(FIFO_name[1], host_id, "_B");
     name(FIFO_name[2], host_id, "_C");
     name(FIFO_name[3], host_id, "_D");
     name(FIFO_name[4], host_id, NULL);
     //fprintf(stderr, "%d %d %d %d", A, B, C, D);
-    for(i=0;i<PLAYER_NUM+1;++i)
-        fprintf(stderr, "%s\n", FIFO_name[i]);
     /* make FIFOs */
     for(i = 0; i < PLAYER_NUM + 1; ++i){
         mkfifo(FIFO_name[i], 0777);
@@ -90,167 +76,174 @@ int main(int argc, char **argv)
         fpw[i] = fdopen(fdw[i], "r+");
         setbuf(fpw[i], NULL);
     }
-    //FILE *fpw[PLAYER_NUM];
-    Player players[PLAYER_NUM];
-    init_players(players);
 
-    /* get player information from bidding system */
-    char buf[BUF_SIZE];
-    fgets(buf, sizeof(buf), stdin);
-    sscanf(buf, "%d %d %d %d\n", &players[A].id, &players[B].id, &players[C].id, &players[D].id);
+    while(1){
+        Player players[PLAYER_NUM];
+        init_players(players);
 
-    /* generate random key */
-    //for(i = 0; i < PLAYER_NUM; ++i){
-        //players[i].key = ( ( (unsigned short)rand()) % 65536 );
-        //fprintf(stderr, "i = %d, key = %d, idx = %s, id = %d, rank = %d\n", i, players[i].key, players[i].idx, players[i].id, players[i].rank);
-    //}
+        /* get player information from bidding system */
+        char buf[BUF_SIZE];
+        fgets(buf, sizeof(buf), stdin);
 
-    for(i = 0; i < PLAYER_NUM; ++i){
-        /* pipe for avoiding race condition */
-        int fd[2];
-        if(pipe(fd) < 0)
-            err_sys("pipe error");
-       // fprintf(stderr, "fd[0] = %d, fd[1] = %d\n", fd[0], fd[1]);
-       
-        pid_t pid;
-        if( (pid = fork()) < 0 )
-            err_sys("fork error");
-        else if(pid == 0){
-            if( ( pid = fork() ) < 0)
+        /* all competition are done, host will be kill */
+        if(buf == "-1 -1 -1 -1\n")
+            break;
+
+        sscanf(buf, "%d %d %d %d\n", &players[A].id, &players[B].id, &players[C].id, &players[D].id);
+        /* generate random key */
+        //for(i = 0; i < PLAYER_NUM; ++i){
+            //players[i].key = ( ( (unsigned short)rand()) % 65536 );
+            //fprintf(stderr, "i = %d, key = %d, idx = %s, id = %d, rank = %d\n", i, players[i].key, players[i].idx, players[i].id, players[i].rank);
+        //}
+
+        for(i = 0; i < PLAYER_NUM; ++i){
+            /* pipe for avoiding race condition */
+            int fd[2];
+            if(pipe(fd) < 0)
+                err_sys("pipe error");
+           // fprintf(stderr, "fd[0] = %d, fd[1] = %d\n", fd[0], fd[1]);
+           
+            pid_t pid;
+            if( (pid = fork()) < 0 )
                 err_sys("fork error");
             else if(pid == 0){
-                /* first child go first */
-                WAIT_PARENT(fd[0]);
-                close(fd[0]);
-                close(fd[1]);
-                
-                char ch_key[6] = "";
-                snprintf(ch_key, sizeof(ch_key), "%d", players[i].key);
-                //fprintf(stderr, "%s\n", ch_key);
-                if( execl("./player", "player", host_id, players[i].idx, ch_key, (char*)0) == -1 ){
-                    fprintf(stderr, "execl error");
-                    err_sys("execl error");
+                if( ( pid = fork() ) < 0)
+                    err_sys("fork error");
+                else if(pid == 0){
+                    /* first child go first */
+                    WAIT_PARENT(fd[0]);
+                    close(fd[0]);
+                    close(fd[1]);
+                    
+                    char ch_key[6] = "";
+                    snprintf(ch_key, sizeof(ch_key), "%d", players[i].key);
+                    //fprintf(stderr, "%s\n", ch_key);
+                    if( execl("./player", "player", host_id, players[i].idx, ch_key, (char*)0) == -1 ){
+                        fprintf(stderr, "execl error");
+                        err_sys("execl error");
+                    }
+                }
+                else{
+                    TELL_CHILD(fd[1]);
+                    exit(0);
                 }
             }
             else{
-                TELL_CHILD(fd[1]);
-                exit(0);
+                if( waitpid(pid, NULL, 0) != pid)
+                    err_sys("waitpid error");
+
+                /* sent first message to player */
+                char msg_money[BUF_SIZE];
+                sprintf(msg_money, "%d %d %d %d\n", players[A].money, players[B].money, players[C].money, players[D].money);
+                //fprintf(stderr, "=== %s === \n", msg_money);
+                //write(fdw[i], msg_money, sizeof(msg_money));
+                //fsync(fdw[i]);
+                //fpw[i] = fdopen(fdw[i], "w");
+                fprintf(fpw[i], "%d %d %d %d\n", players[A].money, players[B].money, players[C].money, players[D].money);
+                fflush(fpw[i]);
+                fsync(fdw[i]);
+                //fprintf(stderr, "fdw[%d] = %d\n", i, fdw[i]);
             }
         }
-        else{
-            if( waitpid(pid, NULL, 0) != pid)
-                err_sys("waitpid error");
+       
+        //FILE *fpr = fdopen(fdr, "r");
 
-            /* sent first message to player */
-            char msg_money[BUF_SIZE];
-            sprintf(msg_money, "%d %d %d %d\n", players[A].money, players[B].money, players[C].money, players[D].money);
-            //fprintf(stderr, "=== %s === \n", msg_money);
-            //write(fdw[i], msg_money, sizeof(msg_money));
-            //fsync(fdw[i]);
-            //fpw[i] = fdopen(fdw[i], "w");
-            fprintf(fpw[i], "%d %d %d %d\n", players[A].money, players[B].money, players[C].money, players[D].money);
-            fflush(fpw[i]);
-            fsync(fdw[i]);
-            //fprintf(stderr, "fdw[%d] = %d\n", i, fdw[i]);
-        }
-    }
-    
-    for(i=0;i<PLAYER_NUM+1;++i)
-        fprintf(stderr, "%s\n", FIFO_name[i]);
-   
-    //FILE *fpr = fdopen(fdr, "r");
+        fd_set reply_set, ready_read_set;
+        FD_ZERO(&reply_set);
+        FD_ZERO(&ready_read_set);
+        FD_SET(fdr, &reply_set);
+        //fprintf(stderr, "fdr = %d\n", fdr);
+         
+        int cur_round;
+        for(cur_round = 0; cur_round < MAX_ROUND; ++cur_round){
+            /* information of each round */
+            bool done[PLAYER_NUM] = {false, false, false, false};
 
-    fd_set reply_set, ready_read_set;
-    FD_ZERO(&reply_set);
-    FD_ZERO(&ready_read_set);
-    FD_SET(fdr, &reply_set);
-    //fprintf(stderr, "fdr = %d\n", fdr);
-     
-    int cur_round;
-    for(cur_round = 0; cur_round < MAX_ROUND; ++cur_round){
-        /* information of each round */
-        bool done[PLAYER_NUM] = {false, false, false, false};
+            /* get reply msg from players */
+            while( !(done[0] && done[1] && done[2] && done[3]) ){
 
-        /* get reply msg from players */
-        while( !(done[0] && done[1] && done[2] && done[3]) ){
+                ready_read_set = reply_set;
+                /* select for players reply */
+                int sl;
+                sl = select(fdr + 1, &ready_read_set, NULL, NULL, NULL);
+                if(sl == -1)
+                    err_sys("select error\n");
+                
+                /* read reply from players */
+                if( FD_ISSET(fdr, &ready_read_set) ){
 
-            ready_read_set = reply_set;
-            /* select for players reply */
-            int sl;
-            sl = select(fdr + 1, &ready_read_set, NULL, NULL, NULL);
-            if(sl == -1)
-                err_sys("select error\n");
-            
-            /* read reply from players */
-            if( FD_ISSET(fdr, &ready_read_set) ){
-
-                char idx[2];
-                int key, price, int_idx; 
-                char msg[BUF_SIZE];
-                fgets(msg, sizeof(msg), fpr);
-                //read(fdr, msg, sizeof(msg));
-                sscanf(msg, "%s %d %d\n", idx, &key, &price);
-                //fprintf(stderr, "%s\n", msg);                
-                //fseek(fpr, 0, SEEK_SET);
-                int_idx = idx[0] - 'A';
-                if( check_key(players[int_idx], key) ){
-                    players[int_idx].price = price;
-                    done[int_idx] = true;
+                    char idx[2];
+                    int key, price, int_idx; 
+                    char msg[BUF_SIZE];
+                    fgets(msg, sizeof(msg), fpr);
+                    //read(fdr, msg, sizeof(msg));
+                    sscanf(msg, "%s %d %d\n", idx, &key, &price);
+                    //fprintf(stderr, "%s\n", msg);                
+                    //fseek(fpr, 0, SEEK_SET);
+                    int_idx = idx[0] - 'A';
+                    if( check_key(players[int_idx], key) ){
+                        players[int_idx].price = price;
+                        done[int_idx] = true;
+                    }
                 }
             }
-        }
 
-        /* check price is smaller than player's money */
-        if(check_price(players)){
-            --cur_round;
-            continue;
-        }
+            /* check price is smaller than player's money */
+            if(check_price(players)){
+                --cur_round;
+                continue;
+            }
 
-        /* find winner in this round */
-        int winner_idx;
-        if( (winner_idx = find_winner(players, PLAYER_NUM)) < 0 ){
-            --cur_round;
-            continue;
-        }
+            /* find winner in this round */
+            int winner_idx;
+            if( (winner_idx = find_winner(players, PLAYER_NUM)) < 0 ){
+                --cur_round;
+                continue;
+            }
 
-        update_player(&players[winner_idx]);
+            update_player(&players[winner_idx]);
 
-        /* add money for next round */
-        add_money(players);
-    
-        /* sent msg to players*/
+            /* add money for next round */
+            add_money(players);
+        
+            /* sent msg to players*/
+            for(i = 0; i < PLAYER_NUM; ++i){
+                char msg_money[BUF_SIZE];
+                sprintf(msg_money, "%d %d %d %d\n", players[A].money, players[B].money, players[C].money, players[D].money);
+
+                fseek(fpw[i], 0, SEEK_SET);
+                //fdw[i] = open(FIFO_name[i], O_RDWR);
+                //write(fdw[i], msg_money, sizeof(msg_money));
+                //fsync(fdw[i]);
+                fprintf(fpw[i], "%d %d %d %d\n", players[A].money, players[B].money, players[C].money, players[D].money);
+                fflush(fpw[i]);        
+                fsync(fdw[i]);
+            }
+
+        }    /* done for all rounds */
+     
+        rank(players, PLAYER_NUM);
+
         for(i = 0; i < PLAYER_NUM; ++i){
-            char msg_money[BUF_SIZE];
-            sprintf(msg_money, "%d %d %d %d\n", players[A].money, players[B].money, players[C].money, players[D].money);
-
-            fseek(fpw[i], 0, SEEK_SET);
-            //fdw[i] = open(FIFO_name[i], O_RDWR);
-            //write(fdw[i], msg_money, sizeof(msg_money));
-            //fsync(fdw[i]);
-            fprintf(fpw[i], "%d %d %d %d\n", players[A].money, players[B].money, players[C].money, players[D].money);
-            fflush(fpw[i]);        
-            fsync(fdw[i]);
+            fprintf(stdout, "%d %d\n", players[i].id, players[i].rank);
+            fflush(stdout);
+            //fprintf(stderr, "==2==\n");
         }
-
-    }    /* done for all rounds */
- 
-    rank(players, PLAYER_NUM);
+    }
 
     /* remove FIFO */
-    for(i = 0; i < PLAYER_NUM + 1; ++i){
-        fprintf(stderr, "##%s##\n", FIFO_name[i]);
+    for(i = 0; i < PLAYER_NUM; ++i){
         if( remove(FIFO_name[i]) != 0 ){
             err_sys("remove error\n");
         }
+        fclose(fpw[i]);
+        close(fdw[i]);
     }
-    
-    for(i = 0; i < PLAYER_NUM; ++i){
-        fprintf(stdout, "%d %d\n", players[i].id, players[i].rank);
-        fflush(stdout);
-        //fprintf(stderr, "==2==\n");
-    }
-
+    remove(FIFO_name[4]);
+    fclose(fpr);
+    close(fdr);
     exit(0);
+    //kill(getpid(), SIGKILL);
 }
     /* read from parent */
   /*  char msg1[BUF_SIZE];
