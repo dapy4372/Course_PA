@@ -25,8 +25,6 @@ def trainHMM(datasets):
 
     trainSetX, trainSetY, trainSetName = rnnUtils.makeDataSentence(datasets[0])
     validSetX, validSetY, validSetName = rnnUtils.makeDataSentence(datasets[1])
-    testSetX,  testSetY,  testSetName  = rnnUtils.makeDataSentence(datasets[1])
-
     '''
     if P.cutSentSize > 0:
         trainSetX, trainSetY, trainSetName = rnnUtils.cutSentence([trainSetX, trainSetY, trainSetName], P.cutSentSize)
@@ -41,10 +39,10 @@ def trainHMM(datasets):
     idx = T.iscalar('i')
     x = T.matrix()
     y = T.ivector()
-    stateNum=len(trainSetX[0][0])#total state/phone
+    stateNum=len(trainSetX[0][0])*3 #total state/phone plus in,remain,out state
     pi=numpy.zeros(stateNum,dtype=theano.config.floatX)
     for i in xrange(len(trainSetY)):#count how many start
-        pi[trainSetY[i][0]]+=1
+        pi[trainSetY[i][0]*3]+=1
     for i in xrange(stateNum):#initial prob for 1/totalStateNum
         pi[i]=pi[i]/float(len(trainSetY))
     print pi
@@ -53,9 +51,21 @@ def trainHMM(datasets):
     for i in xrange(stateNum):
         totalNum.append(0)
     for i in xrange(len(trainSetY)):#num of sentence
+        countRepeat=0
+        rememberState=trainSetY[i][0]*3
         for j in xrange(len(trainSetY[i])-1):#num of element transition in each sentence
-            A[trainSetY[i][j],trainSetY[i][j+1]]+=1#count how many times for each transitions
-            totalNum[int(trainSetY[i][j])]+=1 
+            current_seq=j+1
+            if trainSetY[i][current_seq]*3==rememberState:
+                countRepeat+=1
+            else:
+                fillA(A,countRepeat,int(rememberState),int(trainSetY[i][current_seq]*3),totalNum,False)
+                countRepeat=0
+                rememberState=trainSetY[i][current_seq]*3
+        if countRepeat!=0:
+             fillA(A,countRepeat,int(rememberState),int(trainSetY[i][current_seq]),totalNum,True)
+            #A[trainSetY[i][j],trainSetY[i][j+1]]+=1#count how many times for each transitions
+            #totalNum[int(trainSetY[i][j])]+=1
+    print totalNum 
     for i in xrange(stateNum):# for each element/totalNum of observed outputs
         for j in xrange(stateNum):
             A[j,i]=float(A[j,i])/float(totalNum[j]) 
@@ -96,6 +106,8 @@ def trainHMM(datasets):
     for i in xrange(len(validSetX)):
         B_matrix=numpy.array(validSetX[i],dtype=theano.config.floatX)
         B_matrix=B_matrix.T
+        print B_matrix.shape
+        B_matrix=implement_B(B_matrix)#state*3->B(i,j)=k-->B(i,j),B(i+1,j),B(i+2,j)=k
         print B_matrix.shape
         y_result=classifier.Viterbi(B_matrix,stateNum)
         y_ref=validSetY[i]
@@ -158,7 +170,22 @@ def update_function(p,g):#algorithm:  http://www.robots.ox.ac.uk:5000/~vgg/rg/pa
         for j in xrange(row):
             updates[j,i]=float(update[j,i])/float(denominator)
     return updates
-
+def fillA(A,countRepeat,rememberState,newState,totalNum,end):
+    A[rememberState,rememberState+1]+=1
+    A[rememberState+1,rememberState+1]+=countRepeat-2
+    A[rememberState+1,rememberState+2]+=1
+    if end==False:
+        A[rememberState+2,newState]+=1
+        totalNum[rememberState+2]+=1
+    totalNum[rememberState]+=1
+    totalNum[rememberState+1]+=countRepeat-1
+def implement_B(B):
+    B_row,B_col=B.shape
+    result=numpy.zeros((B_row*3,B_col),dtype=theano.config.floatX)    
+    for i in xrange(B_col):
+        for j in xrange(B_row*3):
+            result[j,i]=B[j/3,i]
+    return result
 '''
 def loadProb(fileName):
     print "... loading conditional probability"
