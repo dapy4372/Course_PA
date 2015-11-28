@@ -10,9 +10,27 @@ def parse_parameters(sparm):
 def parse_parameters_classify(attribute, value):
     print 'Got a custom command line argument %s %s' % (attribute, value)
 
+def loadDataset(filename, totalSetNum):
+    import sys
+    import numpy
+    import cPickle
+    # print '... loading data'
+    # Load the dataset
+    f = open(filename, 'rb')
+    datasets = cPickle.load(f)
+    f.close()
+    return datasets
+
 def read_examples(filename, sparm):
-    examples =
-    return examples
+    datasets = loadDataset(filename = filename, totalSetNum = 3)
+    trainSet = datasets[0]
+    print len(trainSet[2])
+    ret = [] # initializing the return item, an empty list
+    for idx in xrange(len(trainSet[2])):
+        dummy_tuple = (trainSet[0][idx] , trainSet[1][idx])
+        ret.append(dummy_tuple)
+    return ret
+
 
 def init_model(sample, sm, sparm):
     sm.num_features = FEATURE_SIZE
