@@ -51,10 +51,10 @@ int main(int argc, char **argv)
 
     /* give FIFO name */
     char FIFO_name[5][15];
-    name(FIFO_name[0], host_id, "_A");
-    name(FIFO_name[1], host_id, "_B");
-    name(FIFO_name[2], host_id, "_C");
-    name(FIFO_name[3], host_id, "_D");
+    name(FIFO_name[A], host_id, "_A");
+    name(FIFO_name[B], host_id, "_B");
+    name(FIFO_name[C], host_id, "_C");
+    name(FIFO_name[D], host_id, "_D");
     name(FIFO_name[4], host_id, NULL);
 
     int fdw[PLAYER_NUM];
@@ -243,6 +243,10 @@ int main(int argc, char **argv)
         }
         fclose(fpr);
         close(fdr);
+        int ii;
+       // for(ii = 0; ii < PLAYER_NUM; ++ii)
+       //     fprintf(stderr, "id = %d, score = %d, rank = %d\n", players[ii].id, players[ii].score, players[ii].rank);
+       // fprintf(stderr, "==========\n");
     }
     return 0;
 }
@@ -398,8 +402,12 @@ int find_winner(Player *players, int player_num)
         else
             return -1;
     }
-    else if(tmp_players[0].price > tmp_players[3].price)
-        return (tmp_players[3].idx[0] - 'A');
+    else if(tmp_players[0].price > tmp_players[3].price){
+        if(tmp_players[3].price == 0)
+            return -1;
+        else
+            return (tmp_players[3].idx[0] - 'A');
+    }
     return -1;
 }
 
@@ -435,21 +443,26 @@ void rank(Player *players, int player_num)
     Player tmp_players[player_num];
     memcpy(tmp_players, players, player_num * sizeof(Player));
     qsort(tmp_players, player_num, sizeof(Player), cmp_score);
-
+    int ii;
+   // for(ii = 0; ii < PLAYER_NUM; ++ii)
+     //   fprintf(stderr, "tmp id = %d, score = %d, rank = %d\n", tmp_players[ii].id, tmp_players[ii].score, tmp_players[ii].rank);
+    
     int i, prev_score, cur_rank = 1, same_score_num = 0;
     for(i = 0; i < player_num; ++i){
-        Player *tmp = &players[(tmp_players[i].id)];
+        Player *tmp = &players[(tmp_players[i].idx[0]-'A')];
         if(i == 0){
-            (*tmp).rank = 1;    
+            (*tmp).rank = cur_rank;    
         }
         else if(i != 0 && (*tmp).score == prev_score ){
             (*tmp).rank = cur_rank;
             ++same_score_num;
         }
         else{
-            (*tmp).rank = cur_rank = (cur_rank + same_score_num + 1);
+            (*tmp).rank = ( cur_rank = (cur_rank + same_score_num + 1) );
             same_score_num = 0;
         }
         prev_score = (*tmp).score;
     }
+    //for(ii = 0; ii < PLAYER_NUM; ++ii)
+      //  fprintf(stderr, "in rank id = %d, score = %d, rank = %d\n", players[ii].id, players[ii].score, players[ii].rank);
 }
