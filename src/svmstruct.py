@@ -27,7 +27,10 @@ def read_examples(filename, sparm):
     print len(trainSet[2])
     ret = [] # initializing the return item, an empty list
     for idx in xrange(len(trainSet[2])):
-        dummy_tuple = (trainSet[0][idx] , trainSet[1][idx])
+        xtuple = []
+        for i in xrange(48):
+            xtuple.append((i, trainSet[0][idx][i]))
+        dummy_tuple = (xtuple , trainSet[1][idx])
         ret.append(dummy_tuple)
     return ret
 
