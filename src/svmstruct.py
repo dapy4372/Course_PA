@@ -1,6 +1,7 @@
 import svmapi
 
-FEATURE_SIZE = 69
+
+FEATURE_DIM = 48
 LABEL_NUM = 48
 LOSS_FACTOR = 1
 
@@ -23,22 +24,18 @@ def loadDataset(filename, totalSetNum):
 
 def read_examples(filename, sparm):
     datasets = loadDataset(filename = filename, totalSetNum = 3)
-    trainSet = datasets[0]
-    print len(trainSet[2])
-    ret = [] # initializing the return item, an empty list
-    for idx in xrange(len(trainSet[2])):
-        xtuple = []
-        for i in xrange(48):
-            xtuple.append((i, trainSet[0][idx][i]))
-        dummy_tuple = (xtuple , trainSet[1][idx])
-        ret.append(dummy_tuple)
+    trainX, trainY, trainN = makeDataSentence(datasets[0])
+    ret = []
+    sentNum = len(trainY)
+    for sentIdx in xrange(sentNum):
+        ret.append((trainX[sentIdx], trainY[sentIdx]))
     return ret
 
 
 def init_model(sample, sm, sparm):
-    sm.num_features = FEATURE_SIZE
+    sm.num_features = FEATURE_DIM
     sm.num_classes = LABEL_NUM
-    sm.size_psi = FEATURE_SIZE * LABEL_NUM
+    sm.size_psi = FEATURE_DIM * LABEL_NUM + LABEL_NUM * LABEL_NUM
 
 def init_constraints(sample, sm, sparm):
     if True:
@@ -65,12 +62,25 @@ def classify_example(x, sm, sparm):
     return max(scores)[1]
 
 def find_most_violated_constraint(x, y, sm, sparm):
+    SE
     scores = [(classification_score(x, c, sm, sparm) + loss(y, c, sparm), c) for c in xrange(sm.num_classes)]
     return max(scores)[1]
 
 def psi(x, y, sm, sparm):
-    offset = sm.num_features * y
-    pvec = [(k + offset, v) for k, v in x]
+    sentLen = len(x)
+    observationLen = FEATURE_DIM * LABEL_NUM
+    pvec = [0] * ( observationLen + LABEL_NUM * LABEL_NUM )
+    prevY = -1
+    for idx in xrange(sentLen):
+        offset = FEATURE_DIM * y[idx]
+        # observation vector
+        for i in xrange(FEATURE_DIM):
+            pvec[i + offset] += x[idx][i]
+        # transition vector
+        if(idx != 0):
+            pvec[observationLen + prevY * LABEL_NUM + y[idx]] += 1  
+        prevY = y[idx]
+    
     pvec = svmapi.Sparse(pvec)
     return pvec
 

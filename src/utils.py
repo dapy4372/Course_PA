@@ -94,3 +94,24 @@ def findSpeakerInterval(speakerNameList):
     speakerInterval.append((start, speakerNameListLen, prevName))
     return speakerInterval
 
+# SpeakerNameList should be a total setName. (e.g. trainSetName)
+# It will return the idex of each sentence interval. ( e.g. (200, 456) )
+def findSentenceInterval(datasetName):
+    prevName, _ = utils.namepick(datasetName[0])
+    start = 0
+    end = 0
+    sentenceInterval = []
+    for i in xrange(1, len(datasetName)):
+        curName, _ = utils.namepick(datasetName[i])
+        if(prevName != curName):
+            end = i + 1 # +1 Cuz of being idx 
+            sentenceInterval.append( (start, end) )
+            start = i
+        prevName = curName
+    sentenceInterval.append( (start, len(datasetName)+1) ) # +1 Cuz of being idx 
+    return sentenceInterval
+
+# make original data sentenced
+def makeDataSentence(dataset):
+    datasetX, datasetY, datasetName = dataset
+    sentenceInterval = findSentenceInterval(datasetName)
