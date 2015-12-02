@@ -1,5 +1,6 @@
 import svmapi
-
+import numpy
+import utils
 
 FEATURE_DIM = 48
 LABEL_NUM = 48
@@ -24,13 +25,12 @@ def loadDataset(filename, totalSetNum):
 
 def read_examples(filename, sparm):
     datasets = loadDataset(filename = filename, totalSetNum = 3)
-    trainX, trainY, trainN = makeDataSentence(datasets[0])
+    trainX, trainY, trainN = utils.makeDataSentence(datasets[0])
     ret = []
     sentNum = len(trainY)
     for sentIdx in xrange(sentNum):
-        ret.append((trainX[sentIdx], trainY[sentIdx]))
+        ret.append((trainX[sentIdx], trainY[sentIdx].astype(dtype='int32')))
     return ret
-
 
 def init_model(sample, sm, sparm):
     sm.num_features = FEATURE_DIM
@@ -58,13 +58,81 @@ def classification_score(x, y, sm, sparm):
     return sum([ sm.w[k] * v for k, v in psi(x, y, sm, sparm) ])
 
 def classify_example(x, sm, sparm):
-    scores = [(classification_score(x, c, sm, sparm), c) for c in xrange(sm.num_classes)]
-    return max(scores)[1]
+    yLen = len(x)
+    score = [ [0] * LABEL_NUM ] * yLen
+    backTrack = [ [0] * LABEL_NUM ] * yLen
+    w_o_offset = LABEL_NUM * FEATURE_DIM
+    for frameIdx in xrange(yLen):
+        for labelIdx in xrange(LABEL_NUM):
+            if(frameIdx == 0):
+                score[frameIdx][labelIdx] = dot(sm.w[labelIdx * FEATURE_DIM:(labelIdx + 1) * FEATURE_DIM], x[frameIdx])
+                backTrack[frameIdx][labelIdx] = labelIdx
+            else:
+                bestLabel = 0
+                bestScore = 0
+                for i in xrange(LABEL_NUM):
+                    if( (sm.w[w_o_offset + i * LABEL_NUM + labelIdx] + score[frameIdx-1][i]) > bestScore):
+                        bestScore = ( sm.w[w_o_offset + i * LABEL_NUM + labelIdx] + score[frameIdx-1][i] )
+                        bestLabel = i
+                score[frameIdx][labelIdx] = dot(sm.w[labelIdx * FEATURE_DIM:(labelIdx + 1) * FEATURE_DIM], x[frameIdx]) + bestScore
+                backTrack[frameIdx][labelIdx] = bestLabel
+    score_max = score[yLen - 1][0]
+    label_max = 0
+    for i in xrange(LABEL_NUM):
+        if(score[yLen - 1][i] > score_max):
+            score_max = score[yLen - 1][i]
+            label_max = i
+    ret = [label_max]
+    prev = backTrack[yLen-1][label_max]
+    for i in xrange(yLen-2, -1, -1):
+        ret.insert(0, prev)
+        prev = backTrack[i][prev]
+    return ret
+
+def dot(v1, v2):
+    v1Len = len(v1)
+    v2Len = len(v2)
+    assert(v1Len == v2Len)
+    ret = 0
+    for i in xrange(v1Len):
+        ret += v1[i] * v2[i]
+    return ret
 
 def find_most_violated_constraint(x, y, sm, sparm):
-    SE
-    scores = [(classification_score(x, c, sm, sparm) + loss(y, c, sparm), c) for c in xrange(sm.num_classes)]
-    return max(scores)[1]
+    yLen = len(y)
+    score = [ [LOSS_FACTOR] * LABEL_NUM ] * yLen
+    backTrack = [ [0] * LABEL_NUM ] * yLen
+    w_o_offset = LABEL_NUM * FEATURE_DIM
+    for frameIdx in xrange(yLen):
+        for labelIdx in xrange(LABEL_NUM):
+            if(frameIdx == 0):
+                score[frameIdx][labelIdx] = dot(sm.w[labelIdx * FEATURE_DIM:(labelIdx + 1) * FEATURE_DIM], x[frameIdx])
+                if(labelIdx == y[frameIdx]):
+                    score[frameIdx][labelIdx] += LOSS_FACTOR 
+                backTrack[frameIdx][labelIdx] = labelIdx
+            else:
+                bestLabel = 0
+                bestScore = 0
+                for i in xrange(LABEL_NUM):
+                    if( (sm.w[w_o_offset + i * LABEL_NUM + labelIdx] + score[frameIdx-1][i]) > bestScore):
+                        bestScore = ( sm.w[w_o_offset + i * LABEL_NUM + labelIdx] + score[frameIdx-1][i] )
+                        bestLabel = i
+                score[frameIdx][labelIdx] = dot(sm.w[labelIdx * FEATURE_DIM:(labelIdx + 1) * FEATURE_DIM], x[frameIdx]) + bestScore
+                if(labelIdx == y[frameIdx]):
+                    score[frameIdx][labelIdx] += LOSS_FACTOR
+                backTrack[frameIdx][labelIdx] = bestLabel
+    score_max = score[yLen - 1][0]
+    label_max = 0
+    for i in xrange(LABEL_NUM):
+        if(score[yLen - 1][i] > score_max):
+            score_max = score[yLen-1][i]
+            label_max = i
+    ret = [label_max]
+    prev = backTrack[yLen-1][label_max]
+    for i in xrange(yLen-2, -1, -1):
+        ret.insert(0, prev)
+        prev = backTrack[i][prev]
+    return ret
 
 def psi(x, y, sm, sparm):
     sentLen = len(x)
@@ -85,7 +153,10 @@ def psi(x, y, sm, sparm):
     return pvec
 
 def loss(y, ybar, sparm):
-    return LOSS_FACTOR * int(y != ybar)
+    ret = 0
+    for i in xrange(len(y)):
+        ret += LOSS_FACTOR * int(y[i] != ybar[i])
+    return ret
 
 def print_iteration_stats(ceps, cached_constraint, sample, sm, cset, alpha, sparm):
     print
