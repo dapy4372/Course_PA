@@ -2,9 +2,8 @@ import svmapi
 import numpy
 import utils
 
-FEATURE_DIM = 48
-LABEL_NUM = 48
-LOSS_FACTOR = 1
+FEATURE_DIM = 2
+LABEL_NUM = 2
 
 def parse_parameters(sparm):
     sparm.arbitrary_parameter = 'I am an arbitrary parameter!'
@@ -24,12 +23,18 @@ def loadDataset(filename, totalSetNum):
     return datasets
 
 def read_examples(filename, sparm):
-    datasets = loadDataset(filename = filename, totalSetNum = 3)
-    trainX, trainY, trainN = utils.makeDataSentence(datasets[0])
+#datasets = loadDataset(filename = filename, totalSetNum = 3)
+#trainX, trainY, trainN = utils.makeDataSentence(datasets[0])
+    trainX = [ [[0.1, 0.1], [0.1, 0.1], [0.1, 0.1], [0.9, 0.9], [0.9, 0.9], [0.9, 0.9]], 
+                    [[0.1, 0.1], [0.1, 0.1], [0.1, 0.1], [0.9, 0.9], [0.9, 0.9], [0.9, 0.9]] ]
+    trainY = [ [0, 0, 0 , 1, 1, 1], [0, 0, 0, 1, 1, 1]]
+#trainY = trainY[0:100]
+#trainX = trainX[0:100]
     ret = []
     sentNum = len(trainY)
     for sentIdx in xrange(sentNum):
-        ret.append((trainX[sentIdx], trainY[sentIdx].astype(dtype='int32')))
+#       ret.append((trainX[sentIdx], trainY[sentIdx].astype(dtype='int32')))
+        ret.append((trainX[sentIdx], trainY[sentIdx]))
     return ret
 
 def init_model(sample, sm, sparm):
@@ -54,8 +59,6 @@ def find_most_violated_constraint_slack(x, y, sm, sparm):
 def find_most_violated_constraint_margin(x, y, sm, sparm):
     return find_most_violated_constraint(x, y, sm, sparm)
 
-def classification_score(x, y, sm, sparm):
-    return sum([ sm.w[k] * v for k, v in psi(x, y, sm, sparm) ])
 
 def classify_example(x, sm, sparm):
     yLen = len(x)
@@ -100,15 +103,18 @@ def dot(v1, v2):
 
 def find_most_violated_constraint(x, y, sm, sparm):
     yLen = len(y)
-    score = [ [LOSS_FACTOR] * LABEL_NUM ] * yLen
+#loss_fraction = 1/yLen
+    score = [ [0] * LABEL_NUM ] * yLen
     backTrack = [ [0] * LABEL_NUM ] * yLen
     w_o_offset = LABEL_NUM * FEATURE_DIM
     for frameIdx in xrange(yLen):
         for labelIdx in xrange(LABEL_NUM):
             if(frameIdx == 0):
                 score[frameIdx][labelIdx] = dot(sm.w[labelIdx * FEATURE_DIM:(labelIdx + 1) * FEATURE_DIM], x[frameIdx])
-                if(labelIdx == y[frameIdx]):
-                    score[frameIdx][labelIdx] += LOSS_FACTOR 
+                if(labelIdx != y[frameIdx]):
+#score[frameIdx][labelIdx] += loss_fraction
+                    score[frameIdx][labelIdx] += 1
+                  
                 backTrack[frameIdx][labelIdx] = labelIdx
             else:
                 bestLabel = 0
@@ -118,8 +124,9 @@ def find_most_violated_constraint(x, y, sm, sparm):
                         bestScore = ( sm.w[w_o_offset + i * LABEL_NUM + labelIdx] + score[frameIdx-1][i] )
                         bestLabel = i
                 score[frameIdx][labelIdx] = dot(sm.w[labelIdx * FEATURE_DIM:(labelIdx + 1) * FEATURE_DIM], x[frameIdx]) + bestScore
-                if(labelIdx == y[frameIdx]):
-                    score[frameIdx][labelIdx] += LOSS_FACTOR
+                if(labelIdx != y[frameIdx]):
+#score[frameIdx][labelIdx] += loss_fraction
+                    score[frameIdx][labelIdx] += 1
                 backTrack[frameIdx][labelIdx] = bestLabel
     score_max = score[yLen - 1][0]
     label_max = 0
@@ -153,9 +160,10 @@ def psi(x, y, sm, sparm):
     return pvec
 
 def loss(y, ybar, sparm):
+#loss_fraction = len(y)
     ret = 0
     for i in xrange(len(y)):
-        ret += LOSS_FACTOR * int(y[i] != ybar[i])
+        ret +=int(y[i] != ybar[i])
     return ret
 
 def print_iteration_stats(ceps, cached_constraint, sample, sm, cset, alpha, sparm):
