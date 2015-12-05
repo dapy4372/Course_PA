@@ -24,7 +24,7 @@
 
 int FEATURE_DIM = 48
 int LABEL_NUM = 48
-long EXAMPLE_NUM = 100;  // the amount of sentences
+long SENTENCE_NUM = 1000;  // the amount of sentences
 
 void svm_struct_learn_api_init(int argc, char* argv[])
 {
@@ -58,17 +58,38 @@ SAMPLE read_struct_examples(char *file, STRUCT_LEARN_PARM *sparm)
   EXAMPLE  *examples;
   long     n;       /* number of examples */
 
-  n = EXAMPLE_NUM;
+  n = SENTENCE_NUM;
   examples=(EXAMPLE *)my_malloc(sizeof(EXAMPLE) * n);
 
   /* fill in your code here */
   FILE* stream = fopen(file, "r");
-  char line[1024];
+  char line[2048];
   for (int sentIdx = 0; sentIdx < n; sentIdx++) {
-    fgets(line, 1024, stream)
-    char* tmp = strdup(line);
-    printf("Field 3 would be %s\n", getfield(tmp, 3));
-    // NOTE strtok clobbers tmp
+    fgets(line, 2048, stream)
+
+    char* tmp = strdup(line, " ");
+    int order;
+    int len;
+    for (int i = 0; i < 4 + 48; i++) {
+      if (i == 0) {
+        // name_sentid, do nothing
+      } else if (i == 1) {
+        // frameorder
+        order = atoi(tmp);
+      } else if (i == 2) {
+        // sentence len
+        if (order == 0) {
+          len = atoi(tmp);
+
+        }
+      } else if (i == 3) {
+        // label(y)
+      } else {
+        // feature (x)
+      }
+      tmp = strtok(NULL, " ");
+    }
+
     examples[i].x =
     examples[i].y =
 
@@ -295,18 +316,18 @@ int empty_label(LABEL y)
 SVECTOR *psi(PATTERN x, LABEL y, STRUCTMODEL *sm, STRUCT_LEARN_PARM *sparm)
 {
   SVECTOR *fvec = (SVECTOR *)my_malloc(sizeof(SVECTOR));
-  fvec->words = (WORD *)my_malloc(sizeof(WORD) * sm->sizePsi);
+  fvec->words = (WORD *)my_malloc(sizeof(WORD) * (sm->sizePsi + 1));
 
   // set to zeros
-  for (int i = 0; i < sm->sizePsi; i++) {
+  for (int i = 0; i < sm->sizePsi + 1; i++) {
     fvec->words[i].wnum = i;
     fvec->words[i].weight = 0;
   }
 
-  int observationLen = FEATURE_DIM * LABEL_NUM
+  int observationLen = FEATURE_DIM * LABEL_NUM + 1
   int prevY;
   for (int frameIdx = 0; frameIdx < x.sentenceLen; frameIdx++) {
-    int offset = FEATURE_DIM * y.labels[frameIdx];
+    int offset = FEATURE_DIM * y.labels[frameIdx] + 1;
     for (int i = 0; i < FEATURE_DIM; i++) {
       fvec->words[i + offset].weight += x.frames[sentIdx][i];
     }
@@ -357,6 +378,9 @@ STRUCTMODEL read_struct_model(char *file, STRUCT_LEARN_PARM *sparm)
 void write_label(FILE *fp, LABEL y)
 {
   /* Writes label y to file handle fp. */
+  for (int i = 0; i < y.sentenceLen; i++) {
+    fprintf(fp, "%d\n", y.labels[i]);
+  }
 }
 
 void free_pattern(PATTERN x) {
