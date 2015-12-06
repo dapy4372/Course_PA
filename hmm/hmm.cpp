@@ -82,15 +82,24 @@ Sequence viterbi(const Sentence &sent, const CountProb &cp)
   // initial
   for(int y = 0; y < LABEL_NUM; ++y){
     score[0][y] = cp.phone[y] + sent[0].feat[y];
+    score[1][y] = score[0][y] + sent[1].feat[y] + cp.trans[y][y];
+    score[2][y] = score[1][y] + sent[2].feat[y] + cp.trans[y][y];
     backtrack[0][y] = y;
+    backtrack[1][y] = y;
+    backtrack[2][y] = y;
   }
+  
   // forward pass
-  for(int x = 1; x < sent_len; ++x){
+  for(int x = 3; x < sent_len; ++x){
     for(int y = 0; y < LABEL_NUM; ++y){
       int best_label = 0;
       double best_score = -10000000000000000;
       for(int i = 0; i < LABEL_NUM; ++i){
         double tmp = score[x-1][i] + cp.trans[i][y];
+        if(i == y)
+          tmp = score[x-1][i] + cp.trans[i][y];
+        else
+          tmp = score[x-3][i] + (2*cp.trans[i][i]) + sent[x-2].feat[i] + sent[x-1].feat[i] + cp.trans[i][y];
         if(best_score < tmp){
           best_score = tmp;
           //backtrack[x][y] = backtrack[x-1][i];
