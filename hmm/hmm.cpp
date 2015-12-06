@@ -35,15 +35,18 @@ void split(char **, char *, char *);
 void load_count_prob(char *, CountProb &);
 void load_dnn_prob(char *, VSent &);
 Sequence viterbi(const Sentence &, const CountProb &);
+void write_result(const Sequence &, const Sentence &, ofstream &);
 
 int main(int argc, char** argv)
 {
-  if( argc != 3){
-    cout << "Error! Usage: ./hmm [count prob file] [dnn prob file]\n"; 
+  if( argc != 4){
+    cout << "Error! Usage: ./hmm [count prob file] [dnn prob file] [output file]\n"; 
+    return 0;
   }
 
   char *count_prob_filename = argv[1];
   char *dnn_prob_filename = argv[2];
+  char *output_filename = argv[3];
 
   CountProb prob;
   VSent vsent;
@@ -51,12 +54,16 @@ int main(int argc, char** argv)
   load_count_prob(count_prob_filename, prob);
   load_dnn_prob(dnn_prob_filename, vsent);
 
-  deque<Sequence> result;
+  //deque<Sequence> result;
+  char buf[BUF_SIZE];
+  ofstream fout(output_filename);
   for(int i = 0; i < vsent.size(); ++i){
     Sequence tmp_seq;
     tmp_seq = viterbi(vsent[i], prob);
-    result.push_back(tmp_seq);
+    write_result(tmp_seq, vsent[i], fout);
+    //result.push_back(tmp_seq);
   }
+  fout.close();
   return 0;
 }
 
@@ -106,6 +113,7 @@ Sequence viterbi(const Sentence &sent, const CountProb &cp)
   }
   ret.push_front(last_col_label_max);
   int prev_label = backtrack[sent_len-1][last_col_label_max];
+  
   // find path
   for(int i = sent_len-2; i > -1; --i){
     ret.push_front(backtrack[i][prev_label]);
@@ -200,4 +208,23 @@ void load_dnn_prob(char *prob_filename, VSent &vsent)
   vsent.push_back(tmp_sent);
 
   fin1.close(); 
+}
+
+void write_result(const Sequence &seq, const Sentence &sent, ofstream &fout)
+{
+  // TODO filename
+  string buf;
+  for(int i = 0; i < seq.size(); ++i){
+    string str_label, str_order;
+    stringstream ss;
+    ss << sent[i].order;
+    ss >> str_order;
+    ss.clear(); ss.str("");
+    ss << seq[i];
+    ss >> str_label;
+    ss.clear(); ss.str("");
+    buf = sent[i].sentid + '_' + str_order + ',' + str_label + '\n';
+ //   snprintf(buf, BUF_SIZE, "%s_%s,%d\n", sent[i].sentid, sent[i].order, seq[i])
+    fout << buf;
+  }
 }
