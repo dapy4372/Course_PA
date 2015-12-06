@@ -95,7 +95,7 @@ Sequence viterbi(const Sentence &sent, const CountProb &cp)
       int best_label = 0;
       double best_score = -10000000000000000;
       for(int i = 0; i < LABEL_NUM; ++i){
-        double tmp = score[x-1][i] + cp.trans[i][y];
+        double tmp;
         if(i == y)
           tmp = score[x-1][i] + cp.trans[i][y];
         else
