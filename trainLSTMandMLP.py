@@ -51,7 +51,7 @@ def getQuestionWordVector(questionData, idList, wordVectorModel):
     batchSize = len(idList)
     maxlen = 0
     for i in xrange(batchSize):
-        maxlen = len(questionData[ idList[i] ]) if maxlen < len(questionData[ idList[i] ])
+        maxlen = len(questionData[ idList[i] ]) if maxlen < len(questionData[ idList[i] ].split(' '))
     questionMatrix = np.zeros((batchSize, maxlen, word_vec_dim), dtype = 'float32')
     for i in xrange(batchSize):
         tokens = wordVectorModel( questionData[ idList[i] ].decode('utf8') )
