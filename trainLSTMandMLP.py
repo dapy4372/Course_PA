@@ -1,4 +1,5 @@
 import os
+import resource
 import csv
 import random
 import numpy as np
@@ -19,7 +20,7 @@ def parseArgs():
     parser.add_argument('-lstm_layers', type=int, default=1)
     parser.add_argument('-mlp_units', type=int, default=1024)
     parser.add_argument('-mlp_layers', type=int, default=3)
-    parser.add_argument('-mlp_activation', type=str, default='sigmoid')
+    parser.add_argument('-mlp_activation', type=str, default='softplus')
     parser.add_argument('-dropout', type=float, default=0.5)
     parser.add_argument('-maxout', type=bool, default=False)
     parser.add_argument('-batch_size', type=int, default=128)
@@ -56,12 +57,14 @@ def getAnswer(answerData, idList, categorical = True):
     if categorical:
         answerMatrix = np.zeros((batchSize, answer_group_num), dtype = 'int32')
         for i in xrange(batchSize):
-            answerMatrix[i][ answerData[ idList[i] ][0] ] = 1
+            # answerMatrix[i][ answerData[ idList[i] ][0] ] = 1
+            answerMatrix[i][ answerData[ idList[i] ] ] = 1
         return answerMatrix
     else:
         answerMatrix = np.zeros(batchSize, dtype = 'float32')
         for i in xrange(batchSize):
-            answerMatrix[i] = answerData[ idList[i] ][0]
+            # answerMatrix[i] = answerData[ idList[i] ][0]
+            answerMatrix[i] = answerData[ idList[i] ]
         return answerMatrix
 
 def testData():
@@ -80,7 +83,7 @@ def loadData():
     with open('/share/MLDS/preprocessed/id_train.txt', 'r') as csvfile:
         reader = csv.reader(csvfile, delimiter = ' ')
         for row in reader:
-            idMap[row[1]] = row[0]
+            idMap[int(row[1])] = int(row[0])
 
     questionIdList = idMap.keys()
     questionData = {}
@@ -95,7 +98,7 @@ def loadData():
     with open('/share/MLDS/final_img_feat.txt', 'r') as csvfile:
         reader = csv.reader(csvfile, delimiter = ' ')
         for row in reader:
-            imageData[row[0]] = np.array(row[1:]).astype(dtype = 'float32')
+            imageData[int(row[0])] = np.array(row[1:]).astype(dtype = 'float32')
 
     answerData = {}
     with open('/share/MLDS/cluster_results/answers_kmeans_train_1000.txt', 'r') as txtfile:
@@ -103,7 +106,7 @@ def loadData():
         if (len(questionIdList) != len(answersTrain)):
             print "*** load answer error ***"
         for i in xrange(len(questionIdList)):
-            answerData[questionIdList[i]] = answersTrain[i]
+            answerData[questionIdList[i]] = int(answersTrain[i])
 
     return idMap, questionData, imageData, answerData
 
@@ -160,10 +163,16 @@ if __name__ == '__main__':
     model.compile(loss = 'categorical_crossentropy', optimizer = sgd)
 
     # read data
+    print '*** load data ***'
     # idMap, questionData, imageData, answerData = testData()
     idMap, questionData, imageData, answerData = loadData()
+    print idMap.items()[0]
+    print questionData.items()[0]
+    print imageData.items()[0]
+    print answerData.items()[0]
 
     # training
+    print '*** start training ***'
     for i in xrange(arg.epochs):
         questionIdList, batchNum = prepareIdList(idMap.keys(), arg.batch_size)
         for j in xrange(batchNum):
