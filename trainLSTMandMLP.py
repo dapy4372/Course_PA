@@ -183,5 +183,5 @@ if __name__ == '__main__':
             print loss
         # predict = model.predict_on_batch(X)
 
-    # model.save_weights(model_file_name)
+    model.save_weights(model.save_weights('2016010400_LSTM_default_model.hdf5')
 
