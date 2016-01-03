@@ -130,7 +130,7 @@ if __name__ == '__main__':
     arg = parseArgs()
     max_len = 30
     wordVectorModel = English()
-    limit_memory(1.0 * 1e10)  # about 10GB
+    limit_memory(1.2 * 1e10)  # about 12GB
 
     # build model
     image_model = Sequential()
@@ -174,6 +174,7 @@ if __name__ == '__main__':
     # training
     print '*** start training ***'
     for i in xrange(arg.epochs):
+        print 'epoch #' + str(i+1)
         questionIdList, batchNum = prepareIdList(idMap.keys(), arg.batch_size)
         for j in xrange(batchNum):
             imageIdListForBatch = [idMap[key] for key in questionIdList[j]]
@@ -182,6 +183,6 @@ if __name__ == '__main__':
                                         y = getAnswer(answerData, questionIdList[j]) )
             print loss
         # predict = model.predict_on_batch(X)
-
-    model.save_weights(model.save_weights('2016010400_LSTM_default_model.hdf5')
+        if (i+1) % 5 == 0:
+        model.save_weights('model/2016010401_LSTM_default_model_epock_{:03d}.hdf5'.format(i+1))
 
