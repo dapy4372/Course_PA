@@ -7,7 +7,8 @@ import argparse
 
 from keras.utils import np_utils
 from keras.models import Sequential
-from keras.layers.core import LSTM, Merge, Dense, MaxoutDense, Dropout, Activation
+from keras.layers.core import Reshape, Merge, Dense, MaxoutDense, Dropout, Activation
+from keras.layers.recurrent import LSTM
 from keras.optimizers import SGD
 
 from spacy.en import English
@@ -50,13 +51,14 @@ word_vec_dim = 300
 def getQuestionWordVector(questionData, idList, wordVectorModel):
     batchSize = len(idList)
     maxlen = 0
+    tokens = []
     for i in xrange(batchSize):
-        maxlen = len(questionData[ idList[i] ]) if maxlen < len(questionData[ idList[i] ].split(' '))
+        tokens.append( wordVectorModel( questionData[ idList[i] ].decode('utf8')) )
+        maxlen = max(maxlen, len(tokens[i]))
     questionMatrix = np.zeros((batchSize, maxlen, word_vec_dim), dtype = 'float32')
     for i in xrange(batchSize):
-        tokens = wordVectorModel( questionData[ idList[i] ].decode('utf8') )
-        for j in xrange(len(tokens))
-            questionMatrix[i,j,:] = tokens[j].vector
+        for j in xrange(len(tokens[i])):
+            questionMatrix[i,j,:] = tokens[i][j].vector
     return questionMatrix
 
 answer_group_num = 1000
@@ -86,9 +88,9 @@ def loadData():
     return idMap, questionData, imageData, answerData
 
 def prepareIdList(idList, batchSize):
-    questionNum = len(questionIdList)
+    questionNum = len(idList)
     batchNum = questionNum / batchSize
-    random.shuffle(questionIdList)
+    random.shuffle(idList)
     idListInBatch = []
     for i in xrange(batchNum):
         idListInBatch.append( idList[i * batchSize : (i+1) * batchSize] )
@@ -99,10 +101,8 @@ def prepareIdList(idList, batchSize):
 
 if __name__ == '__main__':
     arg = parseArgs()
-
     max_len = 30
-
-    WordVectorModel = English()
+    wordVectorModel = English()
 
     # build model
     image_model = Sequential()
@@ -110,15 +110,15 @@ if __name__ == '__main__':
 
     language_model = Sequential()
     if arg.lstm_layers == 1:
-        language_model,add(LSTM(output_dim = arg.lstm_units, input_shape = (max_len, word_vec_dim), return_sequences = False, activation = 'sigmoid', inner_activation = 'hard_sigmoid'))
+        language_model.add(LSTM(output_dim = arg.lstm_units, input_shape = (max_len, word_vec_dim), return_sequences = False, activation = 'sigmoid', inner_activation = 'hard_sigmoid'))
     else:
-        language_model,add(LSTM(output_dim = arg.lstm_units, input_shape = (max_len, word_vec_dim), return_sequences = True, activation = 'sigmoid', inner_activation = 'hard_sigmoid'))
+        language_model.add(LSTM(output_dim = arg.lstm_units, input_shape = (max_len, word_vec_dim), return_sequences = True, activation = 'sigmoid', inner_activation = 'hard_sigmoid'))
         for i in xrange(arg.lstm_layers - 2):
             language_model,add(LSTM(output_dim = arg.lstm_units, return_sequences = True, activation = 'sigmoid', inner_activation = 'hard_sigmoid'))
-        language_model,add(LSTM(output_dim = arg.lstm_units, return_sequences = False, activation = 'sigmoid', inner_activation = 'hard_sigmoid'))
+        language_model.add(LSTM(output_dim = arg.lstm_units, return_sequences = False, activation = 'sigmoid', inner_activation = 'hard_sigmoid'))
 
     model = Sequential()
-    model.add(Merge([image_model, language_model], mode = 'concat', concat_axis = 1)
+    model.add(Merge([image_model, language_model], mode = 'concat', concat_axis = 1))
     if arg.maxout is True:
         for i in xrange(arg.mlp_layers):
             model.add(MaxoutDense(output_dim = arg.mlp_units, nb_feature = 2, init = 'uniform'))
@@ -141,9 +141,12 @@ if __name__ == '__main__':
     # training
     for i in xrange(arg.epochs):
         questionIdList, batchNum = prepareIdList(idMap.keys(), arg.batch_size)
+        print questionIdList
         for j in xrange(batchNum):
             imageIdListForBatch = [idMap[key] for key in questionIdList[j]]
-            loss = model.train_on_batch([getImageFeature(imageData, imageIdListForBatch), getQuestionWordVector(questionData, questionIdList[j])], getAnswer(answerData, questionIdList[j]))
+            loss = model.train_on_batch(X = [ getImageFeature(imageData, imageIdListForBatch), 
+                                              getQuestionWordVector(questionData, questionIdList[j], wordVectorModel) ],
+                                        y = getAnswer(answerData, questionIdList[j]) )
             print loss
         # predict = model.predict_on_batch(X)
 
