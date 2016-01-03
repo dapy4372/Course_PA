@@ -28,17 +28,6 @@ def parseArgs():
     parser.add_argument('-momentum', type=float, default=0.9)
     return parser.parse_args()
 
-def testData():
-    idMap = {}
-    questionData = {}
-    imageData = {}
-    answerData = {}
-    idMap[1002] = 100
-    questionData[1002] = "Who are you?"
-    imageData[100] = np.random.rand(4096)
-    answerData[1002] = [2, 52, 2, 109, 400, 876]
-    return idMap, questionData, imageData, answerData
-
 img_dim = 4096
 def getImageFeature(imageData, idList):
     batchSize = len(idList)
@@ -75,15 +64,46 @@ def getAnswer(answerData, idList, categorical = True):
             answerMatrix[i] = answerData[ idList[i] ][0]
         return answerMatrix
 
-def loadData():
+def testData():
     idMap = {}
     questionData = {}
     imageData = {}
     answerData = {}
-    with open('', 'r') as csvfile:
+    idMap[1002] = 100
+    questionData[1002] = "Who are you?"
+    imageData[100] = np.random.rand(4096)
+    answerData[1002] = [2, 52, 2, 109, 400, 876]
+    return idMap, questionData, imageData, answerData
+
+def loadData():
+    idMap = {}
+    with open('/share/MLDS/preprocessed/id_train.txt', 'r') as csvfile:
+        reader = csv.reader(csvfile, delimiter = ' ')
+        for row in reader:
+            idMap[row[1]] = row[0]
+
+    questionIdList = idMap.keys()
+    questionData = {}
+    with open('/share/MLDS/preprocessed/questions_train.txt', 'r') as txtfile:
+        questionsTrain = txtfile.read().splitlines()
+        if (len(questionIdList) != len(questionsTrain)):
+            print "*** load question error ***"
+        for i in xrange(len(questionIdList)):
+            questionData[questionIdList[i]] = questionsTrain[i]
+
+    imageData = {}
+    with open('/share/MLDS/final_img_feat.txt', 'r') as csvfile:
         reader = csv.reader(csvfile, delimiter = ' ')
         for row in reader:
             imageData[row[0]] = np.array(row[1:]).astype(dtype = 'float32')
+
+    answerData = {}
+    with open('/share/MLDS/cluster_results/answers_kmeans_train_1000.txt', 'r') as txtfile:
+        answersTrain = txtfile.read().splitlines()
+        if (len(questionIdList) != len(answersTrain)):
+            print "*** load answer error ***"
+        for i in xrange(len(questionIdList)):
+            answerData[questionIdList[i]] = answersTrain[i]
 
     return idMap, questionData, imageData, answerData
 
@@ -99,10 +119,15 @@ def prepareIdList(idList, batchSize):
         batchNum += 1
     return idListInBatch, batchNum
 
+def limit_memory(maxsize):
+    soft, hard = resource.getrlimit(resource.RLIMIT_AS)
+    resource.setrlimit(resource.RLIMIT_AS, (maxsize, hard))
+
 if __name__ == '__main__':
     arg = parseArgs()
     max_len = 30
     wordVectorModel = English()
+    limit_memory(1.0 * 1e10)  # about 10GB
 
     # build model
     image_model = Sequential()
@@ -135,16 +160,15 @@ if __name__ == '__main__':
     model.compile(loss = 'categorical_crossentropy', optimizer = sgd)
 
     # read data
-    idMap, questionData, imageData, answerData = testData()
-    # idMap, questionData, imageData, answerData = loadData()
+    # idMap, questionData, imageData, answerData = testData()
+    idMap, questionData, imageData, answerData = loadData()
 
     # training
     for i in xrange(arg.epochs):
         questionIdList, batchNum = prepareIdList(idMap.keys(), arg.batch_size)
-        print questionIdList
         for j in xrange(batchNum):
             imageIdListForBatch = [idMap[key] for key in questionIdList[j]]
-            loss = model.train_on_batch(X = [ getImageFeature(imageData, imageIdListForBatch), 
+            loss = model.train_on_batch(X = [ getImageFeature(imageData, imageIdListForBatch),
                                               getQuestionWordVector(questionData, questionIdList[j], wordVectorModel) ],
                                         y = getAnswer(answerData, questionIdList[j]) )
             print loss
