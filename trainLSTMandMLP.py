@@ -162,6 +162,9 @@ if __name__ == '__main__':
     sgd = SGD(lr = arg.lr, decay = 1e-6, momentum = arg.momentum, nesterov = True)
     model.compile(loss = 'categorical_crossentropy', optimizer = sgd)
 
+    model_file_name = 'model/2016010401_LSTM_default_model'
+    open(model_file_name + '.json', 'w').write( model.to_json() )
+
     # read data
     print '*** load data ***'
     # idMap, questionData, imageData, answerData = testData()
@@ -184,5 +187,5 @@ if __name__ == '__main__':
             print loss
         # predict = model.predict_on_batch(X)
         if (i+1) % 5 == 0:
-        model.save_weights('model/2016010401_LSTM_default_model_epock_{:03d}.hdf5'.format(i+1))
+            model.save_weights('model/2016010401_LSTM_default_model_epock_{:03d}.hdf5'.format(i+1))
 
