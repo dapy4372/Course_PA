@@ -12,16 +12,22 @@ import scipy.io
 from sklearn.externals import joblib
 
 sys.path.insert(0,'../data/')
-from preprocess import get_answers
+# from preprocess import get_answers
 sys.path.insert(0,'../scripts')
 
+from itertools import izip_longest
+def grouper(iterable, n, fillvalue=None):
+    args = [iter(iterable)] * n
+    return izip_longest(*args, fillvalue=fillvalue)
+
+# python evaluateLSTMandMLP.py -model model/2016010401_LSTM_default_model.json -weights model/2016010401_LSTM_default_model_epock_025.hdf5 -choices /share/MLDS/cluster_results/choices_kmeans_test_1000.txt -results 2016010401_testing_result.txt
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('-model', type=str, required=True)
     parser.add_argument('-weights', type=str, required=True)
     parser.add_argument('-results', type=str, required=False)
     parser.add_argument('-choices', type=str, required=True)
-    parser.add_argument('-answers', type=str, required=True)
+    parser.add_argument('-answers', type=str, required=False)
     parser.add_argument('-predict_type', type=str, default='test')
 
     args = parser.parse_args()
@@ -77,7 +83,7 @@ def main():
 
     # check train correct rate
     if args.predict_type == 'train':
-        answers = get_answers(args.answers)
+        # answers = get_answers(args.answers)
         nb_answers = answers.shape[0]
         results = np.all([answers, np.array(answers_predict, dtype = 'int32')], axis = 0)
         nb_correct = np.sum(results)
