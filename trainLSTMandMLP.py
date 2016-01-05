@@ -3,7 +3,7 @@ import resource
 import csv
 import random
 import numpy as np
-import theano
+import theano.tensor as T
 import argparse
 
 from keras.utils import np_utils
@@ -12,7 +12,7 @@ from keras.layers.core import Reshape, Merge, Dense, MaxoutDense, Dropout, Activ
 from keras.layers.recurrent import LSTM
 from keras.optimizers import SGD
 
-from spacy.en import English
+# from spacy.en import English
 
 def parseArgs():
     parser = argparse.ArgumentParser()
@@ -51,21 +51,35 @@ def getQuestionWordVector(questionData, idList, wordVectorModel):
             questionMatrix[i,j,:] = tokens[i][j].vector
     return questionMatrix
 
-answer_group_num = 1000
-def getAnswer(answerData, idList, categorical = True):
+# answer_group_num = 1000
+# def getAnswer(answerData, idList, categorical = True):
+#     batchSize = len(idList)
+#     if categorical:
+#         answerMatrix = np.zeros((batchSize, answer_group_num), dtype = 'int32')
+#         for i in xrange(batchSize):
+#             # answerMatrix[i][ answerData[ idList[i] ][0] ] = 1
+#             answerMatrix[i][ answerData[ idList[i] ] ] = 1
+#         return answerMatrix
+#     else:
+#         answerMatrix = np.zeros(batchSize, dtype = 'float32')
+#         for i in xrange(batchSize):
+#             # answerMatrix[i] = answerData[ idList[i] ][0]
+#             answerMatrix[i] = answerData[ idList[i] ]
+#         return answerMatrix
+
+def getLanguageFeature(questionData, choiceData, idList):
     batchSize = len(idList)
-    if categorical:
-        answerMatrix = np.zeros((batchSize, answer_group_num), dtype = 'int32')
-        for i in xrange(batchSize):
-            # answerMatrix[i][ answerData[ idList[i] ][0] ] = 1
-            answerMatrix[i][ answerData[ idList[i] ] ] = 1
-        return answerMatrix
-    else:
-        answerMatrix = np.zeros(batchSize, dtype = 'float32')
-        for i in xrange(batchSize):
-            # answerMatrix[i] = answerData[ idList[i] ][0]
-            answerMatrix[i] = answerData[ idList[i] ]
-        return answerMatrix
+    featureMatrix = np.zeros((batchSize, word_vec_dim*6), dtype = 'float32')
+    for i in xrange(batchSize):
+        featureMatrix[i,:] = np.concatenate((questionData[idList[i]], choiceData[idList[i]]), axis=0)
+    return featureMatrix
+
+def getAnswer(choiceData, answerData, idList):
+    batchSize = len(idList)
+    answerMatrix = np.zeros((batchSize, word_vec_dim), dtype = 'float32')
+    for i in xrange(batchSize):
+        answerMatrix[i,:] = choiceData[idList[i]][ answerData[idList[i]]*word_vec_dim : (answerData[idList[i]]+1)*word_vec_dim ]
+    return answerMatrix
 
 def testData():
     idMap = {}
@@ -80,35 +94,36 @@ def testData():
 
 def loadData():
     idMap = {}
-    with open('/share/MLDS/preprocessed/id_train.txt', 'r') as csvfile:
+    with open('/share/MLDS/preprocessed/id_train.csv', 'r') as csvfile:
         reader = csv.reader(csvfile, delimiter = ' ')
         for row in reader:
             idMap[int(row[1])] = int(row[0])
 
-    questionIdList = idMap.keys()
     questionData = {}
-    with open('/share/MLDS/preprocessed/questions_train.txt', 'r') as txtfile:
-        questionsTrain = txtfile.read().splitlines()
-        if (len(questionIdList) != len(questionsTrain)):
-            print "*** load question error ***"
-        for i in xrange(len(questionIdList)):
-            questionData[questionIdList[i]] = questionsTrain[i]
+    with open('/share/MLDS/question_wordvector/glove_sum_300_train.csv', 'r') as csvfile:
+        reader = csv.reader(csvfile, delimiter = ' ')
+        for row in reader:
+            questionData[int(row[0])] = np.array(row[1:]).astype(dtype = 'float32')
 
     imageData = {}
-    with open('/share/MLDS/final_img_feat.txt', 'r') as csvfile:
+    with open('/share/MLDS/image_feature/caffenet_4096_train.csv', 'r') as csvfile:
         reader = csv.reader(csvfile, delimiter = ' ')
         for row in reader:
             imageData[int(row[0])] = np.array(row[1:]).astype(dtype = 'float32')
 
-    answerData = {}
-    with open('/share/MLDS/cluster_results/answers_kmeans_train_1000.txt', 'r') as txtfile:
-        answersTrain = txtfile.read().splitlines()
-        if (len(questionIdList) != len(answersTrain)):
-            print "*** load answer error ***"
-        for i in xrange(len(questionIdList)):
-            answerData[questionIdList[i]] = int(answersTrain[i])
+    choiceData = {}
+    with open('/share/MLDS/choice_wordvector/glove_sum_300_train.csv', 'r') as csvfile:
+        reader = csv.reader(csvfile, delimiter = ' ')
+        for row in reader:
+            choiceData[int(row[0])] = np.array(row[1:]).astype(dtype = 'float32')
 
-    return idMap, questionData, imageData, answerData
+    answerData = {}
+    with open('/share/MLDS/preprocessed/id_answer_category_train.csv', 'r') as csvfile:
+        reader = csv.reader(csvfile, delimiter = ' ')
+        for row in reader:
+            answerData[int(row[0])] = int(row[1])
+
+    return idMap, questionData, imageData, choiceData, answerData
 
 def prepareIdList(idList, batchSize):
     questionNum = len(idList)
@@ -126,10 +141,17 @@ def limit_memory(maxsize):
     soft, hard = resource.getrlimit(resource.RLIMIT_AS)
     resource.setrlimit(resource.RLIMIT_AS, (maxsize, hard))
 
+
+def cos_sim(y_true, y_pred):
+    dot = T.sum(y_true * y_pred, axis = 2)
+    u = T.sqrt(T.sum(T.sqr(y_true), axis = 2))
+    v = T.sqrt(T.sum(T.sqr(y_pred), axis = 2))
+    return 1 - dot / (u * v)
+
 if __name__ == '__main__':
     arg = parseArgs()
     max_len = 30
-    wordVectorModel = English()
+    # wordVectorModel = English()
     limit_memory(1.2 * 1e10)  # about 12GB
 
     # build model
@@ -137,13 +159,14 @@ if __name__ == '__main__':
     image_model.add(Reshape(input_shape = (img_dim,), dims=(img_dim,)))
 
     language_model = Sequential()
-    if arg.lstm_layers == 1:
-        language_model.add(LSTM(output_dim = arg.lstm_units, input_shape = (max_len, word_vec_dim), return_sequences = False, activation = 'sigmoid', inner_activation = 'hard_sigmoid'))
-    else:
-        language_model.add(LSTM(output_dim = arg.lstm_units, input_shape = (max_len, word_vec_dim), return_sequences = True, activation = 'sigmoid', inner_activation = 'hard_sigmoid'))
-        for i in xrange(arg.lstm_layers - 2):
-            language_model,add(LSTM(output_dim = arg.lstm_units, return_sequences = True, activation = 'sigmoid', inner_activation = 'hard_sigmoid'))
-        language_model.add(LSTM(output_dim = arg.lstm_units, return_sequences = False, activation = 'sigmoid', inner_activation = 'hard_sigmoid'))
+    language_model.add(Reshape(input_shape = (word_vec_dim * 6,), dims=(word_vec_dim,)))
+    # if arg.lstm_layers == 1:
+    #     language_model.add(LSTM(output_dim = arg.lstm_units, input_shape = (max_len, word_vec_dim), return_sequences = False, activation = 'sigmoid', inner_activation = 'hard_sigmoid'))
+    # else:
+    #     language_model.add(LSTM(output_dim = arg.lstm_units, input_shape = (max_len, word_vec_dim), return_sequences = True, activation = 'sigmoid', inner_activation = 'hard_sigmoid'))
+    #     for i in xrange(arg.lstm_layers - 2):
+    #         language_model,add(LSTM(output_dim = arg.lstm_units, return_sequences = True, activation = 'sigmoid', inner_activation = 'hard_sigmoid'))
+    #     language_model.add(LSTM(output_dim = arg.lstm_units, return_sequences = False, activation = 'sigmoid', inner_activation = 'hard_sigmoid'))
 
     model = Sequential()
     model.add(Merge([image_model, language_model], mode = 'concat', concat_axis = 1))
@@ -156,22 +179,23 @@ if __name__ == '__main__':
             model.add(Dense(output_dim = arg.mlp_units, init = 'uniform'))
             model.add(Activation(arg.mlp_activation))
             model.add(Dropout(arg.dropout))
-    model.add(Dense(output_dim = answer_group_num, init = 'uniform'))
-    model.add(Activation('softmax'))
+    model.add(Dense(output_dim = word_vec_dim, init = 'uniform'))
+    # model.add(Activation('softmax'))
 
-    sgd = SGD(lr = arg.lr, decay = 1e-6, momentum = arg.momentum, nesterov = True)
-    model.compile(loss = 'categorical_crossentropy', optimizer = sgd)
+    # sgd = SGD(lr = arg.lr, decay = 1e-6, momentum = arg.momentum, nesterov = True)
+    model.compile(loss = cos_sim, optimizer = 'rmsprop')
 
-    model_file_name = 'model/2016010401_LSTM_default_model'
+    model_file_name = 'model/20160105_MLP_vectorsum'
     open(model_file_name + '.json', 'w').write( model.to_json() )
 
     # read data
     print '*** load data ***'
     # idMap, questionData, imageData, answerData = testData()
-    idMap, questionData, imageData, answerData = loadData()
+    idMap, questionData, imageData, choiceData, answerData = loadData()
     print idMap.items()[0]
     print questionData.items()[0]
     print imageData.items()[0]
+    print choiceData.items()[0]
     print answerData.items()[0]
 
     # training
@@ -182,10 +206,10 @@ if __name__ == '__main__':
         for j in xrange(batchNum):
             imageIdListForBatch = [idMap[key] for key in questionIdList[j]]
             loss = model.train_on_batch(X = [ getImageFeature(imageData, imageIdListForBatch),
-                                              getQuestionWordVector(questionData, questionIdList[j], wordVectorModel) ],
-                                        y = getAnswer(answerData, questionIdList[j]) )
+                                              getLanguageFeature(questionData, choiceData, questionIdList[j]) ],
+                                        y = getAnswer(choiceData, answerData, questionIdList[j]) )
             print loss
         # predict = model.predict_on_batch(X)
         if (i+1) % 5 == 0:
-            model.save_weights('model/2016010401_LSTM_default_model_epock_{:03d}.hdf5'.format(i+1))
+            model.save_weights(model_file_name + '_epock_{:03d}.hdf5'.format(i+1))
 
