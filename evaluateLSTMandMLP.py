@@ -53,7 +53,7 @@ def loadData():
             questionData[questionIdList[i]] = questionsTrain[i]
 
     imageData = {}
-    with open('/share/MLDS/final_img_feat.txt', 'r') as csvfile:
+    with open('/share/MLDS/test_id_feat_pair.txt', 'r') as csvfile:
         reader = csv.reader(csvfile, delimiter = ' ')
         for row in reader:
             imageData[int(row[0])] = np.array(row[1:]).astype(dtype = 'float32')
@@ -118,6 +118,7 @@ def main():
         y_predict.extend(model.predict_classes([ getImageFeature(imageData, imageIdListForBatch),
                                                  getQuestionWordVector(questionData, questionIdList[j], nlp) ],
                                                verbose=0))
+    print y_predict[0]
 
     # choose choice by cluster number
     answers_predict = []

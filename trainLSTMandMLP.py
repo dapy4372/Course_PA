@@ -71,7 +71,7 @@ def getLanguageFeature(questionData, choiceData, idList):
     batchSize = len(idList)
     featureMatrix = np.zeros((batchSize, word_vec_dim*6), dtype = 'float32')
     for i in xrange(batchSize):
-        featureMatrix[i,:] = np.concatenate((questionData[idList[i]], choiceData[idList[i]]), axis=0)
+        featureMatrix[i,:] = np.hstack((questionData[idList[i]], choiceData[idList[i]]))
     return featureMatrix
 
 def getAnswer(choiceData, answerData, idList):
@@ -100,7 +100,7 @@ def loadData():
             idMap[int(row[1])] = int(row[0])
 
     questionData = {}
-    with open('/share/MLDS/question_wordvector/glove_sum_300_train.csv', 'r') as csvfile:
+    with open('/share/MLDS/question_wordvector/spacy_avg_300_train.csv', 'r') as csvfile:
         reader = csv.reader(csvfile, delimiter = ' ')
         for row in reader:
             questionData[int(row[0])] = np.array(row[1:]).astype(dtype = 'float32')
@@ -112,7 +112,7 @@ def loadData():
             imageData[int(row[0])] = np.array(row[1:]).astype(dtype = 'float32')
 
     choiceData = {}
-    with open('/share/MLDS/choice_wordvector/glove_sum_300_train.csv', 'r') as csvfile:
+    with open('/share/MLDS/choice_wordvector/spacy_sent_1500_train.csv', 'r') as csvfile:
         reader = csv.reader(csvfile, delimiter = ' ')
         for row in reader:
             choiceData[int(row[0])] = np.array(row[1:]).astype(dtype = 'float32')
@@ -143,9 +143,9 @@ def limit_memory(maxsize):
 
 
 def cos_sim(y_true, y_pred):
-    dot = T.sum(y_true * y_pred, axis = 2)
-    u = T.sqrt(T.sum(T.sqr(y_true), axis = 2))
-    v = T.sqrt(T.sum(T.sqr(y_pred), axis = 2))
+    dot = T.sum(y_true * y_pred, axis = 1)
+    u = T.sqrt(T.sum(T.sqr(y_true), axis = 1))
+    v = T.sqrt(T.sum(T.sqr(y_pred), axis = 1))
     return 1 - dot / (u * v)
 
 if __name__ == '__main__':
@@ -159,7 +159,7 @@ if __name__ == '__main__':
     image_model.add(Reshape(input_shape = (img_dim,), dims=(img_dim,)))
 
     language_model = Sequential()
-    language_model.add(Reshape(input_shape = (word_vec_dim * 6,), dims=(word_vec_dim,)))
+    language_model.add(Reshape(input_shape = (word_vec_dim * 6,), dims=(word_vec_dim * 6,)))
     # if arg.lstm_layers == 1:
     #     language_model.add(LSTM(output_dim = arg.lstm_units, input_shape = (max_len, word_vec_dim), return_sequences = False, activation = 'sigmoid', inner_activation = 'hard_sigmoid'))
     # else:
@@ -185,7 +185,7 @@ if __name__ == '__main__':
     # sgd = SGD(lr = arg.lr, decay = 1e-6, momentum = arg.momentum, nesterov = True)
     model.compile(loss = cos_sim, optimizer = 'rmsprop')
 
-    model_file_name = 'model/20160105_MLP_vectorsum'
+    model_file_name = 'model/2016010502_MLP_vectorsum'
     open(model_file_name + '.json', 'w').write( model.to_json() )
 
     # read data
