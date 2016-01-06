@@ -174,7 +174,7 @@ if __name__ == '__main__':
     print '*** load data ***'
     idMap = loadIdMap()
     answerData = loadAnswerData()
-    imageData = loadFeatureData(fileName = '/share/MLDS/image_feature/caffenet_4096_test.csv')
+    imageData = loadFeatureData(fileName = '/share/MLDS/image_feature/caffenet_4096_train.csv')
     questionData = loadFeatureData(fileName = arg.question_feature)
     choiceData = loadFeatureData(fileName = arg.choice_feature)
 
