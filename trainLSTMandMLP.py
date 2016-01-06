@@ -200,6 +200,7 @@ if __name__ == '__main__':
 
     # training
     print '*** start training ***'
+    tmp = 0
     for i in xrange(arg.epochs):
         print 'epoch #' + str(i+1)
         questionIdList, batchNum = prepareIdList(idMap.keys(), arg.batch_size)
@@ -209,7 +210,8 @@ if __name__ == '__main__':
                                               getLanguageFeature(questionData, choiceData, questionIdList[j]) ],
                                         y = getAnswer(choiceData, answerData, questionIdList[j]) )
             print loss
+            tmp = loss[0]
         # predict = model.predict_on_batch(X)
         if (i+1) % 5 == 0:
-            model.save_weights(model_file_name + '_epock_{:03d}.hdf5'.format(i+1))
+            model.save_weights(model_file_name + '_epock_{:03d}_loss_{:.3f}.hdf5'.format(i+1, tmp))
 
