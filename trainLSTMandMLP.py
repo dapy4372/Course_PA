@@ -150,9 +150,9 @@ def cos_sim(y_true, y_pred):
 
 if __name__ == '__main__':
     arg = parseArgs()
+    limit_memory(1.2 * 1e10)  # about 12GB
     max_len = 30
     # wordVectorModel = English()
-    limit_memory(1.2 * 1e10)  # about 12GB
 
     # build model
     image_model = Sequential()
