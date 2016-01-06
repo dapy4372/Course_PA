@@ -146,7 +146,7 @@ def cos_sim(y_true, y_pred):
     dot = T.sum(y_true * y_pred, axis = 1)
     u = T.sqrt(T.sum(T.sqr(y_true), axis = 1))
     v = T.sqrt(T.sum(T.sqr(y_pred), axis = 1))
-    return 1 - dot / (u * v)
+    return 1 - dot / (u * v + 0.0001)
 
 if __name__ == '__main__':
     arg = parseArgs()
