@@ -3,6 +3,7 @@ import resource
 import csv
 import string
 import numpy as np
+import theano.tensor as T
 import argparse
 
 from keras.models import model_from_json
@@ -92,24 +93,23 @@ def prepareIdList(idList, batchSize):
     return idListInBatch, batchNum
 
 def cos_sim(y_true, y_pred):
-    dot = T.sum(y_true * y_pred, axis = 0)
-    u = T.sqrt(T.sum(T.sqr(y_true), axis = 0))
-    v = T.sqrt(T.sum(T.sqr(y_pred), axis = 0))
+    dot = np.sum(y_true * y_pred)
+    u = np.sqrt(np.sum(np.square(y_true)))
+    v = np.sqrt(np.sum(np.square(y_pred)))
     return 1 - dot / (u * v + 0.0001)
 
 def main():
-    args = parser.parse_args()
     arg = parseArgs()
     # nlp = English()
 
     print '*** load model ***'
-    model = model_from_json( open(args.model).read() )
-    model.load_weights(args.weights)
+    model = model_from_json( open(arg.model).read() )
+    model.load_weights(arg.weights)
     model.compile(loss='categorical_crossentropy', optimizer='rmsprop')
 
     origin_data_path = '/share/MLDS/'
-    if args.predict_type == 'test':
-        # questions_id_filename = origin_data_path + 'preprocessed/id_test.txt'
+    if arg.predict_type == 'test':
+        questions_id_filename = 'preprocessed/id_test.txt'
         # questions = open(origin_data_path + 'preprocessed/questions_test.txt', 'r').read().decode('utf8').splitlines()
     else:
         raise Exception("predict type error!")
@@ -121,18 +121,20 @@ def main():
     print questionData.items()[0]
     print imageData.items()[0]
 
+    print '*** predict ***'
     y_predict = []
     batchSize = 128
     idList = idMap.keys()
     questionIdList, batchNum = prepareIdList(idList, batchSize)
     for j in xrange(batchNum):
         imageIdListForBatch = [idMap[key] for key in questionIdList[j]]
-        y_predict.extend(model.predict_classes([ getImageFeature(imageData, imageIdListForBatch),
+        y_predict.extend(model.predict([ getImageFeature(imageData, imageIdListForBatch),
                                                  getLanguageFeature(questionData, choiceData, questionIdList[j]) ],
                                                verbose=0))
-    print y_predict[0]
+    print 'y.shape = ' + str(y_predict[0].shape)
+    # print y_predict[0]
 
-    # choose answer
+    print '*** choose answer ***'
     label = ['A', 'B', 'C', 'D', 'E']
     answers_predict = []
     for i in xrange(len(idList)):
@@ -140,14 +142,15 @@ def main():
         answer = -1
         for j in xrange(5):
             current_id = idList[i]
-            current_loss = cos_sim(y_predict[i], questionData[ idList[i] ][ j*300:(j+1)*300 ])
+            current_loss = cos_sim(y_predict[i], choiceData[ idList[i] ][ j*300:(j+1)*300 ])
             if current_loss < loss:
                 answer = j
+                loss = current_loss
         answers_predict.append(label[answer])
 
     # write testing answer to file which will be uploaded
-    if args.predict_type == 'test':
-        with open(args.results, 'w') as outfile:
+    if arg.predict_type == 'test':
+        with open(arg.results, 'w') as outfile:
             writer = csv.writer(outfile)
             writer.writerow(['q_id', 'ans'])
             for i in xrange(len(idList)):
