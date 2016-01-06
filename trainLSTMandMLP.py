@@ -189,11 +189,11 @@ if __name__ == '__main__':
             if arg.language_feature_dim == 1800:
                 loss = model.train_on_batch(X = [ getImageFeature(imageData, imageIdListForBatch),
                                                   getLanguageFeature(questionData, choiceData, questionIdList[j]) ],
-                                            y = getAnswer(choiceData, answerData, questionIdList[j]) )
+                                            y = getAnswerFeature(choiceData, answerData, questionIdList[j]) )
             elif arg.language_feature_dim == 300:
                 loss = model.train_on_batch(X = [ getImageFeature(imageData, imageIdListForBatch),
-                                                  getQuestionFeature(questionData, choiceData, questionIdList[j]) ],
-                                            y = getAnswer(choiceData, answerData, questionIdList[j]) )
+                                                  getQuestionFeature(questionData, questionIdList[j]) ],
+                                            y = getAnswerFeature(choiceData, answerData, questionIdList[j]) )
             else:
                 raise Exception("language feature dim error!")
             totalloss += loss[0]
