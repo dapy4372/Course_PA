@@ -3,26 +3,24 @@ import resource
 import csv
 import string
 import numpy as np
-import theano.tensor as T
 import argparse
 
 from keras.models import model_from_json
-# sys.path.insert(0,'../data/')
-# sys.path.insert(0,'../scripts')
-
-# python evaluateLSTMandMLP.py -model model/2016010401_LSTM_default_model.json -weights model/2016010401_LSTM_default_model_epock_025.hdf5 -choices /share/MLDS/cluster_results/choices_kmeans_test_1000.txt -results 2016010401_testing_result.txt
+# from spacy.en import English
+img_dim = 4096
+word_vec_dim = 300
 
 def parseArgs():
     parser = argparse.ArgumentParser()
     parser.add_argument('-predict_type', type=str, default='test')
+    parser.add_argument('-language_feature_dim', type=int, default=300)
     parser.add_argument('-model', type=str, required=True)
     parser.add_argument('-weights', type=str, required=True)
-    parser.add_argument('-choices', type=str, required=True)
-    parser.add_argument('-answers', type=str, required=False)
-    parser.add_argument('-results', type=str, required=True)
+    parser.add_argument('-question_features', type=str, required=True)
+    parser.add_argument('-choice_features', type=str, required=True)
+    parser.add_argument('-results', type=str)
     return parser.parse_args()
 
-img_dim = 4096
 def getImageFeature(imageData, idList):
     batchSize = len(idList)
     imageMatrix = np.zeros((batchSize, img_dim), dtype = 'float32')
@@ -30,19 +28,12 @@ def getImageFeature(imageData, idList):
         imageMatrix[i,:] = imageData[ idList[i] ]
     return imageMatrix
 
-word_vec_dim = 300
-def getQuestionWordVector(questionData, idList, wordVectorModel):
+def getQuestionFeature(questionData, idList):
     batchSize = len(idList)
-    maxlen = 0
-    tokens = []
+    featureMatrix = np.zeros((batchSize, word_vec_dim), dtype = 'float32')
     for i in xrange(batchSize):
-        tokens.append( wordVectorModel( questionData[ idList[i] ].decode('utf8')) )
-        maxlen = max(maxlen, len(tokens[i]))
-    questionMatrix = np.zeros((batchSize, maxlen, word_vec_dim), dtype = 'float32')
-    for i in xrange(batchSize):
-        for j in xrange(len(tokens[i])):
-            questionMatrix[i,j,:] = tokens[i][j].vector
-    return questionMatrix
+        featureMatrix[i,:] = questionData[idList[i]]
+    return featureMatrix
 
 def getLanguageFeature(questionData, choiceData, idList):
     batchSize = len(idList)
@@ -51,34 +42,44 @@ def getLanguageFeature(questionData, choiceData, idList):
         featureMatrix[i,:] = np.hstack((questionData[idList[i]], choiceData[idList[i]]))
     return featureMatrix
 
+def getAnswerFeature(choiceData, answerData, idList):
+    batchSize = len(idList)
+    answerMatrix = np.zeros((batchSize, word_vec_dim), dtype = 'float32')
+    for i in xrange(batchSize):
+        answerMatrix[i,:] = choiceData[idList[i]][ answerData[idList[i]]*word_vec_dim : (answerData[idList[i]]+1)*word_vec_dim ]
+    return answerMatrix
 
-def loadData():
+def loadIdMap():
     idMap = {}
-    with open('/share/MLDS/preprocessed/id_test.csv', 'r') as csvfile:
+    with open('/share/MLDS/preprocessed/id_train.csv', 'r') as csvfile:
         reader = csv.reader(csvfile, delimiter = ' ')
         for row in reader:
             idMap[int(row[1])] = int(row[0])
+    return idMap
 
-    questionData = {}
-    with open('/share/MLDS/question_wordvector/spacy_avg_300_test.csv', 'r') as csvfile:
+def loadAnswerData():
+    answerData = {}
+    with open('/share/MLDS/preprocessed/id_answer_label_train.csv', 'r') as csvfile:
         reader = csv.reader(csvfile, delimiter = ' ')
         for row in reader:
-            questionData[int(row[0])] = np.array(row[1:]).astype(dtype = 'float32')
+            answerData[int(row[0])] = row[1]
+    return answerData
 
-    imageData = {}
-    with open('/share/MLDS/image_feature/caffenet_4096_test.csv', 'r') as csvfile:
+def loadFeatureData(fileName):
+    featureData = {}
+    with open(fileName, 'r') as csvfile:
         reader = csv.reader(csvfile, delimiter = ' ')
         for row in reader:
-            imageData[int(row[0])] = np.array(row[1:]).astype(dtype = 'float32')
+            featureData[int(row[0])] = np.array(row[1:]).astype(dtype = 'float32')
+    return featureData
 
-    choiceData = {}
-    with open('/share/MLDS/choice_wordvector/spacy_sent_1500_test.csv', 'r') as csvfile:
+def loadFeatureData(fileName):
+    featureData = {}
+    with open(fileName, 'r') as csvfile:
         reader = csv.reader(csvfile, delimiter = ' ')
         for row in reader:
-            choiceData[int(row[0])] = np.array(row[1:]).astype(dtype = 'float32')
-
-    return idMap, questionData, imageData, choiceData
-
+            featureData[int(row[0])] = np.array(row[1:]).astype(dtype = 'float32')
+    return featureData
 
 def prepareIdList(idList, batchSize):
     questionNum = len(idList)
@@ -92,45 +93,59 @@ def prepareIdList(idList, batchSize):
         batchNum += 1
     return idListInBatch, batchNum
 
+def limit_memory(maxsize):
+    soft, hard = resource.getrlimit(resource.RLIMIT_AS)
+    resource.setrlimit(resource.RLIMIT_AS, (maxsize, hard))
+
 def cos_sim(y_true, y_pred):
     dot = np.sum(y_true * y_pred)
     u = np.sqrt(np.sum(np.square(y_true)))
     v = np.sqrt(np.sum(np.square(y_pred)))
     return 1 - dot / (u * v + 0.0001)
 
-def main():
+if __name__ == "__main__":
     arg = parseArgs()
     # nlp = English()
+
+    if arg.predict_type == 'test':
+        print '*** predict type: test ***'
+    else if arg.predict_type == 'validate':
+        print '*** predict type: validate ***'
+    else:
+        raise Exception("predict type error!")
 
     print '*** load model ***'
     model = model_from_json( open(arg.model).read() )
     model.load_weights(arg.weights)
-    model.compile(loss='categorical_crossentropy', optimizer='rmsprop')
-
-    origin_data_path = '/share/MLDS/'
-    if arg.predict_type == 'test':
-        questions_id_filename = 'preprocessed/id_test.txt'
-        # questions = open(origin_data_path + 'preprocessed/questions_test.txt', 'r').read().decode('utf8').splitlines()
-    else:
-        raise Exception("predict type error!")
+    # model.compile(loss='categorical_crossentropy', optimizer='rmsprop')
 
     print '*** load data ***'
-    # idMap, questionData, imageData, answerData = testData()
-    idMap, questionData, imageData, choiceData = loadData()
-    print idMap.items()[0]
-    print questionData.items()[0]
-    print imageData.items()[0]
+    if arg.predict_type == 'test':
+        imageData = loadFeatureData(fileName = '/share/MLDS/image_feature/caffenet_4096_test.csv')
+    else if arg.predict_type == 'validate':
+        answerData = loadAnswerData()
+        imageData = loadFeatureData(fileName = '/share/MLDS/image_feature/caffenet_4096_train.csv')
+    idMap = loadIdMap()
+    questionData = loadFeatureData(fileName = arg.question_feature)
+    choiceData = loadFeatureData(fileName = arg.choice_feature)
 
     print '*** predict ***'
     y_predict = []
-    batchSize = 128
+    batchSize = 256
     idList = idMap.keys()
     questionIdList, batchNum = prepareIdList(idList, batchSize)
     for j in xrange(batchNum):
         imageIdListForBatch = [idMap[key] for key in questionIdList[j]]
-        y_predict.extend(model.predict([ getImageFeature(imageData, imageIdListForBatch),
+        if arg.language_feature_dim == 1800:
+            y_predict.extend(model.predict(X = [ getImageFeature(imageData, imageIdListForBatch),
                                                  getLanguageFeature(questionData, choiceData, questionIdList[j]) ],
-                                               verbose=0))
+                                           verbose = 0))
+        elif arg.language_feature_dim == 300:
+            y_predict.extend(model.predict(X = [ getImageFeature(imageData, imageIdListForBatch),
+                                                 getQuestionFeature(questionData, questionIdList[j]) ],
+                                           verbose = 0))
+        else:
+            raise Exception("language feature dim error!")
     print 'y.shape = ' + str(y_predict[0].shape)
     # print y_predict[0]
 
@@ -149,13 +164,20 @@ def main():
         answers_predict.append(label[answer])
 
     # write testing answer to file which will be uploaded
+
     if arg.predict_type == 'test':
+        print '*** choose answer ***'
         with open(arg.results, 'w') as outfile:
             writer = csv.writer(outfile)
             writer.writerow(['q_id', 'ans'])
             for i in xrange(len(idList)):
                 writer.writerow([idList[i], answers_predict[i]])
+    else if arg.predict_type == 'validate':
+        print '*** calculate error ***'
+        error = 0
+        for i in xrange(len(idList)):
+            if answers_predict[i] != answerData[ idList[i] ]:
+                error +=1
+        print 'About modle: ' + arg.weights
+        print 'Error = {:.03f}'.format(error/len(idList))
 
-
-if __name__ == "__main__":
-    main()
