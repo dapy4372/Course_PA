@@ -163,7 +163,7 @@ if __name__ == "__main__":
 
     if arg.predict_type == 'test':
         print '*** choose answer ***'
-        results_file = './results/' + basename(arg.weights).replace('.hdf5', '_result.txt')
+        results_file = './result/' + basename(arg.weights).replace('.hdf5', '_result.txt')
         with open(results_file, 'w') as outfile:
             writer = csv.writer(outfile)
             writer.writerow(['q_id', 'ans'])
