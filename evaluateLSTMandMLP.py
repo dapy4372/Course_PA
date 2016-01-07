@@ -109,7 +109,7 @@ if __name__ == "__main__":
 
     if arg.predict_type == 'test':
         print '*** predict type: test ***'
-    else if arg.predict_type == 'validate':
+    elif arg.predict_type == 'validate':
         print '*** predict type: validate ***'
     else:
         raise Exception("predict type error!")
@@ -122,7 +122,7 @@ if __name__ == "__main__":
     print '*** load data ***'
     if arg.predict_type == 'test':
         imageData = loadFeatureData(fileName = '/share/MLDS/image_feature/caffenet_4096_test.csv')
-    else if arg.predict_type == 'validate':
+    elif arg.predict_type == 'validate':
         answerData = loadAnswerData()
         imageData = loadFeatureData(fileName = '/share/MLDS/image_feature/caffenet_4096_train.csv')
     idMap = loadIdMap()
@@ -172,7 +172,7 @@ if __name__ == "__main__":
             writer.writerow(['q_id', 'ans'])
             for i in xrange(len(idList)):
                 writer.writerow([idList[i], answers_predict[i]])
-    else if arg.predict_type == 'validate':
+    elif arg.predict_type == 'validate':
         print '*** calculate error ***'
         error = 0
         for i in xrange(len(idList)):
