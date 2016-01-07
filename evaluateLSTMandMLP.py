@@ -162,7 +162,7 @@ if __name__ == "__main__":
         answers_predict.append(label[answer])
 
     if arg.predict_type == 'test':
-        print '*** choose answer ***'
+        print '*** print answer ***'
         results_file = './result/' + basename(arg.weights).replace('.hdf5', '_result.txt')
         with open(results_file, 'w') as outfile:
             writer = csv.writer(outfile)

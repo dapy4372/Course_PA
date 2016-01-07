@@ -128,6 +128,26 @@ def cos_sim(y_true, y_pred):
     v = T.sqrt(T.sum(T.sqr(y_pred), axis = 1))
     return 1 - dot / (u * v + 0.0001)
 
+def cos_sim_on_one(y_true, y_pred):
+    dot = np.sum(y_true * y_pred)
+    u = np.sqrt(np.sum(np.square(y_true)))
+    v = np.sqrt(np.sum(np.square(y_pred)))
+    return 1 - dot / (u * v + 0.0001)
+
+def get_error(y_pred, choiceData, answerData, idList):
+    error = 0
+    for i in xrange(len(idList)):
+        loss = 10
+        answer = -1
+        for j in xrange(5):
+            current_loss = cos_sim_on_one(y_pred[i], choiceData[ idList[i] ][ j*300:(j+1)*300 ])
+            if current_loss < loss:
+                answer = j
+                loss = current_loss
+        if answer != answerData[ idList[i] ]:
+            error += 1
+    return error
+
 if __name__ == '__main__':
     arg = parseArgs()
     # limit_memory(arg.memory_limit * 1e9)  # about 6GB
@@ -248,12 +268,15 @@ if __name__ == '__main__':
                         y_predict = model.predict(X = [ getImageFeature(imageData, imageIdListForBatch),
                                                         getLanguageFeature(questionData, choiceData, questionIdList[j]) ],
                                                   verbose = 0))
+                        totalerror += get_error(y_predict, choiceData, answerData, questionIdList[j])
                     elif arg.language_feature_dim == 300:
                         y_predict = model.predict(X = [ getImageFeature(imageData, imageIdListForBatch),
                                                         getQuestionFeature(questionData, questionIdList[j]) ],
                                                   verbose = 0 ))
+                        totalerror += get_error(y_predict, choiceData, answerData, questionIdList[j])
                     else:
                         raise Exception("language feature dim error!")
-                print 'valid #{:02d}, epoch #{:03d}, current error = {:.3f}'.format(k+1, i+1, totalerror/len(validIdList))
+                totalerror = totalerror / len(validIdList)
+                print 'valid #{:02d}, epoch #{:03d}, current error = {:.3f}'.format(k+1, i+1, totalerror)
                 if (i+1) % 5 == 0:
-                    model.save_weights(model_file_name + '_valid_{:02d}_epoch_{:03d}_loss_{:.3f}.hdf5'.format(k+1, i+1, totalloss/batchNum))
+                    model.save_weights(model_file_name + '_valid_{:02d}_epoch_{:03d}_loss_{:.3f}_error_{:.3f}.hdf5'.format(k+1, i+1, totalloss/batchNum, totalerror))
