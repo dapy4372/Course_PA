@@ -16,8 +16,8 @@ def parseArgs():
     parser.add_argument('-language_feature_dim', type=int, default=300)
     parser.add_argument('-model', type=str, required=True)
     parser.add_argument('-weights', type=str, required=True)
-    parser.add_argument('-question_features', type=str, required=True)
-    parser.add_argument('-choice_features', type=str, required=True)
+    parser.add_argument('-question_feature', type=str, required=True)
+    parser.add_argument('-choice_feature', type=str, required=True)
     parser.add_argument('-results', type=str)
     return parser.parse_args()
 
@@ -117,7 +117,7 @@ if __name__ == "__main__":
     print '*** load model ***'
     model = model_from_json( open(arg.model).read() )
     model.load_weights(arg.weights)
-    # model.compile(loss='categorical_crossentropy', optimizer='rmsprop')
+    model.compile(loss='categorical_crossentropy', optimizer='rmsprop')
 
     print '*** load data ***'
     if arg.predict_type == 'test':
@@ -177,7 +177,7 @@ if __name__ == "__main__":
         error = 0
         for i in xrange(len(idList)):
             if answers_predict[i] != answerData[ idList[i] ]:
-                error +=1
+                error += 1
         print 'About modle: ' + arg.weights
-        print 'Error = {:.03f}'.format(error/len(idList))
+        print 'Error = {:.03f}'.format(1.0 * error / len(idList))
 
