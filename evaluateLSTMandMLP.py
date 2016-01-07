@@ -49,17 +49,21 @@ def getAnswerFeature(choiceData, answerData, idList):
         answerMatrix[i,:] = choiceData[idList[i]][ answerData[idList[i]]*word_vec_dim : (answerData[idList[i]]+1)*word_vec_dim ]
     return answerMatrix
 
-def loadIdMap():
+def loadIdMap(predict_type):
     idMap = {}
-    with open('/share/MLDS/preprocessed/id_train.csv', 'r') as csvfile:
-        reader = csv.reader(csvfile, delimiter = ' ')
-        for row in reader:
-            idMap[int(row[1])] = int(row[0])
+    csvfile = None
+    if predict_type == 'validate':
+        csvfile = open('./data/preprocessed/id_train.csv', 'r')
+    elif predict_type == 'test':
+        csvfile = open('./data/preprocessed/id_test.csv', 'r')
+    reader = csv.reader(csvfile, delimiter = ' ')
+    for row in reader:
+        idMap[int(row[1])] = int(row[0])
     return idMap
 
 def loadAnswerData():
     answerData = {}
-    with open('/share/MLDS/preprocessed/id_answer_label_train.csv', 'r') as csvfile:
+    with open('./data/preprocessed/id_answer_label_train.csv', 'r') as csvfile:
         reader = csv.reader(csvfile, delimiter = ' ')
         for row in reader:
             answerData[int(row[0])] = row[1]
@@ -121,17 +125,17 @@ if __name__ == "__main__":
 
     print '*** load data ***'
     if arg.predict_type == 'test':
-        imageData = loadFeatureData(fileName = '/share/MLDS/image_feature/caffenet_4096_test.csv')
+        imageData = loadFeatureData(fileName = './data/image_feature/caffenet_4096_test.csv')
     elif arg.predict_type == 'validate':
         answerData = loadAnswerData()
-        imageData = loadFeatureData(fileName = '/share/MLDS/image_feature/caffenet_4096_train.csv')
-    idMap = loadIdMap()
+        imageData = loadFeatureData(fileName = './data/image_feature/caffenet_4096_train.csv')
+    idMap = loadIdMap(arg.predict_type)
     questionData = loadFeatureData(fileName = arg.question_feature)
     choiceData = loadFeatureData(fileName = arg.choice_feature)
 
     print '*** predict ***'
     y_predict = []
-    batchSize = 256
+    batchSize = 1024
     idList = idMap.keys()
     questionIdList, batchNum = prepareIdList(idList, batchSize)
     for j in xrange(batchNum):
@@ -180,4 +184,3 @@ if __name__ == "__main__":
                 error += 1
         print 'About modle: ' + arg.weights
         print 'Error = {:.03f}'.format(1.0 * error / len(idList))
-
