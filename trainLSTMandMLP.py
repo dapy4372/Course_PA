@@ -282,7 +282,7 @@ if __name__ == '__main__':
                         totalerror += get_error(y_predict, choiceData, answerData, questionIdList[j])
                     else:
                         raise Exception("language feature dim error!")
-                totalerror = totalerror / len(validIdList)
+                totalerror = 1.0 * totalerror / len(validIdList)
                 print 'valid #{:02d}, epoch #{:03d}, current error = {:.3f}'.format(k+1, i+1, totalerror)
                 if (i+1) % 5 == 0:
                     model.save_weights(model_file_name + '_valid_{:02d}_epoch_{:03d}_loss_{:.3f}_error_{:.3f}.hdf5'.format(k+1, i+1, totalloss/batchNum, totalerror))
