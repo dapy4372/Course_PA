@@ -5,6 +5,7 @@ import random
 import numpy as np
 import theano.tensor as T
 import argparse
+from os.path import basename
 
 from keras.utils import np_utils
 from keras.models import Sequential
@@ -84,7 +85,7 @@ def getAnswerFeature(choiceData, answerData, idList):
 
 def loadIdMap():
     idMap = {}
-    with open('./data/preprocessed/id_train.csv', 'r') as csvfile:
+    with open('./data/preprocessed/id_train_small.csv', 'r') as csvfile:
         reader = csv.reader(csvfile, delimiter = ' ')
         for row in reader:
             idMap[int(row[1])] = int(row[0])
@@ -175,26 +176,20 @@ if __name__ == '__main__':
     if arg.maxout is True:
         for cur_units in arg.mlp_units:
             model.add(MaxoutDense(output_dim = cur_units, nb_feature = 2, init = 'uniform'))
-            model.add(Dropout(arg.dropout))
+            if arg.dropout < 1:
+                model.add(Dropout(arg.dropout))
     else:
         for cur_units in arg.mlp_units:
             model.add(Dense(output_dim = cur_units, init = 'uniform'))
             model.add(Activation(arg.mlp_activation))
-            model.add(Dropout(arg.dropout))
+            if arg.dropout < 1:
+                model.add(Dropout(arg.dropout))
     model.add(Dense(output_dim = word_vec_dim, init = 'uniform'))
     # model.add(Activation('softmax'))
 
     print '*** save model ***'
-    # -i_dim', '--image_feature_dim', type=int, default=4096)
-    # parser.add_argument('-l_dim', '--language_feature_dim', type=int, default=300)
-    # parser.add_argument('-question_feature', type=str, required=True)
-    # parser.add_argument('-choice_feature
-    #     -u', '--mlp_units', nargs='+', type=int, required=True)
-    # parser.add_argument('-a', '--mlp_activation', type=str, default='softplus')
-    # parser.add_argument('-odim', '--mlp_output_dim', type=int, default=300)
-    # parser.add_argument('-dropout
-    model_file_name = './models/'
-    model_file_name += arg.question_feature.replace('_300_train.csv', '').replace('_300_test.csv', '')
+    model_file_name = './model/'
+    model_file_name += basename(arg.question_feature).replace('_300_train.csv', '').replace('_300_test.csv', '')
     model_file_name += '_idim_{:d}_ldim_{:d}_dropout_{:.1f}_unit'.format(arg.image_feature_dim, arg.language_feature_dim, arg.dropout)
     for cur_units in arg.mlp_units:
         model_file_name += '_{:d}'.format(cur_units)
@@ -250,7 +245,7 @@ if __name__ == '__main__':
                 trainIdList = idList[:k * setSize] + idList[(k + 1) * setSize:]
 
             for i in xrange(arg.epochs):
-                print 'valid #{02d}, epoch #{:03d}'.format(k+1, i+1)
+                print 'valid #{:02d}, epoch #{:03d}'.format(k+1, i+1)
                 # training
                 totalloss = 0
                 questionIdList, batchNum = prepareIdList(trainIdList, arg.batch_size)
@@ -278,12 +273,12 @@ if __name__ == '__main__':
                     if arg.language_feature_dim == 1800:
                         y_predict = model.predict(X = [ getImageFeature(imageData, imageIdListForBatch),
                                                         getLanguageFeature(questionData, choiceData, questionIdList[j]) ],
-                                                  verbose = 0))
+                                                  verbose = 0)
                         totalerror += get_error(y_predict, choiceData, answerData, questionIdList[j])
                     elif arg.language_feature_dim == 300:
                         y_predict = model.predict(X = [ getImageFeature(imageData, imageIdListForBatch),
                                                         getQuestionFeature(questionData, questionIdList[j]) ],
-                                                  verbose = 0 ))
+                                                  verbose = 0 )
                         totalerror += get_error(y_predict, choiceData, answerData, questionIdList[j])
                     else:
                         raise Exception("language feature dim error!")
