@@ -4,7 +4,7 @@ import csv
 import string
 import numpy as np
 import argparse
-
+from os.path import basename
 from keras.models import model_from_json
 # from spacy.en import English
 img_dim = 4096
@@ -18,7 +18,6 @@ def parseArgs():
     parser.add_argument('-weights', type=str, required=True)
     parser.add_argument('-question_feature', type=str, required=True)
     parser.add_argument('-choice_feature', type=str, required=True)
-    parser.add_argument('-results', type=str)
     return parser.parse_args()
 
 def getImageFeature(imageData, idList):
@@ -51,14 +50,10 @@ def getAnswerFeature(choiceData, answerData, idList):
 
 def loadIdMap(predict_type):
     idMap = {}
-    csvfile = None
-    if predict_type == 'validate':
-        csvfile = open('./data/preprocessed/id_train.csv', 'r')
-    elif predict_type == 'test':
-        csvfile = open('./data/preprocessed/id_test.csv', 'r')
-    reader = csv.reader(csvfile, delimiter = ' ')
-    for row in reader:
-        idMap[int(row[1])] = int(row[0])
+    with open('./data/preprocessed/id_' + predict_type + '.csv', 'r') as csvfile:
+        reader = csv.reader(csvfile, delimiter = ' ')
+        for row in reader:
+            idMap[int(row[1])] = int(row[0])
     return idMap
 
 def loadAnswerData():
@@ -110,11 +105,10 @@ def cos_sim(y_true, y_pred):
 if __name__ == "__main__":
     arg = parseArgs()
     # nlp = English()
-
     if arg.predict_type == 'test':
         print '*** predict type: test ***'
-    elif arg.predict_type == 'validate':
-        print '*** predict type: validate ***'
+    elif arg.predict_type == 'train':
+        print '*** predict type: train ***'
     else:
         raise Exception("predict type error!")
 
@@ -126,7 +120,7 @@ if __name__ == "__main__":
     print '*** load data ***'
     if arg.predict_type == 'test':
         imageData = loadFeatureData(fileName = './data/image_feature/caffenet_4096_test.csv')
-    elif arg.predict_type == 'validate':
+    elif arg.predict_type == 'train':
         answerData = loadAnswerData()
         imageData = loadFeatureData(fileName = './data/image_feature/caffenet_4096_train.csv')
     idMap = loadIdMap(arg.predict_type)
@@ -135,7 +129,7 @@ if __name__ == "__main__":
 
     print '*** predict ***'
     y_predict = []
-    batchSize = 1024
+    batchSize = 512
     idList = idMap.keys()
     questionIdList, batchNum = prepareIdList(idList, batchSize)
     for j in xrange(batchNum):
@@ -167,16 +161,15 @@ if __name__ == "__main__":
                 loss = current_loss
         answers_predict.append(label[answer])
 
-    # write testing answer to file which will be uploaded
-
     if arg.predict_type == 'test':
         print '*** choose answer ***'
-        with open(arg.results, 'w') as outfile:
+        results_file = './results/' + basename(arg.weights).replace('.hdf5', '_result.txt')
+        with open(results_file, 'w') as outfile:
             writer = csv.writer(outfile)
             writer.writerow(['q_id', 'ans'])
             for i in xrange(len(idList)):
                 writer.writerow([idList[i], answers_predict[i]])
-    elif arg.predict_type == 'validate':
+    elif arg.predict_type == 'train':
         print '*** calculate error ***'
         error = 0
         for i in xrange(len(idList)):
@@ -184,3 +177,4 @@ if __name__ == "__main__":
                 error += 1
         print 'About modle: ' + arg.weights
         print 'Error = {:.03f}'.format(1.0 * error / len(idList))
+
