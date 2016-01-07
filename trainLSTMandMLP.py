@@ -18,10 +18,10 @@ word_vec_dim = 300
 
 def parseArgs():
     parser = argparse.ArgumentParser()
-    parser.add_argument('-i_dim', '--image_feature_dim', type=int, default=4096)
-    parser.add_argument('-l_dim', '--language_feature_dim', type=int, default=300)
-    parser.add_argument('-question_feature', type=str, required=True)
-    parser.add_argument('-choice_feature', type=str, required=True)
+    parser.add_argument('-idim', '--image_feature_dim', type=int, default=4096)
+    parser.add_argument('-ldim', '--language_feature_dim', type=int, default=300)
+    parser.add_argument('-qf', '--question_feature', type=str, required=True)
+    parser.add_argument('-cf', '--choice_feature', type=str, required=True)
     # lstm setting
     parser.add_argument('-lstm', type=bool, default=False)
     parser.add_argument('-lstm_units', type=int, default=512)
@@ -36,7 +36,7 @@ def parseArgs():
     parser.add_argument('-memory_limit', type=float, default=6.0)
     parser.add_argument('-cross_valid', type=int, default=1)
     parser.add_argument('-batch_size', type=int, default=256)
-    parser.add_argument('-epochs', type=int, default=150)
+    parser.add_argument('-epochs', type=int, default=100)
     # parser.add_argument('-lr', type=float, default=0.1)
     # parser.add_argument('-momentum', type=float, default=0.9)
     return parser.parse_args()
@@ -185,8 +185,19 @@ if __name__ == '__main__':
     # model.add(Activation('softmax'))
 
     print '*** save model ***'
+    # -i_dim', '--image_feature_dim', type=int, default=4096)
+    # parser.add_argument('-l_dim', '--language_feature_dim', type=int, default=300)
+    # parser.add_argument('-question_feature', type=str, required=True)
+    # parser.add_argument('-choice_feature
+    #     -u', '--mlp_units', nargs='+', type=int, required=True)
+    # parser.add_argument('-a', '--mlp_activation', type=str, default='softplus')
+    # parser.add_argument('-odim', '--mlp_output_dim', type=int, default=300)
+    # parser.add_argument('-dropout
     model_file_name = './models/'
-    model_file_name += arg.model_name.replace('_1500_train.csv', '').replace('_1500_test.csv', '')
+    model_file_name += arg.question_feature.replace('_300_train.csv', '').replace('_300_test.csv', '')
+    model_file_name += '_idim_{:d}_ldim_{:d}_dropout_{:.1f}_unit'.format(arg.image_feature_dim, arg.language_feature_dim, arg.dropout)
+    for cur_units in arg.mlp_units:
+        model_file_name += '_{:d}'.format(cur_units)
     open(model_file_name + '.json', 'w').write( model.to_json() )
     # sgd = SGD(lr = arg.lr, decay = 1e-6, momentum = arg.momentum, nesterov = True)
     model.compile(loss = cos_sim, optimizer = 'rmsprop')
