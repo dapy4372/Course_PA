@@ -7,20 +7,22 @@ import argparse
 from os.path import basename
 from keras.models import model_from_json
 # from spacy.en import English
-img_dim = 4096
+#img_dim = 4096
 word_vec_dim = 300
 
 def parseArgs():
     parser = argparse.ArgumentParser()
+    parser.add_argument('-idim', '--image_feature_dim', type=int, default=4096)
     parser.add_argument('-predict_type', type=str, default='test')
     parser.add_argument('-ldim', '--language_feature_dim', type=int, default=300)
     parser.add_argument('-model', type=str, required=True)
     parser.add_argument('-w', '--weights', type=str, required=True)
+    parser.add_argument('-if', '--image_feature', type=str, required=True)
     parser.add_argument('-qf', '--question_feature', type=str, required=True)
     parser.add_argument('-cf', '--choice_feature', type=str, required=True)
     return parser.parse_args()
 
-def getImageFeature(imageData, idList):
+def getImageFeature(imageData, idList, img_dim):
     batchSize = len(idList)
     imageMatrix = np.zeros((batchSize, img_dim), dtype = 'float32')
     for i in xrange(batchSize):
@@ -110,11 +112,10 @@ if __name__ == "__main__":
     model.compile(loss='categorical_crossentropy', optimizer='rmsprop')
 
     print '*** load data ***'
-    if arg.predict_type == 'test':
-        imageData = loadFeatureData(fileName = './data/image_feature/caffenet_4096_test.csv')
-    elif arg.predict_type == 'train':
+    imageData = loadFeatureData(fileName = arg.image_feature)
+    if arg.predict_type == 'train':
         answerData = loadAnswerData()
-        imageData = loadFeatureData(fileName = './data/image_feature/caffenet_4096_train.csv')
+
     idMap = loadIdMap(arg.predict_type)
     questionData = loadFeatureData(fileName = arg.question_feature)
     choiceData = loadFeatureData(fileName = arg.choice_feature)
@@ -127,11 +128,11 @@ if __name__ == "__main__":
     for j in xrange(batchNum):
         imageIdListForBatch = [idMap[key] for key in questionIdList[j]]
         if arg.language_feature_dim == 1800:
-            y_predict.extend(model.predict(X = [ getImageFeature(imageData, imageIdListForBatch),
+            y_predict.extend(model.predict(X = [ getImageFeature(imageData, imageIdListForBatch, arg.image_feature_dim),
                                                  getLanguageFeature(questionData, choiceData, questionIdList[j]) ],
                                            verbose = 0))
         elif arg.language_feature_dim == 300:
-            y_predict.extend(model.predict(X = [ getImageFeature(imageData, imageIdListForBatch),
+            y_predict.extend(model.predict(X = [ getImageFeature(imageData, imageIdListForBatch, arg.image_feature_dim),
                                                  getQuestionFeature(questionData, questionIdList[j]) ],
                                            verbose = 0))
         else:
