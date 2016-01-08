@@ -237,7 +237,7 @@ if __name__ == '__main__':
                     print 'epoch #{:03d}, batch #{:03d}, current avg loss = {:.3f}'.format(i+1, j+1, totalloss/(j+1))
                     logfile.write('epoch #{:03d}, batch #{:03d}, current avg loss = {:.3f}\n'.format(i+1, j+1, totalloss/(j+1)))
             if (i+1) % 5 == 0:
-                model.save_weights(model_file_name + '_epoch_{:03d}_loss_{:.3f}.hdf5'.format(i+1, totalloss/batchNum))
+                model.save_weights(model_file_name + '_epoch_{:05d}_loss_{:.3f}.hdf5'.format(i+1, totalloss/batchNum))
     else:
         # cross valid & training
         dataSize = len(idList)
@@ -302,7 +302,7 @@ if __name__ == '__main__':
                 logfile.write('valid #{:02d}, epoch #{:03d}, current error = {:.3f}\n'.format(k+1, i+1, totalerror))
                 
                 # save model
-                if (i+1) % 1 == 5:
+                if (i+1) % 5 == 0:
                     model.save_weights(model_file_name + '_valid_{:02d}_epoch_{:03d}_loss_{:.3f}_error_{:.3f}.hdf5'.format(k+1, i+1, totalloss/batchNum, totalerror))
 
             # save current cross validation error
