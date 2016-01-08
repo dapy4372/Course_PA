@@ -197,8 +197,11 @@ if __name__ == '__main__':
     open(model_file_name + '.json', 'w').write( model.to_json() )
     # sgd = SGD(lr = arg.lr, decay = 1e-6, momentum = arg.momentum, nesterov = True)
     model.compile(loss = cos_sim, optimizer = 'rmsprop')
+    
+    weights_save = model.get_weights()
 
-    logfile = open('./log/' + model_file_name[8:] + '.log', 'w')
+    logfilename = './log/' + model_file_name[8:]
+    logfile = open(logfilename, 'w')
 
     # load data
     print '*** load data ***'
@@ -239,7 +242,11 @@ if __name__ == '__main__':
         # cross valid & training
         dataSize = len(idList)
         setSize = dataSize / arg.cross_valid
+        crossvalidList = []
         for k in xrange(arg.cross_valid):
+            #reset the weights to initial
+            model.set_weights(weights_save)
+
             # cut train and valid id list
             if k == arg.cross_valid -1:
                 validIdList = idList[k * setSize:]
@@ -247,7 +254,9 @@ if __name__ == '__main__':
             else:
                 validIdList = idList[k * setSize : (k + 1) * setSize]
                 trainIdList = idList[:k * setSize] + idList[(k + 1) * setSize:]
-
+            
+            # for save avg totalerr in each cross validation
+            totalerror = 0
             for i in xrange(arg.epochs):
                 print 'valid #{:02d}, epoch #{:03d}'.format(k+1, i+1)
                 logfile.write('valid #{:02d}, epoch #{:03d}\n'.format(k+1, i+1))
@@ -295,3 +304,9 @@ if __name__ == '__main__':
                 # save model
                 if (i+1) % 1 == 5:
                     model.save_weights(model_file_name + '_valid_{:02d}_epoch_{:03d}_loss_{:.3f}_error_{:.3f}.hdf5'.format(k+1, i+1, totalloss/batchNum, totalerror))
+
+            # save current cross validation error
+            crossvalidList.append(totalerror)
+        crossvalidAVG = sum(crossvalidList) / len(crossvalidList)
+        logfile.write('AVG. error = {:.3f}\n'.format(crossvalidAVG))
+        os.rename(logfilename, logfilename + '{:.3f}.log'.format(crossvalidAVG))
