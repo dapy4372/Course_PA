@@ -23,6 +23,7 @@ def parseArgs():
     parser.add_argument('-ldim', '--language_feature_dim', type=int, default=300)
     parser.add_argument('-qf', '--question_feature', type=str, required=True)
     parser.add_argument('-cf', '--choice_feature', type=str, required=True)
+    parser.add_argument('-if', '--image_featuree', type=str, required=True)
     # lstm setting
     parser.add_argument('-lstm', type=bool, default=False)
     parser.add_argument('-lstm_units', type=int, default=512)
@@ -85,7 +86,7 @@ def getAnswerFeature(choiceData, answerData, idList):
 
 def loadIdMap():
     idMap = {}
-    with open('./data/preprocessed/id_train_small.csv', 'r') as csvfile:
+    with open('./data/preprocessed/id_train.csv', 'r') as csvfile:
         reader = csv.reader(csvfile, delimiter = ' ')
         for row in reader:
             idMap[int(row[1])] = int(row[0])
@@ -201,7 +202,7 @@ if __name__ == '__main__':
     print '*** load data ***'
     idMap = loadIdMap()
     answerData = loadAnswerData()
-    imageData = loadFeatureData(fileName = './data/image_feature/caffenet_4096_train.csv')
+    imageData = loadFeatureData(fileName = arg.image_feature)
     questionData = loadFeatureData(fileName = arg.question_feature)
     choiceData = loadFeatureData(fileName = arg.choice_feature)
 
