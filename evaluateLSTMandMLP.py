@@ -12,9 +12,9 @@ word_vec_dim = 300
 
 def parseArgs():
     parser = argparse.ArgumentParser()
-    parser.add_argument('-idim', '--image_feature_dim', type=int, require=True)
+    parser.add_argument('-idim', '--image_feature_dim', type=int, required=True)
     parser.add_argument('-predict_type', type=str, default='test')
-    parser.add_argument('-ldim', '--language_feature_dim', type=int, require=True)
+    parser.add_argument('-ldim', '--language_feature_dim', type=int, required=True)
     parser.add_argument('-model', type=str, required=True)
     parser.add_argument('-w', '--weights', type=str, required=True)
     parser.add_argument('-if', '--image_feature', type=str, required=True)
