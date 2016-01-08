@@ -310,4 +310,4 @@ if __name__ == '__main__':
         crossvalidAVG = sum(crossvalidList) / len(crossvalidList)
         print 'AVG. error = {:.3f}\n'.format(crossvalidAVG)
         logfile.write('AVG. error = {:.3f}\n'.format(crossvalidAVG))
-        os.rename(logfilename, logfilename + '_AVGerr_+' + '{:.3f}.log'.format(crossvalidAVG))
+        os.rename(logfilename, logfilename + '_AVGerr_' + '{:.3f}.log'.format(crossvalidAVG))
