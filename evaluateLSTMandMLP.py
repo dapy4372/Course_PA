@@ -13,11 +13,11 @@ word_vec_dim = 300
 def parseArgs():
     parser = argparse.ArgumentParser()
     parser.add_argument('-predict_type', type=str, default='test')
-    parser.add_argument('-language_feature_dim', type=int, default=300)
+    parser.add_argument('-ldim', '--language_feature_dim', type=int, default=300)
     parser.add_argument('-model', type=str, required=True)
-    parser.add_argument('-weights', type=str, required=True)
-    parser.add_argument('-question_feature', type=str, required=True)
-    parser.add_argument('-choice_feature', type=str, required=True)
+    parser.add_argument('-w', '--weights', type=str, required=True)
+    parser.add_argument('-qf', '--question_feature', type=str, required=True)
+    parser.add_argument('-cf', '--choice_feature', type=str, required=True)
     return parser.parse_args()
 
 def getImageFeature(imageData, idList):
@@ -63,14 +63,6 @@ def loadAnswerData():
         for row in reader:
             answerData[int(row[0])] = row[1]
     return answerData
-
-def loadFeatureData(fileName):
-    featureData = {}
-    with open(fileName, 'r') as csvfile:
-        reader = csv.reader(csvfile, delimiter = ' ')
-        for row in reader:
-            featureData[int(row[0])] = np.array(row[1:]).astype(dtype = 'float32')
-    return featureData
 
 def loadFeatureData(fileName):
     featureData = {}
@@ -163,7 +155,7 @@ if __name__ == "__main__":
 
     if arg.predict_type == 'test':
         print '*** print answer ***'
-        results_file = './result/' + basename(arg.weights).replace('.hdf5', '_result.txt')
+        results_file = './results/' + basename(arg.weights).replace('.hdf5', '_result.txt')
         with open(results_file, 'w') as outfile:
             writer = csv.writer(outfile)
             writer.writerow(['q_id', 'ans'])
@@ -177,4 +169,3 @@ if __name__ == "__main__":
                 error += 1
         print 'About modle: ' + arg.weights
         print 'Error = {:.03f}'.format(1.0 * error / len(idList))
-

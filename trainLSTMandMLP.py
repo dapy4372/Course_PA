@@ -279,7 +279,10 @@ if __name__ == '__main__':
                     if (j+1) % 100 == 0:
                         print 'train #{:02d}, epoch #{:03d}, batch #{:03d}, current avg loss = {:.3f}'.format(k+1, i+1, j+1, totalloss/(j+1))
                         logfile.write('train #{:02d}, epoch #{:03d}, batch #{:03d}, current avg loss = {:.3f}\n'.format(k+1, i+1, j+1, totalloss/(j+1)))
-                        
+
+                # The batchNum will be changed
+                totalloss = totalloss / batchNum             
+
                 # cross valid
                 totalerror = 0
                 questionIdList, batchNum = prepareIdList(validIdList, 512)
@@ -303,7 +306,7 @@ if __name__ == '__main__':
                 
                 # save model
                 if (i+1) % 5 == 0:
-                    model.save_weights(model_file_name + '_valid_{:02d}_epoch_{:03d}_loss_{:.3f}_error_{:.3f}.hdf5'.format(k+1, i+1, totalloss/batchNum, totalerror))
+                    model.save_weights(model_file_name + '_valid_{:02d}_epoch_{:03d}_loss_{:.3f}_error_{:.3f}.hdf5'.format(k+1, i+1, totalloss, totalerror))
 
             # save current cross validation error
             crossvalidList.append(totalerror)
