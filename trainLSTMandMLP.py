@@ -14,7 +14,7 @@ from keras.layers.recurrent import LSTM
 from keras.optimizers import SGD
 
 # from spacy.en import English
-img_dim = 4096
+#img_dim = 4096
 word_vec_dim = 300
 
 def parseArgs():
@@ -23,7 +23,7 @@ def parseArgs():
     parser.add_argument('-ldim', '--language_feature_dim', type=int, default=300)
     parser.add_argument('-qf', '--question_feature', type=str, required=True)
     parser.add_argument('-cf', '--choice_feature', type=str, required=True)
-    parser.add_argument('-if', '--image_featuree', type=str, required=True)
+    parser.add_argument('-if', '--image_feature', type=str, required=True)
     # lstm setting
     parser.add_argument('-lstm', type=bool, default=False)
     parser.add_argument('-lstm_units', type=int, default=512)
@@ -56,7 +56,7 @@ def parseArgs():
 #             questionMatrix[i,j,:] = tokens[i][j].vector
 #     return questionMatrix
 
-def getImageFeature(imageData, idList):
+def getImageFeature(imageData, idList, img_dim):
     batchSize = len(idList)
     imageMatrix = np.zeros((batchSize, img_dim), dtype = 'float32')
     for i in xrange(batchSize):
@@ -158,7 +158,7 @@ if __name__ == '__main__':
 
     # build model
     image_model = Sequential()
-    image_model.add(Reshape(input_shape = (img_dim,), dims=(img_dim,)))
+    image_model.add(Reshape(input_shape = (arg.image_feature_dim,), dims=(arg.image_feature_dim,)))
 
     language_model = Sequential()
     if arg.lstm is True:
@@ -198,6 +198,8 @@ if __name__ == '__main__':
     # sgd = SGD(lr = arg.lr, decay = 1e-6, momentum = arg.momentum, nesterov = True)
     model.compile(loss = cos_sim, optimizer = 'rmsprop')
 
+    logfile = open('./log/' + model_file_name[8:] + '.log', 'w')
+
     # load data
     print '*** load data ***'
     idMap = loadIdMap()
@@ -218,11 +220,11 @@ if __name__ == '__main__':
             for j in xrange(batchNum):
                 imageIdListForBatch = [idMap[key] for key in questionIdList[j]]
                 if arg.language_feature_dim == 1800:
-                    loss = model.train_on_batch(X = [ getImageFeature(imageData, imageIdListForBatch),
+                    loss = model.train_on_batch(X = [ getImageFeature(imageData, imageIdListForBatch, arg.image_feature_dim),
                                                       getLanguageFeature(questionData, choiceData, questionIdList[j]) ],
                                                 y = getAnswerFeature(choiceData, answerData, questionIdList[j]) )
                 elif arg.language_feature_dim == 300:
-                    loss = model.train_on_batch(X = [ getImageFeature(imageData, imageIdListForBatch),
+                    loss = model.train_on_batch(X = [ getImageFeature(imageData, imageIdListForBatch, arg.image_feature_dim),
                                                       getQuestionFeature(questionData, questionIdList[j]) ],
                                                 y = getAnswerFeature(choiceData, answerData, questionIdList[j]) )
                 else:
@@ -230,6 +232,7 @@ if __name__ == '__main__':
                 totalloss += loss[0]
                 if (j+1) % 100 == 0:
                     print 'epoch #{:03d}, batch #{:03d}, current avg loss = {:.3f}'.format(i+1, j+1, totalloss/(j+1))
+                    logfile.write('epoch #{:03d}, batch #{:03d}, current avg loss = {:.3f}\n'.format(i+1, j+1, totalloss/(j+1)))
             if (i+1) % 5 == 0:
                 model.save_weights(model_file_name + '_epoch_{:03d}_loss_{:.3f}.hdf5'.format(i+1, totalloss/batchNum))
     else:
@@ -247,37 +250,39 @@ if __name__ == '__main__':
 
             for i in xrange(arg.epochs):
                 print 'valid #{:02d}, epoch #{:03d}'.format(k+1, i+1)
+                logfile.write('valid #{:02d}, epoch #{:03d}\n'.format(k+1, i+1))
                 # training
                 totalloss = 0
                 questionIdList, batchNum = prepareIdList(trainIdList, arg.batch_size)
                 for j in xrange(batchNum):
                     imageIdListForBatch = [idMap[key] for key in questionIdList[j]]
                     if arg.language_feature_dim == 1800:
-                        loss = model.train_on_batch(X = [ getImageFeature(imageData, imageIdListForBatch),
+                        loss = model.train_on_batch(X = [ getImageFeature(imageData, imageIdListForBatch, arg.image_feature_dim),
                                                           getLanguageFeature(questionData, choiceData, questionIdList[j]) ],
                                                     y = getAnswerFeature(choiceData, answerData, questionIdList[j]) )
                     elif arg.language_feature_dim == 300:
-                        loss = model.train_on_batch(X = [ getImageFeature(imageData, imageIdListForBatch),
+                        loss = model.train_on_batch(X = [ getImageFeature(imageData, imageIdListForBatch, arg.image_feature_dim),
                                                           getQuestionFeature(questionData, questionIdList[j]) ],
                                                     y = getAnswerFeature(choiceData, answerData, questionIdList[j]) )
                     else:
                         raise Exception("language feature dim error!")
                     totalloss += loss[0]
                     if (j+1) % 100 == 0:
-                        print 'valid #{:02d}, epoch #{:03d}, batch #{:03d}, current avg loss = {:.3f}'.format(k+1, i+1, j+1, totalloss/(j+1))
-
+                        print 'train #{:02d}, epoch #{:03d}, batch #{:03d}, current avg loss = {:.3f}'.format(k+1, i+1, j+1, totalloss/(j+1))
+                        logfile.write('train #{:02d}, epoch #{:03d}, batch #{:03d}, current avg loss = {:.3f}\n'.format(k+1, i+1, j+1, totalloss/(j+1)))
+                        
                 # cross valid
                 totalerror = 0
                 questionIdList, batchNum = prepareIdList(validIdList, 512)
                 for j in xrange(batchNum):
                     imageIdListForBatch = [idMap[key] for key in questionIdList[j]]
                     if arg.language_feature_dim == 1800:
-                        y_predict = model.predict(X = [ getImageFeature(imageData, imageIdListForBatch),
+                        y_predict = model.predict(X = [ getImageFeature(imageData, imageIdListForBatch, arg.image_feature_dim),
                                                         getLanguageFeature(questionData, choiceData, questionIdList[j]) ],
                                                   verbose = 0)
                         totalerror += get_error(y_predict, choiceData, answerData, questionIdList[j])
                     elif arg.language_feature_dim == 300:
-                        y_predict = model.predict(X = [ getImageFeature(imageData, imageIdListForBatch),
+                        y_predict = model.predict(X = [ getImageFeature(imageData, imageIdListForBatch, arg.image_feature_dim),
                                                         getQuestionFeature(questionData, questionIdList[j]) ],
                                                   verbose = 0 )
                         totalerror += get_error(y_predict, choiceData, answerData, questionIdList[j])
@@ -285,5 +290,8 @@ if __name__ == '__main__':
                         raise Exception("language feature dim error!")
                 totalerror = 1.0 * totalerror / len(validIdList)
                 print 'valid #{:02d}, epoch #{:03d}, current error = {:.3f}'.format(k+1, i+1, totalerror)
-                if (i+1) % 5 == 0:
+                logfile.write('valid #{:02d}, epoch #{:03d}, current error = {:.3f}\n'.format(k+1, i+1, totalerror))
+                
+                # save model
+                if (i+1) % 1 == 5:
                     model.save_weights(model_file_name + '_valid_{:02d}_epoch_{:03d}_loss_{:.3f}_error_{:.3f}.hdf5'.format(k+1, i+1, totalloss/batchNum, totalerror))
