@@ -5,6 +5,8 @@ import random
 import numpy as np
 import theano.tensor as T
 import argparse
+import gzip
+import cPickle as pickle
 from os.path import basename
 
 from keras.utils import np_utils
@@ -107,6 +109,9 @@ def loadFeatureData(fileName):
         for row in reader:
             featureData[int(row[0])] = np.array(row[1:]).astype(dtype = 'float32')
     return featureData
+def loadFeatureData(fileName):
+    f = gzip.open(fileName, 'rb')
+    return pickle.load(f)
 
 def prepareIdList(idList, batchSize):
     questionNum = len(idList)
