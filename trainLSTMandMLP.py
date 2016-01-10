@@ -103,13 +103,6 @@ def loadAnswerData():
     return answerData
 
 def loadFeatureData(fileName):
-    featureData = {}
-    with open(fileName, 'r') as csvfile:
-        reader = csv.reader(csvfile, delimiter = ' ')
-        for row in reader:
-            featureData[int(row[0])] = np.array(row[1:]).astype(dtype = 'float32')
-    return featureData
-def loadFeatureData(fileName):
     f = gzip.open(fileName, 'rb')
     return pickle.load(f)
 
