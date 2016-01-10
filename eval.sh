@@ -1,8 +1,8 @@
 model_dir=./tmp/
 model=${model_dir}glove_sum_v2_idim_4096_ldim_1800_dropout_0.4_unit_1024_1024_1024.json
-qfile=./data/question_wordvector/glove_sum_v2_300_train.csv
-cfile=./data/choice_wordvector/glove_sum_v2_1500_train.csv
-ifile=./data/image_feature/caffenet_4096_train.csv
+qfile=./data/question_wordvector/glove_sum_v2_300_train.pkl.gz
+cfile=./data/choice_wordvector/glove_sum_v2_1500_train.pkl.gz
+ifile=./data/image_feature/caffenet_4096_train.pkl.gz
 idim=4096
 ldim=1800
 w1=${model_dir}glove_sum_v2_idim_4096_ldim_1800_dropout_0.4_unit_1024_1024_1024_valid_01_epoch_100_loss_3.023_error_0.237.hdf5
@@ -21,9 +21,9 @@ w10=${model_dir}glove_sum_v2_idim_4096_ldim_1800_dropout_0.4_unit_1024_1024_1024
 #do
 #    python evaluateLSTMandMLP.py -model ${model} -idim ${idim} -ldim ${ldim} -w ${w} -qf ${qfile} -cf ${cfile} -if ${ifile} -predict_type test
 #done
-model=./weightedsum/glove_weightedsum_idim_4096_ldim_1800_dropout_0.4_unit_1024_1024_1024.json
-qfile=./data/question_wordvector/glove_weightedsum_300_test.csv
-cfile=./data/choice_wordvector/glove_sum_v2_1500_test.csv
-ifile=./data/image_feature/caffenet_4096_test.csv
-w=./weightedsum/glove_weightedsum_idim_4096_ldim_1800_dropout_0.4_unit_1024_1024_1024_epoch_00100_loss_0.172.hdf5
+model=./data/models/glove_weightedsum_idim_4096_ldim_1800_dropout_0.4_unit_1024_1024_1024.json
+qfile=./data/question_wordvector/glove_weightedsum_300_test.pkl.gz
+cfile=./data/choice_wordvector/glove_sum_v2_1500_test.pkl.gz
+ifile=./data/image_feature/caffenet_4096_test.pkl.gz
+w=./data/models/glove_weightedsum_idim_4096_ldim_1800_dropout_0.4_unit_1024_1024_1024_valid_07_epoch_100_loss_3.142_error_0.259.hdf5
 python evaluateLSTMandMLP.py -model ${model} -idim ${idim} -ldim ${ldim} -w ${w} -qf ${qfile} -cf ${cfile} -if ${ifile} -predict_type test

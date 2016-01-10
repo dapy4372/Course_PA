@@ -1,6 +1,8 @@
 import sys
 import resource
 import csv
+import gzip
+import cPickle as pickle
 import string
 import numpy as np
 import argparse
@@ -67,13 +69,17 @@ def loadAnswerData():
     return answerData
 
 def loadFeatureData(fileName):
+    f = gzip.open(fileName, 'rb')
+    return pickle.load(f)
+"""
+def loadFeatureData(fileName):
     featureData = {}
     with open(fileName, 'r') as csvfile:
         reader = csv.reader(csvfile, delimiter = ' ')
         for row in reader:
             featureData[int(row[0])] = np.array(row[1:]).astype(dtype = 'float32')
     return featureData
-
+"""
 def prepareIdList(idList, batchSize):
     questionNum = len(idList)
     batchNum = questionNum / batchSize
