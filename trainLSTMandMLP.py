@@ -188,7 +188,7 @@ if __name__ == '__main__':
 
     print '*** save model ***'
     model_file_name = './model/'
-    model_file_name += basename(arg.question_feature).replace('_300_train.csv', '').replace('_300_test.csv', '')
+    model_file_name += basename(arg.question_feature).replace('_300_train.pkl.gz', '').replace('_300_test.pkl.gz', '')
     model_file_name += '_idim_{:d}_ldim_{:d}_dropout_{:.1f}_unit'.format(arg.image_feature_dim, arg.language_feature_dim, arg.dropout)
     for cur_units in arg.mlp_units:
         model_file_name += '_{:d}'.format(cur_units)
