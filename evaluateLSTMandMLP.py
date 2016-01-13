@@ -6,7 +6,7 @@ import cPickle as pickle
 import string
 import numpy as np
 import argparse
-from os.path import basename
+from os.path import basename exists
 from keras.models import model_from_json
 # from spacy.en import English
 #img_dim = 4096
@@ -22,6 +22,7 @@ def parseArgs():
     parser.add_argument('-if', '--image_feature', type=str, required=True)
     parser.add_argument('-qf', '--question_feature', type=str, required=True)
     parser.add_argument('-cf', '--choice_feature', type=str, required=True)
+    parser.add_argument('-print_error_id', type=bool, default=False)
     return parser.parse_args()
 
 def getImageFeature(imageData, idList, img_dim):
@@ -102,6 +103,22 @@ def cos_sim(y_true, y_pred):
     v = np.sqrt(np.sum(np.square(y_pred)))
     return 1 - dot / (u * v + 0.0001)
 
+def loadErrorMap():
+    errorMap = {}
+    if exists('error_id_count.csv'):
+        with open(fileName, 'r') as csvfile:
+        reader = csv.reader(csvfile, delimiter = ' ')
+        for row in reader:
+            errorMap[int(row[0])] = int(row[1:])
+    return errorIdMap
+
+def writeErrorIdMap(errorMap):
+    with open('error_id_count.csv', 'w') as outfile:
+        writer = csv.writer(outfile)
+        writer.writerow(['q_id', 'error_times'])
+        for item in errorMap.items():
+            writer.writerow([item[0], item[1])
+
 if __name__ == "__main__":
     arg = parseArgs()
     # nlp = English()
@@ -171,8 +188,15 @@ if __name__ == "__main__":
     elif arg.predict_type == 'train':
         print '*** calculate error ***'
         error = 0
+        errorMap = loadErrorMap()
         for i in xrange(len(idList)):
             if answers_predict[i] != answerData[ idList[i] ]:
                 error += 1
+                if errorMap.has_key(idList[i]):
+                    errorMap[ idList[i] ] += 1
+                else:
+                    errorMap[ idList[i] ] = 1
+        if arg.print_error_id = True:
+            writeErrorIdMap(errorMap)
         print 'About modle: ' + arg.weights
         print 'Error = {:.03f}'.format(1.0 * error / len(idList))
