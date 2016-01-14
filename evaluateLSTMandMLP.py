@@ -23,6 +23,7 @@ def parseArgs():
     parser.add_argument('-qf', '--question_feature', type=str, required=True)
     parser.add_argument('-cf', '--choice_feature', type=str, required=True)
     parser.add_argument('-print_error_id', type=bool, default=False)
+    parser.add_argument('-use_error_file', type=bool, default=True)
     return parser.parse_args()
 
 def getImageFeature(imageData, idList, img_dim):
@@ -103,17 +104,18 @@ def cos_sim(y_true, y_pred):
     v = np.sqrt(np.sum(np.square(y_pred)))
     return 1 - dot / (u * v + 0.0001)
 
-def loadErrorMap():
+def loadErrorMap(usethefile = True):
     errorMap = {}
-    if exists('error_id_count.csv'):
-        with open(fileName, 'r') as csvfile:
-        reader = csv.reader(csvfile, delimiter = ' ')
-        for row in reader:
-            errorMap[int(row[0])] = int(row[1:])
-    return errorIdMap
+    if usethefile:
+        if exists('analyzer/error/all_errorid.csv'):
+             with open(fileName, 'r') as csvfile:
+                reader = csv.reader(csvfile, delimiter = ' ')
+                for row in reader:
+                    errorMap[ int(row[0]) ] = int(row[1])
+    return errorMap
 
-def writeErrorIdMap(errorMap):
-    with open('error_id_count.csv', 'w') as outfile:
+def writeErrorIdMap(errorMap, filename):
+    with open(filename, 'w') as outfile:
         writer = csv.writer(outfile)
         writer.writerow(['q_id', 'error_times'])
         for item in errorMap.items():
@@ -188,7 +190,7 @@ if __name__ == "__main__":
     elif arg.predict_type == 'train':
         print '*** calculate error ***'
         error = 0
-        errorMap = loadErrorMap()
+        errorMap = loadErrorMap(arg.use_error_file)
         for i in xrange(len(idList)):
             if answers_predict[i] != answerData[ idList[i] ]:
                 error += 1
@@ -197,6 +199,9 @@ if __name__ == "__main__":
                 else:
                     errorMap[ idList[i] ] = 1
         if arg.print_error_id = True:
-            writeErrorIdMap(errorMap)
+            if arg.use_error_file = True:
+                writeErrorIdMap(errorMap, 'analyzer/error/all_errorid.csv'))
+            else:
+                writeErrorIdMap(errorMap, 'analyzer/error/' + basename(arg.weights).replace('.hdf5', '_errorid.csv'))
         print 'About modle: ' + arg.weights
         print 'Error = {:.03f}'.format(1.0 * error / len(idList))
