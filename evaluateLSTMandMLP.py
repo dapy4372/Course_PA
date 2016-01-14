@@ -6,7 +6,7 @@ import cPickle as pickle
 import string
 import numpy as np
 import argparse
-from os.path import basename exists
+from os.path import basename, exists
 from keras.models import model_from_json
 # from spacy.en import English
 #img_dim = 4096
@@ -108,10 +108,11 @@ def loadErrorMap(usethefile = True):
     errorMap = {}
     if usethefile:
         if exists('analyzer/error/all_errorid.csv'):
-             with open(fileName, 'r') as csvfile:
-                reader = csv.reader(csvfile, delimiter = ' ')
+             with open('analyzer/error/all_errorid.csv', 'r') as csvfile:
+                reader = csv.reader(csvfile)
                 for row in reader:
-                    errorMap[ int(row[0]) ] = int(row[1])
+                    if row[0] != 'q_id':
+                        errorMap[ int(row[0]) ] = int(row[1])
     return errorMap
 
 def writeErrorIdMap(errorMap, filename):
@@ -119,7 +120,7 @@ def writeErrorIdMap(errorMap, filename):
         writer = csv.writer(outfile)
         writer.writerow(['q_id', 'error_times'])
         for item in errorMap.items():
-            writer.writerow([item[0], item[1])
+            writer.writerow([item[0], item[1]])
 
 if __name__ == "__main__":
     arg = parseArgs()
@@ -198,9 +199,9 @@ if __name__ == "__main__":
                     errorMap[ idList[i] ] += 1
                 else:
                     errorMap[ idList[i] ] = 1
-        if arg.print_error_id = True:
-            if arg.use_error_file = True:
-                writeErrorIdMap(errorMap, 'analyzer/error/all_errorid.csv'))
+        if arg.print_error_id == True:
+            if arg.use_error_file == True:
+                writeErrorIdMap(errorMap, 'analyzer/error/all_errorid.csv')
             else:
                 writeErrorIdMap(errorMap, 'analyzer/error/' + basename(arg.weights).replace('.hdf5', '_errorid.csv'))
         print 'About modle: ' + arg.weights
