@@ -21,8 +21,9 @@ word_vec_dim = 300
 
 def parseArgs():
     parser = argparse.ArgumentParser()
-    parser.add_argument('-idim', '--image_feature_dim', type=int, default=4096)
-    parser.add_argument('-ldim', '--language_feature_dim', type=int, default=300)
+    parser.add_argument('-ifdim', '--image_feature_dim', type=int, default=4096)
+    parser.add_argument('-iidim', '--image_input_dim', type=int, default=300)
+    parser.add_argument('-lfdim', '--language_feature_dim', type=int, default=300)
     parser.add_argument('-qf', '--question_feature', type=str, required=True)
     parser.add_argument('-cf', '--choice_feature', type=str, required=True)
     parser.add_argument('-if', '--image_feature', type=str, required=True)
@@ -157,6 +158,8 @@ if __name__ == '__main__':
     # build model
     image_model = Sequential()
     image_model.add(Reshape(input_shape = (arg.image_feature_dim,), dims=(arg.image_feature_dim,)))
+    image_model.add(Dense(output_dim = arg.image_input_dim, init = 'uniform'))
+    image_model.add(Activation('softplus'))
 
     language_model = Sequential()
     if arg.lstm is True:
@@ -189,7 +192,10 @@ if __name__ == '__main__':
     print '*** save model ***'
     model_file_name = './model/'
     model_file_name += basename(arg.question_feature).replace('_300_train.pkl.gz', '').replace('_300_test.pkl.gz', '')
-    model_file_name += '_idim_{:d}_ldim_{:d}_dropout_{:.1f}_unit'.format(arg.image_feature_dim, arg.language_feature_dim, arg.dropout)
+    model_file_name += '_ifdim_{:d}_iidim_{:d}_lfdim_{:d}_dropout_{:.1f}_unit'.format(arg.image_feature_dim, 
+                                                                                    arg.image_input_dim, 
+                                                                                    arg.language_feature_dim, 
+                                                                                    arg.dropout)
     for cur_units in arg.mlp_units:
         model_file_name += '_{:d}'.format(cur_units)
     open(model_file_name + '.json', 'w').write( model.to_json() )

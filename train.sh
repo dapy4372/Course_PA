@@ -1,16 +1,26 @@
+if [ "$#" -ne 3 ]; then
+   echo "Train MLP model"
+   echo "Usage: $0 <image_feature> <question_feature> <choice_feature>"
+   echo "eg. $0 ./data/image_feature/caffenet_4096_train.pkl.gz ./data/question_wordvector/glove_sum_v2_300_train.pkl.gz ./data/choice_wordvector/glove_sum_1500_train.pkl.gz"
+   echo ""
+   exit 1;
+fi
+
 dropout=0.5
 cross_valid=1
-language_dim=1800
+language_dim=300
 image_dim=4096
+image_input_dim=300
 image_feature=$1
 question_feature=$2
 choice_feature=$3
 epochs=100
 
-python trainLSTMandMLP.py -u 512 512 512 \
+python trainLSTMandMLP.py -u 1024 1024 1024 \
                           -dropout ${dropout} \
-                          -ldim ${language_dim} \
-                          -idim ${image_dim} \
+                          -lfdim ${language_dim} \
+                          -ifdim ${image_dim} \
+                          -iidim ${image_input_dim} \
                           -cross_valid ${cross_valid} \
                           -qf ${question_feature} \
                           -cf ${choice_feature} \
