@@ -14,6 +14,7 @@ image_input_dim=300
 image_feature=$1
 question_feature=$2
 choice_feature=$3
+cross_valid=8
 epochs=100
 
 python trainLSTMandMLP.py -u 1024 1024 1024 \
@@ -25,4 +26,5 @@ python trainLSTMandMLP.py -u 1024 1024 1024 \
                           -qf ${question_feature} \
                           -cf ${choice_feature} \
                           -if ${image_feature} \
+                          -cross_valid ${cross_valid}
                           -epochs ${epochs}

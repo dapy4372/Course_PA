@@ -40,7 +40,7 @@ def parseArgs():
     # train setting
     parser.add_argument('-memory_limit', type=float, default=6.0)
     parser.add_argument('-cross_valid', type=int, default=1)
-    parser.add_argument('-batch_size', type=int, default=256)
+    parser.add_argument('-batch_size', type=int, default=128)
     parser.add_argument('-epochs', type=int, default=100)
     # parser.add_argument('-lr', type=float, default=0.1)
     # parser.add_argument('-momentum', type=float, default=0.9)
