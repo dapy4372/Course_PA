@@ -46,9 +46,9 @@ if __name__ == "__main__":
 
     elif arg.set == 'test':
         print '*** test data set ***'
-        number = csv.writer(open('data/preprocessed/id_train_number.csv', 'w'), delimiter = ' ')
-        not_number = csv.writer(open('data/preprocessed/id_train_notnumber.csv', 'w'), delimiter = ' ')
-        questionfile = open('data/processed_text/question_processed.train', 'r')
+        number = csv.writer(open('data/preprocessed/id_test_number.csv', 'w'), delimiter = ' ')
+        not_number = csv.writer(open('data/preprocessed/id_test_notnumber.csv', 'w'), delimiter = ' ')
+        questionfile = open('data/processed_text/question_processed.test', 'r')
         reader = csv.reader(questionfile, delimiter = '\t')
         for row in reader:
             if row[0] == 'img_id':
