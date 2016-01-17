@@ -21,22 +21,19 @@ word_vec_dim = 300
 
 def parseArgs():
     parser = argparse.ArgumentParser()
-    parser.add_argument('-ifdim', '--image_feature_dim', type=int, default=4096)
-    parser.add_argument('-iidim', '--image_input_dim', type=int, default=300)
-    parser.add_argument('-lfdim', '--language_feature_dim', type=int, default=300)
+    parser.add_argument('-ifdim', '--image_feature_dim', type=int, default=0)
+    parser.add_argument('-iidim', '--image_input_dim', type=int, default=0)
+    parser.add_argument('-lfdim', '--language_feature_dim', type=int, default=0)
+    parser.add_argument('-ionly', '--image_only', type=str, default=False)
+    parser.add_argument('-lonly', '--language_only', type=str, default=False)
     parser.add_argument('-qf', '--question_feature', type=str, required=True)
     parser.add_argument('-cf', '--choice_feature', type=str, required=True)
     parser.add_argument('-if', '--image_feature', type=str, required=True)
-    # lstm setting
-    parser.add_argument('-lstm', type=bool, default=False)
-    parser.add_argument('-lstm_units', type=int, default=512)
-    parser.add_argument('-lstm_layers', type=int, default=1)
     # mlp setting
-    parser.add_argument('-u', '--mlp_units', nargs='+', type=int, required=True)
-    parser.add_argument('-a', '--mlp_activation', type=str, default='softplus')
-    parser.add_argument('-odim', '--mlp_output_dim', type=int, default=300)
+    parser.add_argument('-u', '--units', nargs='+', type=int, required=True)
+    parser.add_argument('-a', '--activation', type=str, default='softplus')
+    parser.add_argument('-odim', '--output_dim', type=int, default=300)
     parser.add_argument('-dropout', type=float, default=1.0)
-    parser.add_argument('-maxout', type=bool, default=False)
     # train setting
     parser.add_argument('-memory_limit', type=float, default=6.0)
     parser.add_argument('-cross_valid', type=int, default=1)
@@ -155,48 +152,52 @@ if __name__ == '__main__':
     max_len = 30
     # wordVectorModel = English()
 
-    # build model
+    # image model
     image_model = Sequential()
     image_model.add(Reshape(input_shape = (arg.image_feature_dim,), dims=(arg.image_feature_dim,)))
-    image_model.add(Dense(output_dim = arg.image_input_dim, init = 'uniform'))
-    image_model.add(Activation('softplus'))
+    # pass image feature to a matrix before merging with language model
+    if arg.image_input_dim != 0:
+        image_model.add(Dense(output_dim = arg.image_input_dim, init = 'uniform'))
+        image_model.add(Activation('softplus'))
 
+    # language model
     language_model = Sequential()
-    if arg.lstm is True:
-        if arg.lstm_layers == 1:
-            language_model.add(LSTM(output_dim = arg.lstm_units, input_shape = (max_len, word_vec_dim), return_sequences = False, activation = 'sigmoid', inner_activation = 'hard_sigmoid'))
-        else:
-            language_model.add(LSTM(output_dim = arg.lstm_units, input_shape = (max_len, word_vec_dim), return_sequences = True, activation = 'sigmoid', inner_activation = 'hard_sigmoid'))
-            for i in xrange(arg.lstm_layers - 2):
-                language_model,add(LSTM(output_dim = arg.lstm_units, return_sequences = True, activation = 'sigmoid', inner_activation = 'hard_sigmoid'))
-            language_model.add(LSTM(output_dim = arg.lstm_units, return_sequences = False, activation = 'sigmoid', inner_activation = 'hard_sigmoid'))
-    else:
-        language_model.add(Reshape(input_shape = (arg.language_feature_dim,), dims=(arg.language_feature_dim,)))
+    language_model.add(Reshape(input_shape = (arg.language_feature_dim,), dims=(arg.language_feature_dim,)))
 
-    model = Sequential()
-    model.add(Merge([image_model, language_model], mode = 'concat', concat_axis = 1))
-    if arg.maxout is True:
-        for cur_units in arg.mlp_units:
+    # merge model
+    if arg.image_only == 'True':
+        model = image_model
+    elif arg.language_only == 'True':
+        model = language_model
+    else:
+        model = Sequential()
+        model.add(Merge([image_model, language_model], mode = 'concat', concat_axis = 1))
+
+    if arg.activation == 'maxout':
+        for cur_units in arg.units:
             model.add(MaxoutDense(output_dim = cur_units, nb_feature = 2, init = 'uniform'))
             if arg.dropout < 1:
                 model.add(Dropout(arg.dropout))
     else:
-        for cur_units in arg.mlp_units:
+        for cur_units in arg.units:
             model.add(Dense(output_dim = cur_units, init = 'uniform'))
-            model.add(Activation(arg.mlp_activation))
+            model.add(Activation(arg.activation))
             if arg.dropout < 1:
                 model.add(Dropout(arg.dropout))
     model.add(Dense(output_dim = word_vec_dim, init = 'uniform'))
-    # model.add(Activation('softmax'))
 
     print '*** save model ***'
     model_file_name = './model/'
     model_file_name += basename(arg.question_feature).replace('_300_train.pkl.gz', '').replace('_300_test.pkl.gz', '')
-    model_file_name += '_ifdim_{:d}_iidim_{:d}_lfdim_{:d}_dropout_{:.1f}_unit'.format(arg.image_feature_dim, 
-                                                                                    arg.image_input_dim, 
-                                                                                    arg.language_feature_dim, 
-                                                                                    arg.dropout)
-    for cur_units in arg.mlp_units:
+    model_file_name += '_ionly_{}_lonly_{}_ifdim_{:d}_iidim_{:d}_lfdim_{:d}_dropout_{:.1f}_activation_{}_unit'.format(arg.image_only, 
+                                                                                                           arg.language_only, 
+                                                                                                           arg.image_feature_dim, 
+                                                                                                           arg.image_input_dim, 
+                                                                                                           arg.language_feature_dim, 
+                                                                                                           arg.dropout,
+                                                                                                           arg.activation)
+    # units for filename
+    for cur_units in arg.units:
         model_file_name += '_{:d}'.format(cur_units)
     open(model_file_name + '.json', 'w').write( model.to_json() )
     # sgd = SGD(lr = arg.lr, decay = 1e-6, momentum = arg.momentum, nesterov = True)
@@ -205,7 +206,10 @@ if __name__ == '__main__':
     weights_save = model.get_weights()
 
     logfilename = './log/' + model_file_name[8:]
-    logfile = open(logfilename, 'w')
+    # bufsize = 0 for unbuf IO
+    bufsize = 0
+    logfile = open(logfilename, 'w', bufsize)
+    logfile.write('valid_set,epoch,train_loss,valid_err\n')
 
     # load data
     print '*** load data ***'
@@ -226,7 +230,16 @@ if __name__ == '__main__':
             questionIdList, batchNum = prepareIdList(idList, arg.batch_size)
             for j in xrange(batchNum):
                 imageIdListForBatch = [idMap[key] for key in questionIdList[j]]
-                if arg.language_feature_dim == 1800:
+                if arg.image_only == 'True':
+                    loss = model.train_on_batch(X = [ getImageFeature(imageData, imageIdListForBatch, arg.image_feature_dim) ],
+                                                y = getAnswerFeature(choiceData, answerData, questionIdList[j]) )
+                elif arg.language_only == 'True' and arg.language_feature_dim == 1800:
+                    loss = model.train_on_batch(X = [ getLanguageFeature(questionData, choiceData, questionIdList[j]) ],
+                                                y = getAnswerFeature(choiceData, answerData, questionIdList[j]) )
+                elif arg.language_only == 'True' and arg.language_feature_dim == 300:
+                    loss = model.train_on_batch(X = [ getQuestionFeature(questionData, questionIdList[j]) ],
+                                                y = getAnswerFeature(choiceData, answerData, questionIdList[j]) )
+                elif arg.language_feature_dim == 1800:
                     loss = model.train_on_batch(X = [ getImageFeature(imageData, imageIdListForBatch, arg.image_feature_dim),
                                                       getLanguageFeature(questionData, choiceData, questionIdList[j]) ],
                                                 y = getAnswerFeature(choiceData, answerData, questionIdList[j]) )
@@ -262,14 +275,23 @@ if __name__ == '__main__':
             # for save avg totalerr in each cross validation
             totalerror = 0
             for i in xrange(arg.epochs):
-                print 'valid #{:02d}, epoch #{:03d}'.format(k+1, i+1)
-                logfile.write('valid #{:02d}, epoch #{:03d}\n'.format(k+1, i+1))
+                #print 'valid #{:02d}, epoch #{:03d}'.format(k+1, i+1)
+                #logfile.write('valid #{:02d}, epoch #{:03d}\n'.format(k+1, i+1))
                 # training
                 totalloss = 0
                 questionIdList, batchNum = prepareIdList(trainIdList, arg.batch_size)
                 for j in xrange(batchNum):
                     imageIdListForBatch = [idMap[key] for key in questionIdList[j]]
-                    if arg.language_feature_dim == 1800:
+                    if arg.image_only == 'True':
+                        loss = model.train_on_batch(X = [ getImageFeature(imageData, imageIdListForBatch, arg.image_feature_dim) ],
+                                                    y = getAnswerFeature(choiceData, answerData, questionIdList[j]) )
+                    elif arg.language_only == 'True' and arg.language_feature_dim == 1800:
+                        loss = model.train_on_batch(X = [ getLanguageFeature(questionData, choiceData, questionIdList[j]) ],
+                                                    y = getAnswerFeature(choiceData, answerData, questionIdList[j]) )
+                    elif arg.language_only == 'True' and arg.language_feature_dim == 300:
+                        loss = model.train_on_batch(X = [ getQuestionFeature(questionData, questionIdList[j]) ],
+                                                    y = getAnswerFeature(choiceData, answerData, questionIdList[j]) )
+                    elif arg.language_feature_dim == 1800:
                         loss = model.train_on_batch(X = [ getImageFeature(imageData, imageIdListForBatch, arg.image_feature_dim),
                                                           getLanguageFeature(questionData, choiceData, questionIdList[j]) ],
                                                     y = getAnswerFeature(choiceData, answerData, questionIdList[j]) )
@@ -280,9 +302,9 @@ if __name__ == '__main__':
                     else:
                         raise Exception("language feature dim error!")
                     totalloss += loss[0]
-                    if (j+1) % 100 == 0:
-                        print 'train #{:02d}, epoch #{:03d}, batch #{:03d}, current avg loss = {:.3f}'.format(k+1, i+1, j+1, totalloss/(j+1))
-                        logfile.write('train #{:02d}, epoch #{:03d}, batch #{:03d}, current avg loss = {:.3f}\n'.format(k+1, i+1, j+1, totalloss/(j+1)))
+                    #if (j+1) % 100 == 0:
+                    #    print 'train #{:02d}, epoch #{:03d}, batch #{:03d}, current avg loss = {:.3f}'.format(k+1, i+1, j+1, totalloss/(j+1))
+                    #    logfile.write('train #{:02d}, epoch #{:03d}, batch #{:03d}, current avg loss = {:.3f}\n'.format(k+1, i+1, j+1, totalloss/(j+1)))
 
                 # The batchNum will be changed
                 totalloss = totalloss / batchNum             
@@ -292,29 +314,42 @@ if __name__ == '__main__':
                 questionIdList, batchNum = prepareIdList(validIdList, 512)
                 for j in xrange(batchNum):
                     imageIdListForBatch = [idMap[key] for key in questionIdList[j]]
-                    if arg.language_feature_dim == 1800:
+                    y_predict = None
+                    if arg.image_only == 'True':
+                        y_predict = model.predict(X = [ getImageFeature(imageData, imageIdListForBatch, arg.image_feature_dim) ],
+                                                  verbose = 0)
+                    elif arg.language_only == 'True' and arg.language_feature_dim == 1800:
+                        y_predict = model.predict(X = [ getLanguageFeature(questionData, choiceData, questionIdList[j]) ],
+                                                  verbose = 0)
+                    elif arg.language_only == 'True' and arg.language_feature_dim == 300:
+                        y_predict = model.predict(X = [ getQuestionFeature(questionData, questionIdList[j]) ],
+                                                  verbose = 0 )
+                    elif arg.language_feature_dim == 1800:
                         y_predict = model.predict(X = [ getImageFeature(imageData, imageIdListForBatch, arg.image_feature_dim),
                                                         getLanguageFeature(questionData, choiceData, questionIdList[j]) ],
                                                   verbose = 0)
-                        totalerror += get_error(y_predict, choiceData, answerData, questionIdList[j])
                     elif arg.language_feature_dim == 300:
                         y_predict = model.predict(X = [ getImageFeature(imageData, imageIdListForBatch, arg.image_feature_dim),
                                                         getQuestionFeature(questionData, questionIdList[j]) ],
                                                   verbose = 0 )
-                        totalerror += get_error(y_predict, choiceData, answerData, questionIdList[j])
                     else:
                         raise Exception("language feature dim error!")
+                    totalerror += get_error(y_predict, choiceData, answerData, questionIdList[j])
                 totalerror = 1.0 * totalerror / len(validIdList)
-                print 'valid #{:02d}, epoch #{:03d}, current error = {:.3f}'.format(k+1, i+1, totalerror)
-                logfile.write('valid #{:02d}, epoch #{:03d}, current error = {:.3f}\n'.format(k+1, i+1, totalerror))
+                #print 'valid #{:02d}, epoch #{:03d}, current error = {:.3f}'.format(k+1, i+1, totalerror)
+                #logfile.write('valid #{:02d}, epoch #{:03d}, current error = {:.3f}\n'.format(k+1, i+1, totalerror))
+                print 'valid #{:02d}, epoch #{:03d}, train loss = {:.3f}, valid error = {:.3f}'.format(k+1, i+1, totalloss, totalerror)
+
+                # log format: "#valid set", "#epoch", "train loss", "valid error"
+                logfile.write('{:02d},{:03d},{:.3f},{:.3f}\n'.format(k+1, i+1, totalloss, totalerror))
                 
                 # save model
-                if (i+1) % 5 == 0:
+                if (i+1) % 20 == 0:
                     model.save_weights(model_file_name + '_valid_{:02d}_epoch_{:03d}_loss_{:.3f}_error_{:.3f}.hdf5'.format(k+1, i+1, totalloss, totalerror))
 
             # save current cross validation error
             crossvalidList.append(totalerror)
         crossvalidAVG = sum(crossvalidList) / len(crossvalidList)
         print 'AVG. error = {:.3f}\n'.format(crossvalidAVG)
-        logfile.write('AVG. error = {:.3f}\n'.format(crossvalidAVG))
+        #logfile.write('AVG. error = {:.3f}\n'.format(crossvalidAVG))
         os.rename(logfilename, logfilename + '_AVGerr_' + '{:.3f}.log'.format(crossvalidAVG))

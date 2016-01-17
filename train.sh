@@ -8,17 +8,23 @@ fi
 
 dropout=0.5
 cross_valid=1
+language_only=True
+image_only=False
 language_dim=300
-image_dim=4096
-image_input_dim=300
+image_dim=0
+image_input_dim=0
 image_feature=$1
 question_feature=$2
 choice_feature=$3
 cross_valid=8
 epochs=100
+activation=maxout
 
 python trainLSTMandMLP.py -u 1024 1024 1024 \
                           -dropout ${dropout} \
+                          -a ${activation} \
+                          -lonly ${language_only} \
+                          -ionly ${image_only} \
                           -lfdim ${language_dim} \
                           -ifdim ${image_dim} \
                           -iidim ${image_input_dim} \
@@ -26,5 +32,5 @@ python trainLSTMandMLP.py -u 1024 1024 1024 \
                           -qf ${question_feature} \
                           -cf ${choice_feature} \
                           -if ${image_feature} \
-                          -cross_valid ${cross_valid}
+                          -cross_valid ${cross_valid} \
                           -epochs ${epochs}
