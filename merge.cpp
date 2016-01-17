@@ -11,10 +11,17 @@ typedef struct
     int start, end;
 }Range;
 
+typedef struct
+{
+    Range a, b;
+}RangePair;
+
 void *mysort(void *);
 void sort_seg(int, int);
+void merge_seg(int, int);
 
 int *sequence;
+int num_seg;
 pthread_mutex_t m = PTHREAD_MUTEX_INITIALIZER;
 pthread_cond_t c = PTHREAD_COND_INITIALIZER;
 
@@ -40,7 +47,7 @@ int main(int argc, char *argv[])
         fprintf(stderr, "%d ", sequence[i]);
     fprintf(stderr,"\n");
     
-    //merge_seq()
+    merge_seg(total_num, seg_size);
     return 0;
 }
 
@@ -63,7 +70,10 @@ void *mysort(void *p)
 
 void sort_seg(int total_num, int seg_size)
 {
-    int num_seg = total_num / seg_size + 1;
+    if(total_num % seg_size != 0)
+        num_seg = total_num / seg_size + 1;
+    else
+        num_seg = total_num / seg_size;
     pthread_t thread[num_seg];
     Range range[num_seg];
     int i;
@@ -83,3 +93,27 @@ void sort_seg(int total_num, int seg_size)
         pthread_join(thread[i], NULL);
 }
 
+void merge_seg(int total_num, int seg_size)
+{
+    pthread_t thread[num_seg/2];
+    RangePair range_pair[num_seg];
+    int seg_width[num_seg] = {3,3,3,1};
+    int i;
+    while(num_seg > 1){
+        int current = 0;
+        for(i = 0; i < num_seg / 2; ++i){
+            range_pair[i].a.start = current;
+            range_pair[i].a.end = range_pair[i].a.start + seg_width[2*i];
+            range_pair[i].b.start = range_pair[i].a.end;
+            range_pair[i].b.end = range_pair[i].b.start + seg_width[2*i+1];
+            current = range_pair[i].b.end;
+            seg_width[i] = seg_width[2*i] + seg_width[2*i+1];
+        }
+        if(num_seg % 2 == 1)
+            seg_width[i] = seg_width[num_seg - 1];
+
+        for(i = 0; i < num_seg/2; ++i)
+            fprintf(stderr, "a=(%d, %d); b=(%d, %d)\n", range_pair[i].a.start, range_pair[i].a.end, range_pair[i].b.start, range_pair[i].b.end);
+        num_seg -= num_seg / 2;
+    }
+}
