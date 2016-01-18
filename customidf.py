@@ -82,21 +82,25 @@ if __name__ == "__main__":
         with open('data/processed_text/' + filename + '.train', 'w') as outfile:
             writer = csv.writer(outfile, delimiter = ' ')
             for question in reader:
+                if question[0] == 'img_id':
+                    continue
                 word = splitQuestion(question[2], True)
                 weights = np.zeros(len(words), dtype = 'float32')
                 for i in xrange(len(words)):
                     weights[i] = wordMap[words[i]]
-                writer.writerow([question[0], question[1]] + weights.tolist())
+                writer.writerow([question[1]] + weights.tolist())
     with open('data/processed_text/question_processed.test', 'r') as questionfile:
         reader = csv.reader(questionfile, delimiter = '\t')
         with open('data/processed_text/' + filename + '.test', 'w') as outfile:
             writer = csv.writer(outfile, delimiter = ' ')
             for question in reader:
+                if question[0] == 'img_id':
+                    continue
                 word = splitQuestion(question[2], True)
                 weights = np.zeros(len(words), dtype = 'float32')
                 for i in xrange(len(words)):
                     weights[i] = wordMap[words[i]]
-                writer.writerow([question[0], question[1]] + weights.tolist())
+                writer.writerow([question[1]] + weights.tolist())
 
 
 
