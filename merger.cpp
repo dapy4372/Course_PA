@@ -1,8 +1,10 @@
+#include <iostream>
 #include <stdio.h>
 #include <pthread.h>
 #include <unistd.h>
 #include <stdlib.h>
 #include <algorithm>
+#include <sys/times.h>
 
 using namespace std;
 
@@ -21,6 +23,7 @@ void *mysort(void *);
 void sort_seg(int, int);
 void *mymerge(void *);
 void merge_seg(int, int);
+static void pr_times(clock_t, struct tms *, struct tms *);
 
 int *sequence;
 int num_seg;
@@ -43,9 +46,21 @@ int main(int argc, char *argv[])
     for(i = 0; i < total_num; ++i)
         scanf("%d", &sequence[i]);
 
+    clock_t start, end;
+    struct tms tmsstart, tmsend;
+    if ((start = times(&tmsstart)) == -1)    /* starting values */
+        cout << "times error" << endl;
+
     sort_seg(total_num, seg_size);
     merge_seg(total_num, seg_size);
+
+    if ((end = times(&tmsend)) == -1)
+        cout << "times error" << endl;                                          
+    pr_times(end-start, &tmsstart, &tmsend);
+
+    #ifdef PRINT 
     print_seq(0, total_num);
+    #endif
 
     return 0;
 }
@@ -66,9 +81,11 @@ void *mysort(void *p)
     int s = r->start;
     int e = r->end;
     int i;
+    #ifdef PRINT 
     fprintf(stdout, "Handling elements:\n");
     print_seq(s, e);
     fprintf(stdout, "Sorted %d elements.\n", e-s);
+    #endif
     sort( (sequence + s), (sequence + e) );
     pthread_mutex_unlock(&m);
     pthread_exit(NULL);
@@ -104,8 +121,10 @@ void *mymerge(void *p)
     int *buf = new int[width_merge];
     int duplicates = 0, idx = 0;
 
+    #ifdef PRINT 
     fprintf(stdout, "Handling elements:\n");
     print_seq(rp->a.start, rp->b.end);
+    #endif
 
     while(idx_seg1 < rp->a.end && idx_seg2 < rp->b.end){
         if(sequence[idx_seg1] < sequence[idx_seg2] || sequence[idx_seg1] == sequence[idx_seg2]){
@@ -140,7 +159,9 @@ void *mymerge(void *p)
     for(i = 0; i < width_merge; ++i)
         sequence[rp->a.start + i] = buf[i];
 
+    #ifdef PRINT 
     fprintf(stdout, "Merged %d and %d elements with %d duplicates.\n", width_seg1, width_seg2, duplicates);
+    #endif
 
     delete [] buf;
     pthread_mutex_unlock(&m);
@@ -175,4 +196,25 @@ void merge_seg(int total_num, int seg_size)
             pthread_join(thread[i], NULL);
         num_seg -= num_seg / 2;
     }
+}
+
+static void pr_times(clock_t real, struct tms *tmsstart, struct tms *tmsend)
+{
+    static long     clktck = 0;
+
+    if (clktck == 0)    /* fetch clock ticks per second first time */
+        if ((clktck = sysconf(_SC_CLK_TCK)) < 0)
+            cout << "sysconf error" << endl;
+    printf(" real:  %7.2f\n", real / (double) clktck);
+    printf(" user:  %7.2f\n",
+            (tmsend->tms_utime - tmsstart->tms_utime) / (double) clktck);
+    printf(" sys:   %7.2f\n",
+            (tmsend->tms_stime - tmsstart->tms_stime) / (double)
+            clktck);
+    printf(" child user:   %7.2f\n",
+            (tmsend->tms_cutime - tmsstart->tms_cutime) /
+            (double) clktck);
+    printf(" child sys:    %7.2f\n",
+            (tmsend->tms_cstime - tmsstart->tms_cstime) /
+            (double) clktck);
 }
