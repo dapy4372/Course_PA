@@ -46,19 +46,23 @@ int main(int argc, char *argv[])
     for(i = 0; i < total_num; ++i)
         scanf("%d", &sequence[i]);
 
+    #ifdef EXP
     clock_t start, end;
     struct tms tmsstart, tmsend;
     if ((start = times(&tmsstart)) == -1)    /* starting values */
         cout << "times error" << endl;
+    #endif
 
     sort_seg(total_num, seg_size);
     merge_seg(total_num, seg_size);
 
+    #ifdef EXP
     if ((end = times(&tmsend)) == -1)
         cout << "times error" << endl;                                          
     pr_times(end-start, &tmsstart, &tmsend);
-
-    #ifdef PRINT 
+    #endif
+    
+    #ifndef EXP
     print_seq(0, total_num);
     #endif
 
@@ -80,12 +84,13 @@ void *mysort(void *p)
     Range *r = (Range *)(p);
     int s = r->start;
     int e = r->end;
-    int i;
-    #ifdef PRINT 
+    
+    #ifndef EXP
     fprintf(stdout, "Handling elements:\n");
     print_seq(s, e);
     fprintf(stdout, "Sorted %d elements.\n", e-s);
     #endif
+
     sort( (sequence + s), (sequence + e) );
     pthread_mutex_unlock(&m);
     pthread_exit(NULL);
@@ -121,7 +126,7 @@ void *mymerge(void *p)
     int *buf = new int[width_merge];
     int duplicates = 0, idx = 0;
 
-    #ifdef PRINT 
+    #ifndef EXP
     fprintf(stdout, "Handling elements:\n");
     print_seq(rp->a.start, rp->b.end);
     #endif
@@ -159,7 +164,7 @@ void *mymerge(void *p)
     for(i = 0; i < width_merge; ++i)
         sequence[rp->a.start + i] = buf[i];
 
-    #ifdef PRINT 
+    #ifndef EXP
     fprintf(stdout, "Merged %d and %d elements with %d duplicates.\n", width_seg1, width_seg2, duplicates);
     #endif
 
@@ -205,16 +210,16 @@ static void pr_times(clock_t real, struct tms *tmsstart, struct tms *tmsend)
     if (clktck == 0)    /* fetch clock ticks per second first time */
         if ((clktck = sysconf(_SC_CLK_TCK)) < 0)
             cout << "sysconf error" << endl;
-    printf(" real:  %7.2f\n", real / (double) clktck);
-    printf(" user:  %7.2f\n",
+    fprintf(stderr, " real:  %7.2f\n", real / (double) clktck);
+    fprintf(stderr, " user:  %7.2f\n",
             (tmsend->tms_utime - tmsstart->tms_utime) / (double) clktck);
-    printf(" sys:   %7.2f\n",
+    fprintf(stderr, " sys:   %7.2f\n",
             (tmsend->tms_stime - tmsstart->tms_stime) / (double)
             clktck);
-    printf(" child user:   %7.2f\n",
+    fprintf(stderr, " child user:   %7.2f\n",
             (tmsend->tms_cutime - tmsstart->tms_cutime) /
             (double) clktck);
-    printf(" child sys:    %7.2f\n",
+    fprintf(stderr, " child sys:    %7.2f\n",
             (tmsend->tms_cstime - tmsstart->tms_cstime) /
             (double) clktck);
 }
