@@ -71,7 +71,7 @@ if __name__ == "__main__":
     print '*** build the question weight file ***'
     with open('data/processed_text/question_processed.train', 'r') as questionfile:
         reader = csv.reader(questionfile, delimiter = '\t')
-        with open('data/processed_text/question_idf.train', 'w') as outfile:
+        with open('data/processed_text/question_custom_idf.train', 'w') as outfile:
             writer = csv.writer(outfile, delimiter = ' ')
             for question in reader:
                 word = splitQuestion(question[2])
@@ -81,7 +81,7 @@ if __name__ == "__main__":
                 writer.writerow([question[0], question[1]] + weights.tolist())
     with open('data/processed_text/question_processed.test', 'r') as questionfile:
         reader = csv.reader(questionfile, delimiter = '\t')
-        with open('data/processed_text/question_idf.test', 'w') as outfile:
+        with open('data/processed_text/question_custom_idf.test', 'w') as outfile:
             writer = csv.writer(outfile, delimiter = ' ')
             for question in reader:
                 word = splitQuestion(question[2])
