@@ -6,7 +6,7 @@ import argparse
 
 def parseArgs():
     parser = argparse.ArgumentParser()
-    parser.add_argument('-custom', type=bool, default=True)
+    parser.add_argument('-type', type=str, default='custom')
     parser.add_argument('-memory_limit', type=float, default=6.0)
     return parser.parse_args()
 
@@ -40,7 +40,6 @@ if __name__ == "__main__":
             questionCount += 1
             words = splitQuestion(question[2])
             for word in words:
-                # remove the same word
                 if wordMap.has_key(word):
                     wordMap[word] += 1
                 else:
@@ -53,23 +52,26 @@ if __name__ == "__main__":
             questionCount += 1
             words = splitQuestion(question[2])
             for word in words:
-                # remove the same word
                 if wordMap.has_key(word):
                     wordMap[word] += 1
                 else:
                     wordMap[word] = 1
 
     print '*** custom the important words ***'
-    if arg.custom:
+    if arg.type == 'custom':
+        print '    custom mode'
+        dictFilename = 'custom_idf_dic.csv'
         filename = 'question_custom_idf'
         for word in customList:
             wordMap[word] /= customLevel
     else:
+        print '    standard mode'
+        dictFilename = 'standard_idf_dic.csv'
         filename = 'question_standard_idf'
 
     print '*** calculate the idf of words ***'
     words = wordMap.keys()
-    with open('idf.csv', 'w') as outfile:
+    with open('data/idf_weight/' + dictFilename, 'w') as outfile:
         idf = csv.writer(outfile)
         idf.writerow(['word', 'idf'])
         for word in words:
@@ -81,10 +83,14 @@ if __name__ == "__main__":
         reader = csv.reader(questionfile, delimiter = '\t')
         with open('data/idf_weight/' + filename + '.train', 'w') as outfile:
             writer = csv.writer(outfile, delimiter = ' ')
+            idx = 0
             for question in reader:
                 if question[0] == 'img_id':
                     continue
-                word = splitQuestion(question[2], True)
+                idx += 1
+                if idx % 10000 == 0:
+                    print 'qeustion #{:d}'.format(idx)
+                words = splitQuestion(question[2], remove_duplicate = False)
                 weights = np.zeros(len(words), dtype = 'float32')
                 for i in xrange(len(words)):
                     weights[i] = wordMap[words[i]]
@@ -93,10 +99,14 @@ if __name__ == "__main__":
         reader = csv.reader(questionfile, delimiter = '\t')
         with open('data/idf_weight/' + filename + '.test', 'w') as outfile:
             writer = csv.writer(outfile, delimiter = ' ')
+            idx = 0
             for question in reader:
                 if question[0] == 'img_id':
                     continue
-                word = splitQuestion(question[2], True)
+                idx += 1
+                if idx % 10000 == 0:
+                    print 'qeustion #{:d}'.format(idx)
+                words = splitQuestion(question[2], remove_duplicate = False)
                 weights = np.zeros(len(words), dtype = 'float32')
                 for i in xrange(len(words)):
                     weights[i] = wordMap[words[i]]
