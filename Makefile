@@ -1,6 +1,6 @@
-all: merge.cpp 
-	g++ -g merge.cpp -o merge -lpthread 
+all: merger.cpp 
+	g++ merger.cpp -o merger -lpthread 
 run:
-	./merge 3 < input.txt 
+	./merger 6 < sample_input.txt 
 clean:
-	rm -f merge 
+	rm -f merger 
