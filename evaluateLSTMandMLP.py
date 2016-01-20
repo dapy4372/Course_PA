@@ -8,20 +8,23 @@ import numpy as np
 import argparse
 from os.path import basename, exists
 from keras.models import model_from_json
+from pdb import set_trace as bp
 # from spacy.en import English
 #img_dim = 4096
 word_vec_dim = 300
 
 def parseArgs():
     parser = argparse.ArgumentParser()
-    parser.add_argument('-idim', '--image_feature_dim', type=int, required=True)
-    parser.add_argument('-predict_type', type=str, default='test')
-    parser.add_argument('-ldim', '--language_feature_dim', type=int, required=True)
-    parser.add_argument('-model', type=str, required=True)
-    parser.add_argument('-w', '--weights', type=str, required=True)
-    parser.add_argument('-if', '--image_feature', type=str, required=True)
+    parser.add_argument('-ifdim', '--image_feature_dim', type=int, required=True)
+    parser.add_argument('-lfdim', '--language_feature_dim', type=int, required=True)
+    parser.add_argument('-ionly', '--image_only', type=str, default=False)
+    parser.add_argument('-lonly', '--language_only', type=str, default=False)
     parser.add_argument('-qf', '--question_feature', type=str, required=True)
     parser.add_argument('-cf', '--choice_feature', type=str, required=True)
+    parser.add_argument('-if', '--image_feature', type=str, required=True)
+    parser.add_argument('-model', type=str, required=True)
+    parser.add_argument('-w', '--weights', type=str, required=True)
+    parser.add_argument('-predict_type', type=str, default='test')
     parser.add_argument('-print_error_id', type=bool, default=False)
     parser.add_argument('-use_error_file', type=bool, default=True)
     return parser.parse_args()
@@ -153,17 +156,26 @@ if __name__ == "__main__":
     questionIdList, batchNum = prepareIdList(idList, batchSize)
     for j in xrange(batchNum):
         imageIdListForBatch = [idMap[key] for key in questionIdList[j]]
-        if arg.language_feature_dim == 1800:
+        if arg.image_only == 'True':
+            y_predict.extend(model.predict(X = [ getImageFeature(imageData, imageIdListForBatch, arg.image_feature_dim) ],
+                                           verbose = 0))
+        elif arg.language_only == 'True' and arg.language_feature_dim == 1800:
+            y_predict.extend(model.predict(X = [ getLanguageFeature(questionData, choiceData, questionIdList[j]) ],
+                                           verbose = 0))
+        elif arg.language_only == 'True' and arg.language_feature_dim == 300:
+            y_predict.extend(model.predict(X = [ getQuestionFeature(questionData, questionIdList[j]) ],
+                                           verbose = 0))
+        elif arg.lanaguage_only == 'False' and arg.image_only == 'False' and arg.language_feature_dim == 1800:
             y_predict.extend(model.predict(X = [ getImageFeature(imageData, imageIdListForBatch, arg.image_feature_dim),
                                                  getLanguageFeature(questionData, choiceData, questionIdList[j]) ],
                                            verbose = 0))
-        elif arg.language_feature_dim == 300:
+        elif arg.lanaguage_only == 'False' and arg.image_only == 'False' and arg.language_feature_dim == 300:
             y_predict.extend(model.predict(X = [ getImageFeature(imageData, imageIdListForBatch, arg.image_feature_dim),
                                                  getQuestionFeature(questionData, questionIdList[j]) ],
                                            verbose = 0))
         else:
             raise Exception("language feature dim error!")
-    print 'y.shape = ' + str(y_predict[0].shape)
+    #print 'y.shape = ' + str(y_predict[0].shape)
     # print y_predict[0]
 
     print '*** choose answer ***'
