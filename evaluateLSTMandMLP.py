@@ -25,7 +25,7 @@ def parseArgs():
     parser.add_argument('-model', type=str, required=True)
     parser.add_argument('-w', '--weights', type=str, required=True)
     parser.add_argument('-predict_type', type=str, default='test')
-    parser.add_argument('-print_error_id', type=bool, default=False)
+    parser.add_argument('-print_error_id', type=bool, default=True)
     parser.add_argument('-use_error_file', type=bool, default=True)
     return parser.parse_args()
 
