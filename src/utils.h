@@ -1,30 +1,52 @@
-# include "stdio.h"
-# include "kdtree.h"
-# include <vector>
+# include <stdio.h>
+# include <stdlib.h>
+# include <queue>
 
-# define BUF_SIZE 128
-//template < class T >
-//using std::vector< Element<T> > = typename std::vector< Element<T> >;
+# ifndef UTILS_H
+# define UTILS_H
 
+using namespace std; 
+
+// TODO: typedef std::vector< Element<T> > 
+// template < class T >
+// using std::vector< Element<T> > = typename std::vector< Element<T> >;
 // read file
-template < class T >
-std::vector< Element<T> > readFile( char *filename )
+
+template < typename T >
+struct Element
+{
+    T keys[DIM];
+};    
+
+template < typename T >
+class BSTNode
+{
+public:
+    BSTNode();
+    BSTNode(const Element<T> &e, BSTNode *l = NULL, BSTNode *r = NULL) : el(e), left(l), right(r){}
+    Element<T> el;
+    BSTNode *left, *right;
+};
+
+template < typename T >
+queue< Element<T> > readFile( char *filename)
 {
     FILE *fp = fopen( filename, "r");
     if( fp == NULL ){
         fprintf(stderr, "open failure!");
-        return 1;
+        exit(1);
     }
 
-    char buf[BUF_SIZE];
-    std::vector< Element<T> > el_vec;
+    char *line = NULL;
+    size_t len = 0;
     Element<T> el;
-    while( fgets(buf, sizeof(buf), fp) ){
-        fscanf( fp, "(%d, %d)", &el.keys[0], &el.keys[1] );
-        el_vec.push_back(el);
+    queue< Element<T> > el_que;
+    while( getline(&line, &len, fp) != -1){
+        sscanf(line, "(%f, %f)", &el.keys[0], &el.keys[1] );
+        el_que.push(el);
     }
     fclose(fp);
+    return el_que;
 }
 
-
-
+# endif

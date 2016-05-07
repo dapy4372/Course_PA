@@ -2,30 +2,18 @@
 # define KDTREE_H
 # define DIM 2
 
-template< class T >
-struct Element
-{
-    T keys[DIM];
-};    
+# include <stddef.h>
+# include "utils.h"
 
-template< class T >
-class BSTNode
-{
-public:
-    BSTNode();
-    BSTNode(const Element<T> &e, BSTNode *l = NULL, BSTNode *r = NULL);
-    Element<T> el;
-    BSTNode *left, *right;
-};
-
-template < class T >
+template < class T > 
 class KdTree
 {
 public:
-    KdTree() : _root(NULL) {};
-    void insert(const Element<T> &);
+    KdTree() : _root(NULL) {}
+    void insert(const Element<T> &el);
+
 private:
-    Element<T> *_root;
+    BSTNode<T> *_root;
 };
 
 # endif

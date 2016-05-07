@@ -1,17 +1,13 @@
 # include "kdtree.h"
+# define DIM 2
 
-KdTree<T>::BSTNode(const Element<T> &e, BSTNode *l = NULL, BSTNode *r = NULL)
-{
-    el = e;
-    left = l;
-    right = r;
-}
-
-KdTree<T>::insert( const Element &el ) 
+template < class T >
+void KdTree<T>::insert(const Element<T> &el)
 {
     unsigned level = 0;
-    Element *p = _root;
-    Elemnet *prev = NULL;
+    BSTNode<T> *p = _root;
+    BSTNode<T> *prev = NULL;
+    // find postion to insert
     while( p != NULL ) {
         prev = p;
         if( el.keys[level] < p->el.keys[level] )
@@ -20,10 +16,12 @@ KdTree<T>::insert( const Element &el )
             p = p->right;
         level = (level + 1) % DIM;
     }
-    if( root == NULL )
-        root = new BSTNode(el);
-    else if( el.keys[ (level - 1) % DIM ] < p->el.keys[ (level - 1) % DIM ] )
-        prev -> left = new BSTNode(el);
+
+    // insert the node to the position
+    if( _root == NULL )
+        _root = new BSTNode<T>(el);
+    else if( el.keys[ (level - 1) % DIM ] < prev->el.keys[ (level - 1) % DIM ] )
+        prev -> left = new BSTNode<T>(el);
     else
-        prev -> right = new BSTNode(el);
-}
+        prev -> right = new BSTNode<T>(el);
+};
