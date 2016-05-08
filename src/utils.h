@@ -1,6 +1,7 @@
 # include <stdio.h>
 # include <stdlib.h>
 # include <queue>
+# include <iostream>
 
 # ifndef UTILS_H
 # define UTILS_H
@@ -9,16 +10,16 @@ using namespace std;
 
 // TODO: typedef std::vector< Element<T> > 
 // template < class T >
-// using std::vector< Element<T> > = typename std::vector< Element<T> >;
+// using std::vector< Element<T> > = class std::vector< Element<T> >;
 // read file
 
-template < typename T >
+template < class T >
 struct Element
 {
     T keys[DIM];
 };    
 
-template < typename T >
+template < class T >
 class BSTNode
 {
 public:
@@ -26,9 +27,18 @@ public:
     BSTNode(const Element<T> &e, BSTNode *l = NULL, BSTNode *r = NULL) : el(e), left(l), right(r){}
     Element<T> el;
     BSTNode *left, *right;
+    void print();
 };
 
-template < typename T >
+template < class T >
+void BSTNode<T>::print()
+{
+    for(int i = 0; i < DIM - 1; ++i)
+        cout << "(" << el.keys[i] << ",";
+    cout << el.keys[DIM - 1] << ")" << endl;
+}
+
+template < class T >
 queue< Element<T> > readFile( char *filename)
 {
     FILE *fp = fopen( filename, "r");

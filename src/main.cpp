@@ -17,5 +17,7 @@ int main(int argc, char *argv[])
         kdtree.insert(el_que.front());
         el_que.pop();
     }
+    float range[2][2] = { {0, 100}, {0, 100} };
+    kdtree.rangeSearch(range);
     return 0;
 }
