@@ -1,18 +1,28 @@
+TARGET=../bin/kdtree
+OBJS= main.o Node.o kdtree.o
 CXX      := g++
 CPPFLAGS := -g -Wall
 #CPPFLAGS := -O2 -I../lib
 
-all : ../bin/kdtree
+all : $(TARGET)
 	@echo -n ""
 
-clean :
-	rm *.o ../bin/kdtree
-
-../bin/kdtree : kdtree.o main.o
+$(TARGET) : $(OBJS)
 	$(CXX) $(CPPFLAGS) $^ -o $@
 
-kdtree.o : kdtree.cpp kdtree.h
+%.o : %.cpp
 	$(CXX) $(CPPFLAGS) -c $<
 
-main.o : main.cpp kdtree.h utils.h
-	$(CXX) $(CPPFLAGS) -c $<
+.PHONY: clean
+
+clean :
+	-rm -f $(OBJS) $(TARGET)
+
+#kdtree.o : kdtree.cpp
+#	$(CXX) $(CPPFLAGS) -c $<
+
+#Node.o : Node.cpp
+#	$(CXX) $(CPPFLAGS) -c $<
+
+#main.o : main.cpp
+#	$(CXX) $(CPPFLAGS) -c $<

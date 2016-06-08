@@ -2,6 +2,7 @@
 # include <stdlib.h>
 # include <queue>
 # include <iostream>
+# include "Node.h"
 
 # ifndef UTILS_H
 # define UTILS_H
@@ -12,31 +13,6 @@ using namespace std;
 // template < class T >
 // using std::vector< Element<T> > = class std::vector< Element<T> >;
 // read file
-
-template < class T >
-struct Element
-{
-    T keys[DIM];
-};    
-
-template < class T >
-class BSTNode
-{
-public:
-    BSTNode();
-    BSTNode(const Element<T> &e, BSTNode *l = NULL, BSTNode *r = NULL) : el(e), left(l), right(r){}
-    Element<T> el;
-    BSTNode *left, *right;
-    void print();
-};
-
-template < class T >
-void BSTNode<T>::print()
-{
-    for(int i = 0; i < DIM - 1; ++i)
-        cout << "(" << el.keys[i] << ",";
-    cout << el.keys[DIM - 1] << ")" << endl;
-}
 
 template < class T >
 queue< Element<T> > readFile( char *filename)
@@ -52,7 +28,7 @@ queue< Element<T> > readFile( char *filename)
     Element<T> el;
     queue< Element<T> > el_que;
     while( getline(&line, &len, fp) != -1){
-        sscanf(line, "(%f, %f)", &el.keys[0], &el.keys[1] );
+        sscanf(line, "%f %f", &el.keys[0], &el.keys[1] );
         el_que.push(el);
     }
     fclose(fp);

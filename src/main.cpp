@@ -1,6 +1,8 @@
 # include <iostream>
 # include "kdtree.h"
 # include "kdtree.cpp"
+# include "Node.h"
+# include "Node.cpp"
 # include "utils.h"
 
 using namespace std;

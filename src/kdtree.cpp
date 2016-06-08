@@ -1,12 +1,12 @@
-# include "kdtree.h"
+#include "kdtree.h"
 # define DIM 2
 
 template < class T >
 void KdTree<T>::insert(const Element<T> &el)
 {
     unsigned level = 0;
-    BSTNode<T> *p = _root;
-    BSTNode<T> *prev = NULL;
+    Node<T> *p = _root;
+    Node<T> *prev = NULL;
     // find postion to insert
     while( p != NULL ) {
         prev = p;
@@ -19,11 +19,11 @@ void KdTree<T>::insert(const Element<T> &el)
 
     // insert the node to the position
     if( _root == NULL )
-        _root = new BSTNode<T>(el);
+        _root = new Node<T>(el);
     else if( el.keys[ (level - 1) % DIM ] < prev->el.keys[ (level - 1) % DIM ] )
-        prev -> left = new BSTNode<T>(el);
+        prev -> left = new Node<T>(el);
     else
-        prev -> right = new BSTNode<T>(el);
+        prev -> right = new Node<T>(el);
     ++_numNode;
 };
 
@@ -35,21 +35,24 @@ void KdTree<T>::rangeSearch(const T ranges[][DIM])
 }
 
 template < class T >
-void KdTree<T>::rangeSearch(BSTNode<T> *p, const int &i, const T ranges[][DIM])
+void KdTree<T>::rangeSearch(Node<T> *p, const int &i, const T ranges[][DIM])
 {
     bool found = true;
     for(int j = 0; j < _numNode - 1; ++j){
-        if(!(ranges[j][0] <= p->el.keys[j] && p->el.keys[j] <= ranges[j][i]))
+        if(!(ranges[j][0] <= p->el.keys[j] && p->el.keys[j] <= ranges[j][1]))
             found = false;
             break;
     }
     if(found)
         p->print();
-    if(p->left != NULL && ranges[i][0] <= p->el.keys[0])
+    if(p->left != NULL && ranges[i][0] <= p->el.keys[i])
         rangeSearch(p->left, (i + 1) % DIM, ranges);
-    if(p->right != NULL && ranges[i][1] <= p->el.keys[1])
+    if(p->right != NULL && p->el.keys[i] <= ranges[i][1])
         rangeSearch(p->right, (i + 1) % DIM, ranges);
 }
+
+template < class T >
+
 
 //void kdTree<T>::delete(const Element<T> &)
 //{

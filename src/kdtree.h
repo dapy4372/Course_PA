@@ -4,6 +4,7 @@
 
 # include <stddef.h>
 # include "utils.h"
+# include "Node.h"
 
 template < class T > 
 class KdTree
@@ -13,12 +14,13 @@ public:
     void insert(const Element<T> &);
     //void delete(const Element<T> &);
     void rangeSearch(const T [][DIM]);
+    //void smallest(Node)
     //void nearestNeighborSearch(const Element<T> &);
 
 private:
-    BSTNode<T> *_root;
-    unsigned _numNode;
-    void rangeSearch(BSTNode<T> *, const int &, const T [][DIM]);
+    Node<T> *_root;
+    int _numNode;
+    void rangeSearch(Node<T> *, const int &, const T [][DIM]);
 };
 
 # endif
