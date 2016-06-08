@@ -15,18 +15,19 @@ int main(int argc, char *argv[])
         exit(1);
     }
     queue< Element<float> > el_que = readFile<float>( argv[1] );
-    KdTree<float> kdtree;
+    KdTree<float> myKdtree;
     while(!el_que.empty()){
-        kdtree.insert(el_que.front());
+        myKdtree.insert(el_que.front());
         el_que.pop();
     }
-    float range[2][2] = { {1, 1}, {10, 10} };
     Element<float> tt;
     tt.keys[0] = 1;
     tt.keys[1] = 10;
+    myKdtree.deleteNode(tt);
+    //float range[2][2] = { {1, 1}, {10, 10} };
     //kdtree.rangeSearch(range);
     //Node<float> *tmp = kdtree.search(tt);
-    Node<float> *tmp = kdtree.smallest(kdtree._root, 0, 0);
-    tmp->print();
+    //Node<float> *tmp = kdtree.smallest(kdtree._root, 0, 0);
+    //tmp->print();
     return 0;
 }

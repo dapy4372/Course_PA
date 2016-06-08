@@ -1,5 +1,4 @@
 #include "kdtree.h"
-# define DIM 2
 
 template < class T >
 void KdTree<T>::insert(const Element<T> &el)
@@ -10,76 +9,76 @@ void KdTree<T>::insert(const Element<T> &el)
     // find postion to insert
     while( p != NULL ) {
         prev = p;
-        if( el.keys[level] < p->el.keys[level] )
-            p = p->left;
+        if( el.keys[level] < p->_el.keys[level] )
+            p = p->_left;
         else
-            p = p->right;
+            p = p->_right;
         level = (level + 1) % DIM;
     }
 
     // insert the node to the position
     if( _root == NULL )
-        _root = new Node<T>(el);
-    else if( el.keys[ (level - 1) % DIM ] < prev->el.keys[ (level - 1) % DIM ] )
-        prev->left = new Node<T>(el);
+        _root = new Node<T>(el, level, NULL);
+    else if( el.keys[ (level - 1) % DIM ] < prev->_el.keys[ (level - 1) % DIM ] )
+        prev->_left = new Node<T>(el, level, prev);
     else
-        prev->right = new Node<T>(el);
+        prev->_right = new Node<T>(el, level, prev);
     ++_numNode;
-};
+}
 
 template < class T >
-void KdTree<T>::rangeSearch(const T ranges[][DIM])
+void KdTree<T>::rangeSearch(const T ranges[][DIM]) const
 {
-    if(_root != NULL)
+    if( _root != NULL )
         rangeSearch(_root, 0, ranges);
 }
 
 template < class T >
-void KdTree<T>::rangeSearch(Node<T> *p, const int &i, const T ranges[][DIM])
+void KdTree<T>::rangeSearch(Node<T> *p, const unsigned &i, const T ranges[][DIM]) const
 {
     bool found = true;
     for(int j = 0; j < DIM; ++j) {
-        if(!(ranges[j][0] <= p->el.keys[j] && p->el.keys[j] <= ranges[j][1])){
+        if( !(ranges[j][0] <= p->_el.keys[j] && p->_el.keys[j] <= ranges[j][1]) ){
             found = false;
             break;
         }
     }
-    if(found)
+    if( found )
         p->print();
-    if(p->left != NULL && ranges[i][0] <= p->el.keys[i])
+    if( p->left != NULL && ranges[i][0] <= p->_el.keys[i] )
         rangeSearch(p->left, (i + 1) % DIM, ranges);
-    if(p->right != NULL && p->el.keys[i] <= ranges[i][1])
+    if( p->right != NULL && p->_el.keys[i] <= ranges[i][1] )
         rangeSearch(p->right, (i + 1) % DIM, ranges);
 }
 
 template < class T >
-Node<T> *KdTree<T>::smallest(Node<T> *q, const int &i, const int &j)
+Node<T> *KdTree<T>::smallest(Node<T> *q, const unsigned &i, const unsigned &j) const
 {
     Node<T> *smallest_node = q;
     // Not for delete
-    if(i == j) {
-        if(q->left != NULL)
-            smallest_node = q = q->left;   // a = b = c equals to tmp = c; a = tmp; b = tmp;
+    if( i == j ) {
+        if( q->_left != NULL )
+            smallest_node = q = q->_left;   // a = b = c equals to tmp = c; a = tmp; b = tmp;
         else
             return q;
     }
     // Check left subtree smallest Node
-    if(q->left != NULL) {
-        Node<T> *l_smallest = smallest(q->left, i, (j+1) % DIM);
-        if(smallest_node->el.keys[i] >= l_smallest->el.keys[i])
+    if( q->_left != NULL ) {
+        Node<T> *l_smallest = smallest(q->_left, i, (j+1) % DIM);
+        if( smallest_node->_el.keys[i] >= l_smallest->_el.keys[i] )
             smallest_node = l_smallest;
     }
     // Check right subtree smallest Node
-    if(q->right != NULL) {
-        Node<T> *r_smallest = smallest(q->left, i, (j+1) % DIM);
-        if(smallest_node->el.keys[i] >= r_smallest->el.keys[i])
+    if( q->_right != NULL ) {
+        Node<T> *r_smallest = smallest(q->_left, i, (j+1) % DIM);
+        if( smallest_node->_el.keys[i] >= r_smallest->_el.keys[i] )
             smallest_node = r_smallest;
     }
     return smallest_node;
 }
 
 template < class T >
-Node<T> *KdTree<T>::search(const Element<T> &el)
+Node<T> *KdTree<T>::search(const Element<T> &el) const
 {
     unsigned level = 0;
     Node<T> *p = _root;
@@ -87,30 +86,60 @@ Node<T> *KdTree<T>::search(const Element<T> &el)
     while( p != NULL ) {
         bool found = true;
         for(int i = 0; i < DIM; ++i){
-            if( el.keys[i] != p->el.keys[i] ){
+            if( el.keys[i] != p->_el.keys[i] ){
                 found = false; 
                 break;
             }
         }
         if( found )
             return p;
-        if( el.keys[level] < p->el.keys[level] )
-            p = p->left;
+        if( el.keys[level] < p->_el.keys[level] )
+            p = p->_left;
         else
-            p = p->right;
+            p = p->_right;
         level = (level + 1) % DIM;
+    }
+    return NULL;
+}
+
+template < class T >
+void KdTree<T>::deleteNode(const Element<T> &el)
+{
+    Node<T> *p = search(el);
+    if( p != NULL )
+        deleteNode(p, p->getLevel());
+}
+
+template < class T >
+void KdTree<T>::deleteNode(Node<T> *p)
+{
+    if( p->_parent->_right == p )
+        p->_parent->_right = NULL;
+    else
+        p->_parent->_left = NULL;
+    delete p;
+}
+
+template < class T >
+void KdTree<T>::deleteNode(Node<T> *p, const unsigned &level)
+{
+    if( p == NULL )    // p is leaf
+        deleteNode(p);
+    else {
+        Node<T> *q;
+        if( p->_right != NULL )    // if p have right subtree, find smallest in right subtree
+            q = smallest( p->_right, level, (level + 1) % DIM );
+        else {    // if p does not have right subtree, find smallest in left subtree and swap the left subtree to right subtree
+            q = smallest(p->_left, level, (level + 1) % DIM);
+            if( q != NULL ) {
+                p->_right = p->_left;
+                p->_left = NULL;
+            }
+        }
+        p->_el = q->_el;
+        p->setLevel(q->getLevel());
+        deleteNode(q, level);
     }
 }
 
-//template < class T >
-
-
-
-//}
-//void kdTree<T>::delete(const Element<T> &)
-//{
-
-
-//}
-//void rangeSearch(const int &, const int &, const int &, const int &);
 //void nearestNeighborSearch(const Element<T> &);

@@ -1,7 +1,7 @@
 TARGET1=../bin/kdtree
 OBJS=main.o Node.o kdtree.o
 CXX      := g++
-CPPFLAGS := -g -Wall
+CPPFLAGS := -g -Wall -D DIM=2
 #CPPFLAGS := -O2 -I../lib
 
 all : $(TARGET1)
