@@ -1,13 +1,13 @@
-TARGET=../bin/kdtree
-OBJS= main.o Node.o kdtree.o
+TARGET1=../bin/kdtree
+OBJS=main.o Node.o kdtree.o
 CXX      := g++
 CPPFLAGS := -g -Wall
 #CPPFLAGS := -O2 -I../lib
 
-all : $(TARGET)
+all : $(TARGET1)
 	@echo -n ""
 
-$(TARGET) : $(OBJS)
+$(TARGET1) : $(OBJS)
 	$(CXX) $(CPPFLAGS) $^ -o $@
 
 %.o : %.cpp
