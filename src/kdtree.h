@@ -13,16 +13,16 @@ public:
     void insert(const Element<T> &);
     void rangeSearch(const T [][DIM]);
     Node<T> *search(const Element<T> &);
+    Node<T> *smallest(Node<T> *, const int &, const int &);
+    Node<T> *_root;
     //void delete(const Element<T> &);
     //void nearestNeighborSearch(const Element<T> &);
 
 private:
-    Node<T> *_root;
     int _numNode;
     //void search(const Element<T> &);
     void rangeSearch(Node<T> *, const int &, const T [][DIM]);
     //void delete(Node<T> *, const int &);
-    Node<T> *smallest(Node<T> const *, const int &, const int &);
 };
 
 # endif

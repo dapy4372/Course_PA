@@ -25,7 +25,8 @@ int main(int argc, char *argv[])
     tt.keys[0] = 1;
     tt.keys[1] = 10;
     //kdtree.rangeSearch(range);
-    Node<float> *tmp = kdtree.search(tt);
+    //Node<float> *tmp = kdtree.search(tt);
+    Node<float> *tmp = kdtree.smallest(kdtree._root, 0, 0);
     tmp->print();
     return 0;
 }
