@@ -1,4 +1,8 @@
-#include "kdtree.h"
+# include "kdtree.h"
+# include "utils.h"
+# include <stdlib.h>
+# include <stdio.h>
+# include <limits>
 
 template < class T >
 void KdTree<T>::insert(const Element<T> &el)
@@ -6,6 +10,7 @@ void KdTree<T>::insert(const Element<T> &el)
     unsigned level = 0;
     Node<T> *p = _root;
     Node<T> *prev = NULL;
+
     // find postion to insert
     while( p != NULL ) {
         prev = p;
@@ -52,7 +57,7 @@ void KdTree<T>::rangeSearch(Node<T> *p, const unsigned &i, const T ranges[][DIM]
 }
 
 template < class T >
-Node<T> *KdTree<T>::smallest(Node<T> *q, const unsigned &i, const unsigned &j) const
+Node<T> *KdTree<T>::successor(Node<T> *q, const unsigned &i, const unsigned &j) const
 {
     Node<T> *smallest_node = q;
 
@@ -64,13 +69,13 @@ Node<T> *KdTree<T>::smallest(Node<T> *q, const unsigned &i, const unsigned &j) c
     }
     // Check left subtree smallest Node
     if( q->_left != NULL ) {
-        Node<T> *l_smallest = smallest(q->_left, i, (j+1) % DIM);
+        Node<T> *l_smallest = successor(q->_left, i, (j+1) % DIM);
         if( smallest_node->_el.keys[i] >= l_smallest->_el.keys[i] )
             smallest_node = l_smallest;
     }
     // Check right subtree smallest Node
     if( q->_right != NULL ) {
-        Node<T> *r_smallest = smallest(q->_right, i, (j+1) % DIM);
+        Node<T> *r_smallest = successor(q->_right, i, (j+1) % DIM);
         if( smallest_node->_el.keys[i] >= r_smallest->_el.keys[i] )
             smallest_node = r_smallest;
     }
@@ -108,6 +113,8 @@ void KdTree<T>::deleteNode(const Element<T> &el)
     Node<T> *p = search(el);
     if( p != NULL )
         deleteNode(p, p->getLevel());
+    else
+        printNotInTree(el);
 }
 
 template < class T >
@@ -118,6 +125,7 @@ void KdTree<T>::deleteNode(Node<T> *p)
     else
         p->_parent->_left = NULL;
     delete p;
+    --_numNode;
 }
 
 template < class T >
@@ -128,9 +136,9 @@ void KdTree<T>::deleteNode(Node<T> *p, const unsigned &level)
     else {
         Node<T> *q;
         if( p->_right != NULL )    // if p have right subtree, find smallest in right subtree
-            q = smallest( p->_right, level, (level + 1) % DIM );
+            q = successor( p->_right, level, (level + 1) % DIM );
         else {    // if p does not have right subtree, find smallest in left subtree and swap the left subtree to right subtree
-            q = smallest(p->_left, level, (level + 1) % DIM);
+            q = successor(p->_left, level, (level + 1) % DIM);
             if( q != NULL ) {
                 p->_right = p->_left;
                 p->_left = NULL;
@@ -141,4 +149,55 @@ void KdTree<T>::deleteNode(Node<T> *p, const unsigned &level)
     }
 }
 
-//void nearestNeighborSearch(const Element<T> &);
+template < class T >
+T KdTree<T>::squaredDistance(const Element<T> &el1, const Element<T> &el2) const
+{
+    return square(el1.keys[0] - el2.keys[0]) + square(el1.keys[1] - el2.keys[1]);
+}
+
+template < class T >
+T KdTree<T>::NNSearch(const Element<T> &query)
+{   
+    T nn_sd = std::numeric_limits<T>::infinity();
+    Node<T> nn(query, 1, NULL);
+    NNSearch(query, _root, nn_sd, nn);
+    printNode(nn);
+    return nn_sd;
+}
+
+template < class T >
+void KdTree<T>::NNSearch(const Element<T> &query, Node<T> *refer, T &nearst_squared_dis, Node<T> &nn)
+{
+    T query2refer_dis = squaredDistance(refer->_el, query);
+    if( query2refer_dis < nearst_squared_dis ) {
+        nearst_squared_dis = query2refer_dis;
+        nn = *refer;
+    }
+      
+    T query2split_axis = query.keys[refer->getLevel()] - refer->_el.keys[refer->getLevel()];
+    // trim traverse path
+    bool trim_left = false;
+    bool trim_right = false;
+    if( nearst_squared_dis < square(query2split_axis) )
+        query2split_axis < 0 ? trim_right = true : trim_left = true;
+
+    if( !trim_left && (refer->_left != NULL) )
+        NNSearch(query, refer->_left, nearst_squared_dis, nn);
+    if( !trim_right && (refer->_right != NULL) )
+        NNSearch(query, refer->_right, nearst_squared_dis, nn);
+};
+
+template < class T >
+void KdTree<T>::printNode(const Node<T> &n) const
+{
+    fprintf(stdout, "(%lf, %lf)", (n._el).keys[0], (n._el).keys[1]);
+}
+
+template < class T >
+void KdTree<T>::printNotInTree(const Element<T> &el) const
+{
+    fprintf(stderr, "Th node (%lf, %lf) is not in the tree!\n", el.keys[0], el.keys[1]);
+    exit(EXIT_FAILURE);
+}
+
+template class KdTree<double>;

@@ -1,6 +1,6 @@
 # include <stdio.h>
 # include <stdlib.h>
-# include <queue>
+# include <vector>
 # include <iostream>
 # include "Node.h"
 
@@ -15,7 +15,7 @@ using namespace std;
 // read file
 
 template < class T >
-queue< Element<T> > readFile( char *filename)
+vector< Element<T> > readFile( char *filename)
 {
     FILE *fp = fopen( filename, "r");
     if( fp == NULL ){
@@ -26,13 +26,19 @@ queue< Element<T> > readFile( char *filename)
     char *line = NULL;
     size_t len = 0;
     Element<T> el;
-    queue< Element<T> > el_que;
+    vector< Element<T> > el_vec;
     while( getline(&line, &len, fp) != -1){
-        sscanf(line, "%f %f", &el.keys[0], &el.keys[1] );
-        el_que.push(el);
+        sscanf(line, "%lf %lf", &el.keys[0], &el.keys[1] );
+        el_vec.push_back(el);
     }
     fclose(fp);
-    return el_que;
+    return el_vec;
+}
+
+template < class T >
+T square(const T &a)
+{
+    return a*a;
 }
 
 # endif

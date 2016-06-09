@@ -9,3 +9,5 @@ void Node<T>::print() const
         cout << _el.keys[i] << " ";
     cout << _el.keys[DIM - 1] << endl;
 }
+
+template class Node<double>;
