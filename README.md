@@ -4,7 +4,7 @@ The project is the implementation of k dimension tree.
 
 ## Code Example
 
-./bin/kdtree ./data/input1.txt
+./bin/kdtree ./input/input1.txt
 
 ## Motivation
 
