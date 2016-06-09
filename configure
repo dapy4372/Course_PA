@@ -1,1 +1,5 @@
+#! /bin/bash -xe
+[ -d ./output ] || mkdir ./output 
+[ -d ./bin ] || mkdir ./bin
+make clean -C src
 make -C src

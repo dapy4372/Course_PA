@@ -1,8 +1,8 @@
 TARGET1=../bin/kdtree
-OBJS=main.o Node.o kdtree.o
+OBJS=main.o
 CXX      := g++
-CPPFLAGS := -g -Wall -D DIM=2
-#CPPFLAGS := -O2 -I../lib
+#CPPFLAGS := -g -Wall -D DIM=2
+CPPFLAGS := -O2 -Wall -D DIM=2
 
 all : $(TARGET1)
 	@echo -n ""
@@ -10,19 +10,10 @@ all : $(TARGET1)
 $(TARGET1) : $(OBJS)
 	$(CXX) $(CPPFLAGS) $^ -o $@
 
-%.o : %.cpp
-	$(CXX) $(CPPFLAGS) -c $<
+main.o : main.cpp kdtree.h kdtree.cpp utils.h utils.cpp Node.h Node.cpp
+	$(CXX) $(CPPFLAGS) -c -o main.o main.cpp
 
 .PHONY: clean
 
 clean :
 	-rm -f $(OBJS) $(TARGET)
-
-#kdtree.o : kdtree.cpp
-#	$(CXX) $(CPPFLAGS) -c $<
-
-#Node.o : Node.cpp
-#	$(CXX) $(CPPFLAGS) -c $<
-
-#main.o : main.cpp
-#	$(CXX) $(CPPFLAGS) -c $<

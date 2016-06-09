@@ -22,4 +22,6 @@ public:
     Node *_parent, *_left, *_right;
 };
 
+# include "Node.cpp"
+
 # endif

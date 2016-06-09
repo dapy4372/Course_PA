@@ -29,4 +29,6 @@ private:
     void printNotInTree(const Element<T> &) const;
 };
 
+# include "kdtree.cpp"
+
 # endif
