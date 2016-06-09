@@ -23,9 +23,10 @@ int main(int argc, char *argv[])
     Element<float> tt;
     tt.keys[0] = 1;
     tt.keys[1] = 10;
+    float range[2][2] = { {0, 10}, {0, 20} };
+    myKdtree.rangeSearch(range);
     myKdtree.deleteNode(tt);
-    //float range[2][2] = { {1, 1}, {10, 10} };
-    //kdtree.rangeSearch(range);
+    myKdtree.rangeSearch(range);
     //Node<float> *tmp = kdtree.search(tt);
     //Node<float> *tmp = kdtree.smallest(kdtree._root, 0, 0);
     //tmp->print();

@@ -45,17 +45,17 @@ void KdTree<T>::rangeSearch(Node<T> *p, const unsigned &i, const T ranges[][DIM]
     }
     if( found )
         p->print();
-    if( p->left != NULL && ranges[i][0] <= p->_el.keys[i] )
-        rangeSearch(p->left, (i + 1) % DIM, ranges);
-    if( p->right != NULL && p->_el.keys[i] <= ranges[i][1] )
-        rangeSearch(p->right, (i + 1) % DIM, ranges);
+    if( p->_left != NULL && ranges[i][0] <= p->_el.keys[i] )
+        rangeSearch(p->_left, (i + 1) % DIM, ranges);
+    if( p->_right != NULL && p->_el.keys[i] <= ranges[i][1] )
+        rangeSearch(p->_right, (i + 1) % DIM, ranges);
 }
 
 template < class T >
 Node<T> *KdTree<T>::smallest(Node<T> *q, const unsigned &i, const unsigned &j) const
 {
     Node<T> *smallest_node = q;
-    // Not for delete
+
     if( i == j ) {
         if( q->_left != NULL )
             smallest_node = q = q->_left;   // a = b = c equals to tmp = c; a = tmp; b = tmp;
@@ -70,7 +70,7 @@ Node<T> *KdTree<T>::smallest(Node<T> *q, const unsigned &i, const unsigned &j) c
     }
     // Check right subtree smallest Node
     if( q->_right != NULL ) {
-        Node<T> *r_smallest = smallest(q->_left, i, (j+1) % DIM);
+        Node<T> *r_smallest = smallest(q->_right, i, (j+1) % DIM);
         if( smallest_node->_el.keys[i] >= r_smallest->_el.keys[i] )
             smallest_node = r_smallest;
     }
@@ -123,7 +123,7 @@ void KdTree<T>::deleteNode(Node<T> *p)
 template < class T >
 void KdTree<T>::deleteNode(Node<T> *p, const unsigned &level)
 {
-    if( p == NULL )    // p is leaf
+    if( p->_left == NULL && p->_right == NULL )    // p is leaf
         deleteNode(p);
     else {
         Node<T> *q;
@@ -137,7 +137,6 @@ void KdTree<T>::deleteNode(Node<T> *p, const unsigned &level)
             }
         }
         p->_el = q->_el;
-        p->setLevel(q->getLevel());
         deleteNode(q, level);
     }
 }
