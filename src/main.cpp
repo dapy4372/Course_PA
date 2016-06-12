@@ -8,7 +8,7 @@
 # include "kdtree.h"
 # include "Node.h"
 # include "utils.h"
-
+# define FOR_NNPERSEC 10000
 using namespace std;
 
 int main(int argc, char *argv[])
@@ -36,23 +36,53 @@ int main(int argc, char *argv[])
 
     if( (end = times(&tmsend)) == -1 )
         err_sys("time error");
-
-    // print the time for build kd tree
-    cout << "The time for building Kd tree:\n";
+    fprintf(stdout, "The time to build a kd tree:\n");
     printTimes(end - start, &tmsstart, &tmsend);
 
-    // (a) Find the nearest neighbor of (0.5, 0.5)
-    Element<double> query = {{0.5, 0.5}};
-    double tmp = myKdtree.NNSearch(query);
-    cout << endl << sqrt(tmp) << endl << endl;
+    /** (a) Find the nearest neighbor of (0.5, 0.5) **/
+    fprintf(stdout, "\n(a) Find the nearest neighbor of (0.5, 0.5)\n\n");
+    if( (start = times(&tmsstart)) == -1 )
+        err_sys("time error");
 
-    // (b) How many points there are in the rectangle (0.3, 0.3),(0.3, 0.41),(0.6, 0.3),(0.6, 0.41)?
+    Element<double> query = {{0.5, 0.5}};
+    for( int i = 0; i < FOR_NNPERSEC; ++i)
+        myKdtree.NNSearch(query);
+    myKdtree.printNNSearch();
+
+    if( (end = times(&tmsend)) == -1 )
+        err_sys("time error");
+
+    /** (b) How many points there are in the rectangle (0.3, 0.3),(0.3, 0.41),(0.6, 0.3),(0.6, 0.41)? **/
+    fprintf(stdout, "\n(b) How many points there are in the rectangle.\n\n");
     double range[2][2] = { {0.3, 0.6}, {0.3, 0.41} };
+    FILE *fp = fopen("./output/result", "w");
     myKdtree.rangeSearch(range);
-    //myKdtree.deleteNode(tt);
-    //myKdtree.rangeSearch(range);
-    //Node<double> *tmp = kdtree.search(tt);
-    //Node<double> *tmp = kdtree.smallest(kdtree._root, 0, 0);
-    //tmp->print();
+    myKdtree.printRangeSearchRes(range, fp);
+    fclose(fp);
+
+    /** (c) How many nearest neighbor calculations can your 2d-tree implementation perform per second **/
+    fprintf(stdout, "\n(c) How many nearest neighbor calculations can your 2d-tree implementation perform per second.\n\n");
+    static long clktck = 0;
+    if( clktck == 0 )
+        if( (clktck = sysconf(_SC_CLK_TCK)) < 0 )
+            err_sys("sysconf error");
+    double nn_persec = FOR_NNPERSEC / ((tmsend.tms_utime - tmsstart.tms_utime) / (double) clktck);
+    fprintf(stdout, "    find %lf nearest neighbor per second.\n", nn_persec);
+
+    
     return 0;
 }
+/**
+void miniConsole() 
+{
+    fprintf(stdout, "what do you want to do?\n")
+    string cmd
+
+    while(1)
+    {
+        char
+    fgets(buf, sizeof(buf), stdin) != NULL
+     
+    
+    }
+}**/

@@ -31,14 +31,17 @@ void KdTree<T>::insert(const Element<T> &el)
 }
 
 template < class T >
-void KdTree<T>::rangeSearch(const T ranges[][DIM]) const
+void KdTree<T>::rangeSearch(const T ranges[DIM][2])
 {
+    if( !_rangeSearchRes.empty() )
+        _rangeSearchRes.clear();
+
     if( _root != NULL )
         rangeSearch(_root, 0, ranges);
 }
 
 template < class T >
-void KdTree<T>::rangeSearch(Node<T> *p, const unsigned &i, const T ranges[][DIM]) const
+void KdTree<T>::rangeSearch(Node<T> *p, const unsigned &i, const T ranges[][DIM])
 {
     bool found = true;
     for(int j = 0; j < DIM; ++j) {
@@ -48,7 +51,8 @@ void KdTree<T>::rangeSearch(Node<T> *p, const unsigned &i, const T ranges[][DIM]
         }
     }
     if( found )
-        p->print();
+        _rangeSearchRes.push_back(p);
+        //p->print();
     if( p->_left != NULL && ranges[i][0] <= p->_el.keys[i] )
         rangeSearch(p->_left, (i + 1) % DIM, ranges);
     if( p->_right != NULL && p->_el.keys[i] <= ranges[i][1] )
@@ -155,22 +159,24 @@ T KdTree<T>::squaredDistance(const Element<T> &el1, const Element<T> &el2) const
 }
 
 template < class T >
-T KdTree<T>::NNSearch(const Element<T> &query)
+void KdTree<T>::NNSearch(const Element<T> &query)
 {   
-    T nn_sd = std::numeric_limits<T>::infinity();
-    Node<T> nn(query, 1, NULL);
-    NNSearch(query, _root, nn_sd, nn);
-    printNode(nn);
-    return nn_sd;
+    _nndis = std::numeric_limits<T>::infinity();
+    //Node<T> nn(query, 1, NULL);
+    NNSearch(query, _root, _nndis);
+    //NNSearch(query, _root, _nndis, _nn);
+    //printNode(nn, stdout);
+    //fprintf(stdout, "\nThe distance is %lf.\n\n", dis);
 }
 
 template < class T >
-void KdTree<T>::NNSearch(const Element<T> &query, Node<T> *refer, T &nearst_squared_dis, Node<T> &nn)
+//void KdTree<T>::NNSearch(const Element<T> &query, Node<T> *refer, T &nearst_squared_dis, Node<T> &nn)
+void KdTree<T>::NNSearch(const Element<T> &query, Node<T> *refer, T &nearst_squared_dis)
 {
     T query2refer_dis = squaredDistance(refer->_el, query);
     if( query2refer_dis < nearst_squared_dis ) {
         nearst_squared_dis = query2refer_dis;
-        nn = *refer;
+        _nn = refer;
     }
       
     T query2split_axis = query.keys[refer->getLevel()] - refer->_el.keys[refer->getLevel()];
@@ -181,22 +187,46 @@ void KdTree<T>::NNSearch(const Element<T> &query, Node<T> *refer, T &nearst_squa
         query2split_axis < 0 ? trim_right = true : trim_left = true;
 
     if( !trim_left && (refer->_left != NULL) )
-        NNSearch(query, refer->_left, nearst_squared_dis, nn);
+        NNSearch(query, refer->_left, nearst_squared_dis);
+//        NNSearch(query, refer->_left, nearst_squared_dis, nn);
     if( !trim_right && (refer->_right != NULL) )
-        NNSearch(query, refer->_right, nearst_squared_dis, nn);
+        NNSearch(query, refer->_right, nearst_squared_dis);
+//        NNSearch(query, refer->_right, nearst_squared_dis, nn);
 };
 
 template < class T >
-void KdTree<T>::printNode(const Node<T> &n) const
+void KdTree<T>::printNode(const Node<T> &n, FILE *fp) const
 {
-    fprintf(stdout, "(%lf, %lf)", (n._el).keys[0], (n._el).keys[1]);
+    fprintf(fp, "    (%lf, %lf)", (n._el).keys[0], (n._el).keys[1]);
 }
 
 template < class T >
 void KdTree<T>::printNotInTree(const Element<T> &el) const
 {
-    fprintf(stderr, "Th node (%lf, %lf) is not in the tree!\n", el.keys[0], el.keys[1]);
+    fprintf(stderr, "    The node (%lf, %lf) is not in the tree!\n", el.keys[0], el.keys[1]);
     exit(EXIT_FAILURE);
 }
 
+template < class T >
+void KdTree<T>::printRangeSearchRes(const T ranges[DIM][2], FILE *fp) const
+{
+    fprintf(stdout, "    The given rectangle is (%lf, %lf), (%lf, %lf), (%lf, %lf), (%lf, %lf).\n", ranges[0][0], ranges[1][0], ranges[0][0], ranges[1][1], ranges[0][1], ranges[1][0], ranges[0][1], ranges[1][1]);
+    if( !_rangeSearchRes.empty() ) {
+        for( unsigned i = 0; i < _rangeSearchRes.size(); ++i ){
+            printNode(*_rangeSearchRes[i], fp);
+            if( (i + 1) % 5 == 0)
+                fprintf(fp, "\n");
+        }
+        fprintf(stdout, "    There are %lu node in the given range.\n", _rangeSearchRes.size() );
+    }
+    else
+        fprintf(stdout, "    There is not any node in the given range.\n");
+}
+
+template < class T >
+void KdTree<T>::printNNSearch() const
+{
+    printNode(*_nn, stdout);
+    fprintf(stdout, "\n    The distance is %lf.\n", _nndis);
+}
 template class KdTree<double>;

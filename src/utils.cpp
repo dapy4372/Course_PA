@@ -35,7 +35,7 @@ static void printTimes(clock_t real, struct tms *tmsstart, struct tms *tmsend)
     if( clktck == 0 )
         if( (clktck = sysconf(_SC_CLK_TCK)) < 0 )
             err_sys("sysconf error");
-    printf("   real: %7.2f (s)\n", real / (double) clktck);
-    printf("   user: %7.2f (s)\n", (tmsend->tms_utime - tmsstart->tms_utime) / (double) clktck);
-    printf("   sys:  %7.2f (s)\n", (tmsend->tms_stime - tmsstart->tms_stime) / (double) clktck);
+    printf("    real: %7.2f (s)\n", real / (double) clktck);
+    printf("    user: %7.2f (s)\n", (tmsend->tms_utime - tmsstart->tms_utime) / (double) clktck);
+    printf("    sys:  %7.2f (s)\n", (tmsend->tms_stime - tmsstart->tms_stime) / (double) clktck);
 }

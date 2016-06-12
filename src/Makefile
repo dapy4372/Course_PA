@@ -1,8 +1,8 @@
 TARGET1=../bin/kdtree
 OBJS=main.o
 CXX      := g++
-#CPPFLAGS := -g -Wall -D DIM=2
-CPPFLAGS := -O2 -Wall -D DIM=2
+CPPFLAGS := -g -Wall -D DIM=2
+#CPPFLAGS := -O2 -Wall -D DIM=2
 
 all : $(TARGET1)
 	@echo -n ""
