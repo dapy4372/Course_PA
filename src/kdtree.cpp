@@ -2,6 +2,7 @@
 # include <stdlib.h>
 # include <stdio.h>
 # include <limits>
+# include <math.h>
 
 template < class T >
 void KdTree<T>::insert(const Element<T> &el)
@@ -227,6 +228,6 @@ template < class T >
 void KdTree<T>::printNNSearch() const
 {
     printNode(*_nn, stdout);
-    fprintf(stdout, "\n    The distance is %lf.\n", _nndis);
+    fprintf(stdout, "\n    The distance is %lf.\n", sqrt(_nndis));
 }
 template class KdTree<double>;

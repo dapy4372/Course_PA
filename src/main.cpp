@@ -9,7 +9,10 @@
 # include "Node.h"
 # include "utils.h"
 # define FOR_NNPERSEC 10000
+# define BUFSIZE 128
 using namespace std;
+
+void miniConsole(KdTree<double> &);
 
 int main(int argc, char *argv[])
 {
@@ -21,6 +24,7 @@ int main(int argc, char *argv[])
         exit(0);
     }
 
+    cout << "#########################################################################\n";
     // read file
     vector< Element<double> > el_vec = readFile<double>( argv[1] );
 
@@ -69,20 +73,76 @@ int main(int argc, char *argv[])
     double nn_persec = FOR_NNPERSEC / ((tmsend.tms_utime - tmsstart.tms_utime) / (double) clktck);
     fprintf(stdout, "    find %lf nearest neighbor per second.\n", nn_persec);
 
+    cout << "#########################################################################\n";
+
+    miniConsole(myKdtree);
     
     return 0;
 }
-/**
-void miniConsole() 
-{
-    fprintf(stdout, "what do you want to do?\n")
-    string cmd
 
+void miniConsole(KdTree<double> &myKdtree)
+{
     while(1)
     {
-        char
-    fgets(buf, sizeof(buf), stdin) != NULL
-     
-    
+        cout << "\n\nWhat do you want to do?\n\n"
+             << "Options:\n"
+             << "     i   - insert a node\n"
+             << "     d   - delete a node\n"
+             << "     r   - range search\n"
+             << "     n   - nearest neighbor\n"
+             << "     q   - exit\n\n"
+             << "> ";
+        char cmd;
+        cin >> cmd;
+        if( cmd == 'q' )
+            break;
+        Element<double> el;
+        switch(cmd) {
+            case 'i':
+                cout << "# Format:\n"
+                     << "> <number> <number>\n\n"
+                     << "# Example:\n"
+                     << "> 0.5 0.5\n" 
+                     << "> ";
+                cin >> el.keys[0] >> el.keys[1];
+                myKdtree.insert(el);
+                cout << "# Finish Insertion!\n\n";
+                break;
+            case 'd':
+                cout << "# Format:\n"
+                     << "> <number> <number>\n\n"
+                     << "# Example:\n"
+                     << "> 0.5 0.5\n"
+                     << "> ";
+                cin >> el.keys[0] >> el.keys[1];
+                myKdtree.deleteNode(el);
+                cout << "# Finish deletion!\n\n";
+                break;
+            case 'n':
+                cout << "# Format:\n"
+                     << "> <number> <number>\n\n"
+                     << "# Example:\n"
+                     << "> 0.5 0.5\n"
+                     << "> ";
+                cin >> el.keys[0] >> el.keys[1];
+                myKdtree.NNSearch(el);
+                myKdtree.printNNSearch();
+                cout << "# Finish nearest neighbor!\n\n";
+                break;
+            case 'r':
+                double range[2][2];
+                cout << "# Format:\n"
+                     << "> <x-dim range1> <x-dim range2> <y-dim range1> <y-dim range2>\n\n"
+                     << "# Example:\n"
+                     << "> 0.3 0.4 0.3 0.6\n"
+                     << "> ";
+                cin >>range[0][0] >> range[0][1] >> range[1][0] >> range[1][1];
+                FILE *fp = fopen("./output/result", "w");
+                myKdtree.rangeSearch(range);
+                myKdtree.printRangeSearchRes(range, fp);
+                fclose(fp);
+                cout << "# Finish range search!\n\n";
+                break;
+        }
     }
-}**/
+}
