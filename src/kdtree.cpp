@@ -163,15 +163,10 @@ template < class T >
 void KdTree<T>::NNSearch(const Element<T> &query)
 {   
     _nndis = std::numeric_limits<T>::infinity();
-    //Node<T> nn(query, 1, NULL);
     NNSearch(query, _root, _nndis);
-    //NNSearch(query, _root, _nndis, _nn);
-    //printNode(nn, stdout);
-    //fprintf(stdout, "\nThe distance is %lf.\n\n", dis);
 }
 
 template < class T >
-//void KdTree<T>::NNSearch(const Element<T> &query, Node<T> *refer, T &nearst_squared_dis, Node<T> &nn)
 void KdTree<T>::NNSearch(const Element<T> &query, Node<T> *refer, T &nearst_squared_dis)
 {
     T query2refer_dis = squaredDistance(refer->_el, query);
@@ -189,10 +184,8 @@ void KdTree<T>::NNSearch(const Element<T> &query, Node<T> *refer, T &nearst_squa
 
     if( !trim_left && (refer->_left != NULL) )
         NNSearch(query, refer->_left, nearst_squared_dis);
-//        NNSearch(query, refer->_left, nearst_squared_dis, nn);
     if( !trim_right && (refer->_right != NULL) )
         NNSearch(query, refer->_right, nearst_squared_dis);
-//        NNSearch(query, refer->_right, nearst_squared_dis, nn);
 };
 
 template < class T >
@@ -227,6 +220,7 @@ void KdTree<T>::printRangeSearchRes(const T ranges[DIM][2], FILE *fp) const
 template < class T >
 void KdTree<T>::printNNSearch() const
 {
+    fprintf(stdout, "The nearest neighbor is ");
     printNode(*_nn, stdout);
     fprintf(stdout, "\n    The distance is %lf.\n", sqrt(_nndis));
 }
