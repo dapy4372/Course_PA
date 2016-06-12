@@ -220,7 +220,7 @@ void KdTree<T>::printRangeSearchRes(const T ranges[DIM][2], FILE *fp) const
 template < class T >
 void KdTree<T>::printNNSearch() const
 {
-    fprintf(stdout, "The nearest neighbor is ");
+    fprintf(stdout, "    The nearest neighbor is ");
     printNode(*_nn, stdout);
     fprintf(stdout, "\n    The distance is %lf.\n", sqrt(_nndis));
 }
