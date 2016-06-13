@@ -1,4 +1,4 @@
-video_dir=./video
+video_dir=./data/video
 
 for i in `seq 1 2` 
 do
