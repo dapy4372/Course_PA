@@ -1,4 +1,6 @@
-export video_time=8000
+export DIR=$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )
+
+export video_time=100000
 
 export pi_data_dir=/home/pi/data
 export pc_data_dir=/home/user/data
@@ -21,4 +23,4 @@ ssh $pc '[ -d $pc_video_dir ] || mkdir $pc_video_dir'
 ssh $pc '[ -d $pc_image_dir ] || mkdir $pc_image_dir'
 ssh $pc '[ -d $pc_table_dir ] || mkdir $pc_table_dir'
 
-./run_cam.sh | ./run_cap.sh
+$DIR/run_cam.sh | $DIR/run_cap.sh
