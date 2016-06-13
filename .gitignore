@@ -1,5 +1,5 @@
 *.o
 .*
 !/.gitignore
-*
-!*.*
+*.png
+*.mp4
