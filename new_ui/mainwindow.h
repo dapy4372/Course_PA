@@ -2,7 +2,11 @@
 #define MAINWINDOW_H
  
 #include <QMainWindow>
-#include <QLayout> 
+#include <QGridLayout> 
+#include <QStackedLayout>
+#include <QListWidget>
+#include <QLabel>
+#include <QTextEdit>
 /* My Includes */
 
 #include <qdynamicbutton.h>
@@ -16,8 +20,10 @@ class MainWindow : public QMainWindow
     Q_OBJECT
  
 public:
-    QWidget *Main;
-    QLayout *layout;
+    QWidget *main_window;
+    QGridLayout *layout;
+    QListWidget *list_widget;
+    QStackedLayout *stacked_layout;
     QPushButton *add;
     explicit MainWindow(QWidget *parent = 0);
     ~MainWindow();
