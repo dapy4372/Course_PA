@@ -5,6 +5,7 @@
 #include <QGridLayout> 
 #include <QStackedLayout>
 #include <QListWidget>
+#include <QPushButton>
 #include <QLabel>
 #include <QTextEdit>
 #include <QString>
@@ -18,12 +19,7 @@
 #include <phonon/MediaObject>
 #include <phonon/MediaSource>
 /* My Includes */
-
-#include <qdynamicbutton.h>
- 
-//namespace Ui {
-//class MainWindow;
-//}
+#include "myitem.h"
  
 class MainWindow : public QMainWindow
 {
@@ -40,12 +36,11 @@ public:
     QPushButton *quit_button;
     QPushButton *play_button;
     Phonon::VideoPlayer *player;
+    QVector<MyItem *> myitem_vec;
  
 private slots:
-    void on_addButton_clicked();    // СЛОТ-обработчик нажатия кнопки добавления
-    void on_deleteButton_clicked(); // СЛОТ-обработчик нажатия кнопки удаления
-    void slotGetNumber();           // СЛОТ для получения номера нажатой динамической кнопки
-    void playVideo();
+    void on_addButton_clicked();
+    void playVideo(int);
  
 private:
     QWidget *_parent;

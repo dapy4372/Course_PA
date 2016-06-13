@@ -1,7 +1,6 @@
 #include "mainwindow.h"
 
 #include <iostream>
-//#define foreach Q_FOREACH
  
 MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent)
 {
@@ -16,10 +15,6 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent)
 
     stacked_layout = new QStackedLayout;
     layout->addLayout(stacked_layout, 0, 1);
-    //stacked_layout->addWidget(new QLabel("<h1><font color=blue>caterpillar</font></h1>"));
-    //stacked_layout->addWidget(new QPushButton("momor"));
-    //stacked_layout->addWidget(new QTextEdit);
-    //QObject::connect(list_widget, SIGNAL(currentRowChanged(int)), stacked_layout, SLOT(setCurrentIndex(int)));
 
     update_button = new QPushButton("Update");
     quit_button = new QPushButton("Quit");
@@ -29,15 +24,11 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent)
     layout->addWidget(play_button, 1, 1);
     connect(update_button, SIGNAL(clicked()), this, SLOT(on_addButton_clicked()));
     connect(quit_button, SIGNAL(clicked()), main_window, SLOT(close()) );
-    connect(play_button, SIGNAL(clicked()), this, SLOT(playVideo()));
 
     QString filename = "./video/fruit.mp4";
     
-    //player = new Phonon::VideoPlayer(Phonon::VideoCategory, main_window);
-    //layout->addWidget(player);
-    //player->load(Phonon::MediaSource ("./video/output.mp4"));
-    //player->play();
     QObject::connect(list_widget, SIGNAL(currentRowChanged(int)), stacked_layout, SLOT(setCurrentIndex(int)));
+    QObject::connect(list_widget, SIGNAL(currentRowChanged(int)), this, SLOT(playVideo(int)));
     main_window->setLayout(layout);
     main_window->show();
 }
@@ -55,6 +46,7 @@ QVector< QPair<QString, int> > readTable(const QString &filename)
             QString img_path = "../data/image/" + line.split(" ").at(0);
             int img_time = line.split(" ").at(1).toInt();
             QPair<QString, int> a(img_path, img_time);
+
             img_vec << a;
         }
         inputFile.close();
@@ -67,50 +59,31 @@ void MainWindow::on_addButton_clicked()
     QDir dir("../data/table");
     QFileInfoList list = dir.entryInfoList(QDir::Files);
     Q_FOREACH(QFileInfo finfo, list) {
-        QString tmp = finfo.filePath();
-        QVector< QPair<QString, int> > img_vec = readTable(tmp);
+        QString table_path = finfo.filePath();
+        QString video_path = table_path;
+        video_path.replace("timeTable", "video").replace("table", "video").replace("txt", "mp4");
+        QVector< QPair<QString, int> > img_vec = readTable(table_path);
         for( int i = 0; i < img_vec.size(); ++i ) {
+            Phonon::VideoPlayer *player = new Phonon::VideoPlayer(Phonon::VideoCategory, main_window);
+            player->load(video_path);
+            stacked_layout -> addWidget(player);
             QListWidgetItem *item = new QListWidgetItem(QIcon(img_vec.at(i).first), "show");
-            list_widget->insertItem(list_widget->count(), item);
+            MyItem *myitem = new MyItem(list_widget -> count(), item, player, video_path, img_vec.at(i).second*1000);
+            list_widget -> insertItem(list_widget -> count(), item);
+            myitem_vec.append(myitem);
         }
-
     }
-    //QDynamicButton *button = new QDynamicButton(this); 
-    //button->setText("new button" + QString::number(button->getID()));
-    //layout->addWidget(button);
-    //button->show();
-    //connect(button, SIGNAL(clicked()), this, SLOT(slotGetNumber()));
-    //-----------------
-    //QListWidgetItem *item = new QListWidgetItem(QIcon("./img/0.png"), "show");
-    //list_widget->insertItem(list_widget->count(), item);
-    //player = new Phonon::VideoPlayer(Phonon::VideoCategory, main_window);
-    //stacked_layout->addWidget(player);
-    //player->load(Phonon::MediaSource ("./video/output.mp4"));
-    //player->play();
 }
 
-void MainWindow::playVideo()
+void MainWindow::playVideo(int idx)
 {
-    player->play();
-}
- 
-/* Метод для удаления динамической кнопки по её номеру
- * */
-void MainWindow::on_deleteButton_clicked()
-{
-    //for(int i = 0; i < layout->count(); i++){
-    //for(int i = 0; i < splitter->count(); i++){
-        //QDynamicButton *button = qobject_cast<QDynamicButton*>(splitter->itemAt(i)->widget());
-        //QDynamicButton *button = qobject_cast<QDynamicButton*>(layout->itemAt(i)->widget());
-      //  if(button->getID() == parent->lineEdit->text().toInt()){
-         //   button->hide();
-          //  delete button;
-        //}
+    MyItem *cur_item = myitem_vec.at(idx);
+    //cur_item->player->load(cur_item->video_path);
+    //while(!cur_item->player->mediaObject()->isSeekable()) {
+    //    qDebug() << "123";
     //}
-}
- 
-void MainWindow::slotGetNumber()
-{
-    //QDynamicButton *button = (QDynamicButton*) sender();
-    //parent->lineEdit->setText(QString::number(button->getID()));
+    cur_item->player->play();
+    cur_item->player->pause();
+    cur_item->player->seek(cur_item->img_time);
+    cur_item->player->play();
 }
