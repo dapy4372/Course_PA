@@ -25,8 +25,6 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent)
     connect(update_button, SIGNAL(clicked()), this, SLOT(on_addButton_clicked()));
     connect(quit_button, SIGNAL(clicked()), main_window, SLOT(close()) );
 
-    QString filename = "./video/fruit.mp4";
-    
     QObject::connect(list_widget, SIGNAL(currentRowChanged(int)), stacked_layout, SLOT(setCurrentIndex(int)));
     QObject::connect(list_widget, SIGNAL(currentRowChanged(int)), this, SLOT(playVideo(int)));
     main_window->setLayout(layout);
@@ -43,7 +41,7 @@ QVector< QPair<QString, int> > readTable(const QString &filename)
         QTextStream in(&inputFile);
         while(!in.atEnd()) {
             QString line = in.readLine();
-            QString img_path = "../data/image/" + line.split(" ").at(0);
+            QString img_path = "./data/image/" + line.split(" ").at(0);
             int img_time = line.split(" ").at(1).toInt();
             QPair<QString, int> a(img_path, img_time);
 
@@ -56,12 +54,12 @@ QVector< QPair<QString, int> > readTable(const QString &filename)
 
 void MainWindow::on_addButton_clicked()
 {
-    QDir dir("../data/table");
+    QDir dir("./data/table");
     QFileInfoList list = dir.entryInfoList(QDir::Files);
     Q_FOREACH(QFileInfo finfo, list) {
         QString table_path = finfo.filePath();
         QString video_path = table_path;
-        video_path.replace("timeTable", "video").replace("table", "video").replace("txt", "mp4");
+        video_path.replace("table", "video").replace("txt", "mp4");
         QVector< QPair<QString, int> > img_vec = readTable(table_path);
         for( int i = 0; i < img_vec.size(); ++i ) {
             Phonon::VideoPlayer *player = new Phonon::VideoPlayer(Phonon::VideoCategory, main_window);
