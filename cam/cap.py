@@ -38,7 +38,6 @@ while cap.isOpened():
             cv2.imwrite("./data/image/image_%s_%d.png" % (date, frame_count), image)
             cv2.rectangle(image, (x, y), (x+w, y+h), (0, 255, 0), 2)
             prev_frame_count = frame_count
-    #cv2.imshow('window-name',image)
 
     key = cv2.waitKey(1) & 0xFF
     frame_count = frame_count + 1
