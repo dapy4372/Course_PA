@@ -1,4 +1,4 @@
-export video_time=10000
+export video_time=8000
 
 export pi_data_dir=/home/pi/data
 export pc_data_dir=/home/user/data
@@ -17,8 +17,8 @@ export pc=user@192.168.1.190
 [ -d $pi_image_dir ] || mkdir $pi_image_dir
 [ -d $pi_table_dir ] || mkdir $pi_table_dir
 
-ssh pc '[ -d $pc_video_dir ] || mkdir $pc_video_dir'
-ssh pc '[ -d $pc_image_dir ] || mkdir $pc_image_dir'
-ssh pc '[ -d $pc_table_dir ] || mkdir $pc_table_dir'
+ssh $pc '[ -d $pc_video_dir ] || mkdir $pc_video_dir'
+ssh $pc '[ -d $pc_image_dir ] || mkdir $pc_image_dir'
+ssh $pc '[ -d $pc_table_dir ] || mkdir $pc_table_dir'
 
 ./run_cam.sh | ./run_cap.sh

@@ -15,7 +15,7 @@ date=os.path.basename(video_filename).split('.')[0]
 
 cap = cv2.VideoCapture(video_filename)
 
-tablefile = open("./data/table/table_%s.tab" % (date), "w")
+tablefile = open("./data/table/table_%s.txt" % (date), "w")
 
 frame_count= 0
 prev_frame_count = -1000
@@ -34,8 +34,8 @@ while cap.isOpened():
     # Draw a rectangle around the faces
     for (x, y, w, h) in faces:
         if(frame_count - prev_frame_count > CAP_FRAME_SPACING):
-            tablefile.write("image_%s_%d.png %d\n" % (date, frame_count, frame_count * time_per_frame))
-            cv2.imwrite("./data/image/image_%s_%d.png" % (date, frame_count), image)
+            tablefile.write("image_%s_%d.jpg %d\n" % (date, frame_count, frame_count * time_per_frame))
+            cv2.imwrite("./data/image/image_%s_%d.jpg" % (date, frame_count), image)
             cv2.rectangle(image, (x, y), (x+w, y+h), (0, 255, 0), 2)
             prev_frame_count = frame_count
 
