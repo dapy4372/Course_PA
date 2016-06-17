@@ -64,9 +64,12 @@ void MainWindow::on_addButton_clicked()
         for( int i = 0; i < img_vec.size(); ++i ) {
             Phonon::VideoPlayer *player = new Phonon::VideoPlayer(Phonon::VideoCategory, main_window);
             player->load(video_path);
+            player->play();
+            player->pause();
+            player->seek(cur_item->img_time);
             stacked_layout -> addWidget(player);
             QListWidgetItem *item = new QListWidgetItem(QIcon(img_vec.at(i).first), "show");
-            MyItem *myitem = new MyItem(list_widget -> count(), item, player, video_path, img_vec.at(i).second*1000);
+            MyItem *myitem = new MyItem(list_widget -> count(), item, player, video_path, img_vec.at(i).second);
             list_widget -> insertItem(list_widget -> count(), item);
             myitem_vec.append(myitem);
         }
@@ -80,8 +83,7 @@ void MainWindow::playVideo(int idx)
     //while(!cur_item->player->mediaObject()->isSeekable()) {
     //    qDebug() << "123";
     //}
-    cur_item->player->play();
-    cur_item->player->pause();
     cur_item->player->seek(cur_item->img_time);
+    qDebug() << cur_item->img_time;
     cur_item->player->play();
 }
