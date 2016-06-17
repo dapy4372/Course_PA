@@ -66,7 +66,7 @@ void MainWindow::on_addButton_clicked()
             player->load(video_path);
             player->play();
             player->pause();
-            player->seek(cur_item->img_time);
+            player->seek(img_vec.at(i).second);
             stacked_layout -> addWidget(player);
             QListWidgetItem *item = new QListWidgetItem(QIcon(img_vec.at(i).first), "show");
             MyItem *myitem = new MyItem(list_widget -> count(), item, player, video_path, img_vec.at(i).second);
