@@ -1,6 +1,13 @@
 export DIR=$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )
 
-export video_time=100000
+if [ $# -ne 1 ]; then
+    echo "Usage:"
+    echo "    $0 <per video save time(ms)>"
+    echo "    $0 5000"
+    exit 1;
+fi
+
+export video_time=$1
 
 export pi_data_dir=/home/pi/data
 export pc_data_dir=/home/user/data
