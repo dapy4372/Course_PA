@@ -13,6 +13,7 @@
 #include <QFile>
 #include <QTextStream>
 #include <QDir>
+#include <QMap>
 #include <phonon>
 #include <phonon/VideoPlayer>
 #include <phonon/VideoWidget>
@@ -40,9 +41,11 @@ public:
  
 private slots:
     void on_addButton_clicked();
-    void playVideo(int);
+    void handleVideo(QListWidgetItem *);
+    void handleVideo(QListWidgetItem *a, QListWidgetItem * b);
  
 private:
+    QMap<QString, QString> _path_map;
     QWidget *_parent;
 };
  

@@ -1,4 +1,5 @@
 #include "mainwindow.h"
+#include <unistd.h>
 
 #include <iostream>
  
@@ -13,8 +14,8 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent)
     list_widget->setFixedWidth(400);
     layout->addWidget(list_widget, 0, 0);
 
-    stacked_layout = new QStackedLayout;
-    layout->addLayout(stacked_layout, 0, 1);
+    //stacked_layout = new QStackedLayout;
+    //layout->addLayout(stacked_layout, 0, 1);
 
     update_button = new QPushButton("Update");
     quit_button = new QPushButton("Quit");
@@ -25,8 +26,10 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent)
     connect(update_button, SIGNAL(clicked()), this, SLOT(on_addButton_clicked()));
     connect(quit_button, SIGNAL(clicked()), main_window, SLOT(close()) );
 
-    QObject::connect(list_widget, SIGNAL(currentRowChanged(int)), stacked_layout, SLOT(setCurrentIndex(int)));
-    QObject::connect(list_widget, SIGNAL(currentRowChanged(int)), this, SLOT(playVideo(int)));
+    //QObject::connect(list_widget, SIGNAL(currentRowChanged(int)), stacked_layout, SLOT(setCurrentIndex(int)));
+    //QObject::connect(list_widget, SIGNAL(currentRowChanged(int)), this, SLOT(playVideo(int)));
+    QObject::connect(list_widget, SIGNAL(itemClicked(QListWidgetItem *)), this, SLOT(handleVideo(QListWidgetItem *)));
+    QObject::connect(list_widget, SIGNAL(currentItemChanged(QListWidgetItem *, QListWidgetItem *)), this, SLOT(handleVideo(QListWidgetItem *, QListWidgetItem *)));
     main_window->setLayout(layout);
     main_window->show();
 }
@@ -59,31 +62,81 @@ void MainWindow::on_addButton_clicked()
     Q_FOREACH(QFileInfo finfo, list) {
         QString table_path = finfo.filePath();
         QString video_path = table_path;
-        video_path.replace("table", "video").replace("txt", "mp4");
-        QVector< QPair<QString, int> > img_vec = readTable(table_path);
-        for( int i = 0; i < img_vec.size(); ++i ) {
+        QMap<QString, QString>::const_iterator iter = _path_map.constFind(video_path);
+        if( iter == _path_map.constEnd() ) {
+            _path_map[video_path] = table_path;
+            video_path.replace("table", "video").replace("txt", "mp4");
+            QVector< QPair<QString, int> > img_vec = readTable(table_path);
             Phonon::VideoPlayer *player = new Phonon::VideoPlayer(Phonon::VideoCategory, main_window);
             player->load(video_path);
             player->play();
             player->pause();
-            player->seek(img_vec.at(i).second);
-            stacked_layout -> addWidget(player);
-            QListWidgetItem *item = new QListWidgetItem(QIcon(img_vec.at(i).first), "show");
-            MyItem *myitem = new MyItem(list_widget -> count(), item, player, video_path, img_vec.at(i).second);
-            list_widget -> insertItem(list_widget -> count(), item);
-            myitem_vec.append(myitem);
+            for( int i = 0; i < img_vec.size(); ++i ) {
+                //player->mediaObject()->setCurrentSource(video_path);
+                //stacked_layout -> addWidget(player);
+                layout -> addWidget(player, 0, 1);
+                player->hide();
+                QListWidgetItem *item = new QListWidgetItem(QIcon(img_vec.at(i).first), img_vec.at(i).first);
+                item->setWhatsThis(QString::number(list_widget->count()));
+
+                MyItem *myitem = new MyItem(list_widget -> count(), item, player, video_path, img_vec.at(i).second);
+
+                QObject::connect(player->mediaObject(), SIGNAL(hasVideoChanged(bool)), myitem, SLOT(testSeek(bool)));
+
+                list_widget -> insertItem(list_widget -> count(), item);
+                myitem_vec.append(myitem);
+            }
         }
     }
 }
 
-void MainWindow::playVideo(int idx)
+void MainWindow::handleVideo(QListWidgetItem *curr)
 {
-    MyItem *cur_item = myitem_vec.at(idx);
-    //cur_item->player->load(cur_item->video_path);
-    //while(!cur_item->player->mediaObject()->isSeekable()) {
-    //    qDebug() << "123";
+    MyItem *curr_item = myitem_vec.at(curr -> whatsThis().toInt());
+    qDebug() << "curr:" << curr_item -> img_time << endl;
+    //curr_item -> player -> load(curr_item -> video_path);
+    qDebug() << "State:" << curr_item -> player -> mediaObject() -> state();
+    
+    if( curr_item -> player -> isHidden() )
+        curr_item -> player -> show();
+
+    if( curr_item -> player -> mediaObject() -> state() == Phonon::LoadingState ) {
+        qDebug() << "loading!!!";
+        return;
+    }
+    if( curr_item -> _seekable ) {
+        curr_item -> player -> seek(curr_item -> img_time);
+        qDebug() << "curr:" << curr_item -> img_time << endl;
+        curr_item -> player -> play();
+    }
+    else
+        qDebug() << "handle: wait for being seekable" << endl;
+}
+
+void MainWindow::handleVideo(QListWidgetItem *curr, QListWidgetItem *prev)
+{
+    qDebug() << curr->whatsThis().toInt();
+
+    // check if it is the first time to call this function
+    // if true, the prev will be null
+    if(prev) {
+        qDebug() << prev->whatsThis().toInt();
+
+        MyItem *prev_item = myitem_vec.at(prev->whatsThis().toInt());
+        MyItem *curr_item = myitem_vec.at(curr->whatsThis().toInt());
+
+        prev_item->player->pause();
+        prev_item->player->seek(prev_item->img_time);
+        qDebug() << "prev:" << prev_item->img_time << endl;
+        if( prev_item -> player != curr_item -> player ) {
+            prev_item -> player -> hide();
+            curr_item -> player -> show();
+        }
+    }
+
+    //if(curr_item->_seekable) {
+    //    curr_item->player->seek(curr_item->img_time);
+    //    qDebug() << "curr:" << curr_item->img_time << endl;
+    //    curr_item->player->play();
     //}
-    cur_item->player->seek(cur_item->img_time);
-    qDebug() << cur_item->img_time;
-    cur_item->player->play();
 }
