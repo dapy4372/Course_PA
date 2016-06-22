@@ -68,9 +68,10 @@ void MainWindow::on_addButton_clicked()
             video_path.replace("table", "video").replace("txt", "mp4");
             QVector< QPair<QString, int> > img_vec = readTable(table_path);
             Phonon::VideoPlayer *player = new Phonon::VideoPlayer(Phonon::VideoCategory, main_window);
-            player->load(video_path);
-            player->play();
-            player->pause();
+            player -> load(video_path);
+            player -> play();
+            player -> pause();
+            //QObject::connect(player -> mediaObject(), SIGNAL(prefinishMarkReached(qint32)), player -> mediaObject(), SLOT(seek(qint32)));
             for( int i = 0; i < img_vec.size(); ++i ) {
                 //player->mediaObject()->setCurrentSource(video_path);
                 //stacked_layout -> addWidget(player);
@@ -80,8 +81,8 @@ void MainWindow::on_addButton_clicked()
                 item->setWhatsThis(QString::number(list_widget->count()));
 
                 MyItem *myitem = new MyItem(list_widget -> count(), item, player, video_path, img_vec.at(i).second);
+                QObject::connect(player -> mediaObject(), SIGNAL(hasVideoChanged(bool)), myitem, SLOT(testSeek(bool)));
 
-                QObject::connect(player->mediaObject(), SIGNAL(hasVideoChanged(bool)), myitem, SLOT(testSeek(bool)));
 
                 list_widget -> insertItem(list_widget -> count(), item);
                 myitem_vec.append(myitem);
@@ -94,7 +95,6 @@ void MainWindow::handleVideo(QListWidgetItem *curr)
 {
     MyItem *curr_item = myitem_vec.at(curr -> whatsThis().toInt());
     qDebug() << "curr:" << curr_item -> img_time << endl;
-    //curr_item -> player -> load(curr_item -> video_path);
     qDebug() << "State:" << curr_item -> player -> mediaObject() -> state();
     
     if( curr_item -> player -> isHidden() )
@@ -104,13 +104,16 @@ void MainWindow::handleVideo(QListWidgetItem *curr)
         qDebug() << "loading!!!";
         return;
     }
+
     if( curr_item -> _seekable ) {
         curr_item -> player -> seek(curr_item -> img_time);
         qDebug() << "curr:" << curr_item -> img_time << endl;
         curr_item -> player -> play();
     }
-    else
+    else {
+        curr_item -> player -> pause();
         qDebug() << "handle: wait for being seekable" << endl;
+    }
 }
 
 void MainWindow::handleVideo(QListWidgetItem *curr, QListWidgetItem *prev)
@@ -125,18 +128,12 @@ void MainWindow::handleVideo(QListWidgetItem *curr, QListWidgetItem *prev)
         MyItem *prev_item = myitem_vec.at(prev->whatsThis().toInt());
         MyItem *curr_item = myitem_vec.at(curr->whatsThis().toInt());
 
-        prev_item->player->pause();
-        prev_item->player->seek(prev_item->img_time);
+        //prev_item->player->seek(prev_item->img_time);
         qDebug() << "prev:" << prev_item->img_time << endl;
         if( prev_item -> player != curr_item -> player ) {
+            prev_item->player->pause();
             prev_item -> player -> hide();
             curr_item -> player -> show();
         }
     }
-
-    //if(curr_item->_seekable) {
-    //    curr_item->player->seek(curr_item->img_time);
-    //    qDebug() << "curr:" << curr_item->img_time << endl;
-    //    curr_item->player->play();
-    //}
 }
