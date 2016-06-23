@@ -3,7 +3,6 @@
  
 #include <QMainWindow>
 #include <QGridLayout> 
-#include <QStackedLayout>
 #include <QListWidget>
 #include <QPushButton>
 #include <QLabel>
@@ -21,6 +20,7 @@
 #include <phonon/MediaSource>
 /* My Includes */
 #include "myitem.h"
+#include "NewWindow.h"
  
 class MainWindow : public QMainWindow
 {
@@ -32,17 +32,18 @@ public:
     QWidget *main_window;
     QGridLayout *layout;
     QListWidget *list_widget;
-    QStackedLayout *stacked_layout;
     QPushButton *update_button;
     QPushButton *quit_button;
-    QPushButton *play_button;
     Phonon::VideoPlayer *player;
     QVector<MyItem *> myitem_vec;
+    QMap<int, NewWindow *> newWindow_map;
  
 private slots:
     void on_addButton_clicked();
-    void handleVideo(QListWidgetItem *);
-    void handleVideo(QListWidgetItem *a, QListWidgetItem * b);
+    //void handleVideo(QListWidgetItem *);
+    //void handleVideo(QListWidgetItem *a, QListWidgetItem * b);
+    void openNewWindow(QListWidgetItem *);
+    void openNewWindow(QListWidgetItem *, QListWidgetItem *);
  
 private:
     QMap<QString, QString> _path_map;
