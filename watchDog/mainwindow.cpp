@@ -17,9 +17,6 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent)
     list_widget -> setFixedWidth(400);
     layout -> addWidget(list_widget, 0, 0);
 
-    //stacked_layout = new QStackedLayout;
-    //layout->addLayout(stacked_layout, 0, 1);
-
     update_button = new QPushButton("Update");
     quit_button = new QPushButton("Quit");
     layout -> addWidget(update_button, 1, 0);
@@ -90,6 +87,7 @@ void MainWindow::on_addButton_clicked()
             QVector< QPair<QString, QPair<int, int> > > img_vec = readTable(table_path);
             Phonon::VideoPlayer *player = new Phonon::VideoPlayer(Phonon::VideoCategory, main_window);
             player -> load(video_path);
+            qDebug() << video_path;
 
             for( int i = 0; i < img_vec.size(); ++i ) {
                 qDebug() << img_vec.at(i);
@@ -134,7 +132,6 @@ void MainWindow::openNewWindow(QListWidgetItem *curr, QListWidgetItem *prev)
         qDebug() << prev -> whatsThis().toInt();
 
         NewWindow *prev_item = newWindow_map[prev -> whatsThis().toInt()];
-        //NewWindow *curr_item = newWindow_map[curr -> whatsThis().toInt()];
         prev_item -> main_window -> hide();
     }
 }

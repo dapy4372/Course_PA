@@ -35,10 +35,16 @@ void NewWindow::addItem(MyItem *it)
 
 void NewWindow::handleVideo(QListWidgetItem *curr)
 {
+    qDebug () << "handle----------------------------------";
     MyItem *curr_item = myitem_vec.at(curr -> whatsThis().toInt());
     qDebug() << "curr:" << curr_item -> img_time << endl;
     qDebug() << "State:" << curr_item -> player -> mediaObject() -> state();
     
+    // need to play first for being seekable
+    if( curr_item -> player -> mediaObject() -> state() == Phonon::StoppedState ) {
+        curr_item -> player -> play();
+    }
+
     if( curr_item -> player -> isHidden() )
         curr_item -> player -> show();
 
@@ -75,7 +81,6 @@ void NewWindow::handleVideo(QListWidgetItem *curr, QListWidgetItem *prev)
         if( prev_item -> player != curr_item -> player ) {
             prev_item -> player -> pause();
             prev_item -> player -> hide();
-            curr_item -> player -> show();
         }
     }
 }
@@ -83,7 +88,7 @@ void NewWindow::handleVideo(QListWidgetItem *curr, QListWidgetItem *prev)
 void NewWindow::on_addButton_clicked()
 {
     while( curr_myitem_idx < myitem_vec.size() ) {
-        qDebug () << "123";
+        qDebug () << "123----------------------------------";
         MyItem *curr_myitem = myitem_vec.at(curr_myitem_idx);
         layout -> addWidget(curr_myitem -> player, 0, 1);
         curr_myitem -> item -> setWhatsThis(QString::number(list_widget -> count()));
