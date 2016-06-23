@@ -84,6 +84,8 @@ if( os.path.exists( imgPath_faceId_map_filename ) ):
     with open( imgPath_faceId_map_filename, "r" ) as f:
         reader = csv.reader( f, delimiter = " " )
         for row in reader:
+            # row[0]: key, faceId
+            # row[1]: value, img path
             imgPath_faceId_map[row[0]] = row[1]
 
     # append existed faceId 
@@ -119,3 +121,8 @@ if img_filename_list:
         for faceId in grp_result["messyGroup"]:
                 writer.writerow( [messy_idx, imgPath_faceId_map[faceId] ] )
                 #f.write( "%d %s\n" % (messy_idx, imgPath_faceId_map[faceId]) )
+
+    with open( imgPath_faceId_map_filename, "wb" ) as f:
+        writer = csv.writer( f, delimiter = " " )
+        for key, value in imgPath_faceId_map.iteritems():
+            writer.writerow( [key, value] )
