@@ -117,9 +117,8 @@ if img_filename_list:
                 writer.writerow( [idx, imgPath_faceId_map[faceId] ] )
                 #print( "%d %s" % (idx, imgPath_faceId_map[faceId]) )
 
-        messy_idx = len( grp_result["groups"] )
         for faceId in grp_result["messyGroup"]:
-                writer.writerow( [messy_idx, imgPath_faceId_map[faceId] ] )
+                writer.writerow( [-1, imgPath_faceId_map[faceId] ] )
                 #f.write( "%d %s\n" % (messy_idx, imgPath_faceId_map[faceId]) )
 
     with open( imgPath_faceId_map_filename, "wb" ) as f:
