@@ -2,9 +2,6 @@
 import time, requests, operator, glob, sys, os
 import numpy as np
 
-# Import library to display results
-import matplotlib.pyplot as plt
-
 _key = '57f0b5bd23354bb2b6283543b34da840'
 _maxNumRetries = 20
 
@@ -84,8 +81,9 @@ faceIds = []
 faceId_imgPath_map = dict()
 prev_filelist = {}
 
+time.sleep(10)
 
-while 1:
+for step in range(5):
     time.sleep(3)
     curr_filelist = dict ([(f, None) for f in glob.glob(path_to_watch + "/*.jpg")])
     added_filelist = [f for f in curr_filelist if not f in prev_filelist]
@@ -120,6 +118,3 @@ while 1:
             messy_idx = len(grp_result["groups"])
             for faceId in grp_result["messyGroup"]:
                     f.write( "%d %s\n" % (messy_idx, faceId_imgPath_map[faceId]) )
-
-    # for debug
-    break

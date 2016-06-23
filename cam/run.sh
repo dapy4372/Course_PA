@@ -31,4 +31,4 @@ ssh $pc '[ -d $pc_image_dir ] || mkdir $pc_image_dir'
 ssh $pc '[ -d $pc_table_dir ] || mkdir $pc_table_dir'
 
 $DIR/run_cam.sh | $DIR/run_cap.sh
-$DIR/grp.py $pi_image_dir $pi_data/grp_list
+$DIR/grp.py $pi_image_dir $pi_data_dir/grp_list
