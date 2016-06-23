@@ -106,22 +106,23 @@ if img_filename_list:
 
     time.sleep(3)
 
-    grp_json = dict()
-    grp_json["faceIds"] = faceIds
+    if len(faceIds) > 2:
+        grp_json = dict()
+        grp_json["faceIds"] = faceIds
 
-    grp_result = processRequest( grp_url, grp_json, None, grp_headers, None )
+        grp_result = processRequest( grp_url, grp_json, None, grp_headers, None )
 
-    with open( group_list_filename, "w" ) as f:
-        writer = csv.writer( f, delimiter = " " )
+        with open( group_list_filename, "w" ) as f:
+            writer = csv.writer( f, delimiter = " " )
 
-        for idx, grp in enumerate( grp_result["groups"] ):
-            for faceId in grp:
-                writer.writerow( [idx, imgPath_faceId_map[faceId] ] )
-                #print( "%d %s" % (idx, imgPath_faceId_map[faceId]) )
+            for idx, grp in enumerate( grp_result["groups"] ):
+                for faceId in grp:
+                    writer.writerow( [idx, imgPath_faceId_map[faceId] ] )
+                    #print( "%d %s" % (idx, imgPath_faceId_map[faceId]) )
 
-        for faceId in grp_result["messyGroup"]:
-                writer.writerow( [-1, imgPath_faceId_map[faceId] ] )
-                #f.write( "%d %s\n" % (messy_idx, imgPath_faceId_map[faceId]) )
+            for faceId in grp_result["messyGroup"]:
+                    writer.writerow( [-1, imgPath_faceId_map[faceId] ] )
+                    #f.write( "%d %s\n" % (messy_idx, imgPath_faceId_map[faceId]) )
 
     with open( imgPath_faceId_map_filename, "wb" ) as f:
         writer = csv.writer( f, delimiter = " " )

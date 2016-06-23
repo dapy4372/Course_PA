@@ -1,6 +1,6 @@
 #! /bin/bash
 
-for i in `seq 1 2` 
+for i in `seq 1 5` 
 do
     cur_date=$(date +"%Y%m%d%H%M%S")
     video_name=${pi_video_dir}/${cur_date}.mp4

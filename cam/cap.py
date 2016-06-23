@@ -4,7 +4,7 @@ import sys, os
 sys.path.append("/usr/local/lib/python2.7/dist-packages/")
 import cv2
 
-THRESHOLD = 0.7
+THRESHOLD = 0.9
 CAP_FRAME_SPACING = 15
 
 faceCascade = cv2.CascadeClassifier('/home/pi/opencv/data/haarcascades/haarcascade_frontalface_default.xml')
@@ -51,5 +51,5 @@ while cap.isOpened():
                 prev_frame_count = frame_count
 
         key = cv2.waitKey(1) & 0xFF
-        frame_count = frame_count + 1
+    frame_count = frame_count + 1
     prev_image = image
