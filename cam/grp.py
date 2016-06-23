@@ -93,16 +93,18 @@ if( os.path.exists( imgPath_faceId_map_filename ) ):
 
 if img_filename_list:
     for img_filename in img_filename_list:
-        time.sleep(1)
+        time.sleep(3)
         with open( img_filename, 'rb' ) as f:
             data = f.read()
 
         result = processRequest( dect_url, None, data, dect_headers, dect_params )
         if result: # check if result is empty
-            imgPath_faceId_map[result[0]['faceId']] = img_filename
+            imgPath_faceId_map[result[0]['faceId']] = os.path.basename(img_filename)
             faceIds.append(result[0]['faceId'])
         else:
-            sys.stderr.write(img_filename + "detection request return error!!\n")
+            sys.stderr.write(img_filename + " detection request return error!!\n")
+
+    time.sleep(3)
 
     grp_json = dict()
     grp_json["faceIds"] = faceIds
