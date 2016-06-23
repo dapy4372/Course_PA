@@ -1,18 +1,19 @@
 #! /usr/bin/python2.7
-import time, requests, operator, glob, sys, os
+import time, requests, operator, glob, sys, os, csv
 import numpy as np
 
 _key = '57f0b5bd23354bb2b6283543b34da840'
 _maxNumRetries = 20
 
-if( len(sys.argv) != 3 ):
+if( len(sys.argv) != 4 ):
     print "Usage:"
     print ""
-    print "      " + sys.argv[0] + " <image dir> <group list filename>"
+    print "      " + sys.argv[0] + " <image dir> <group list filename> <image faceId map>"
     sys.exit(1)
 
 path_to_watch = sys.argv[1]
 group_list_filename = sys.argv[2]
+imgPath_faceId_map_filename = sys.argv[3]
 
 def processRequest( url, json, data, headers, params ):
 
@@ -73,48 +74,48 @@ grp_headers['Ocp-Apim-Subscription-Key'] = _key
 grp_headers['Content-Type'] = 'application/json'
 grp_url = 'https://api.projectoxford.ai/face/v1.0/group'
 
-# Load raw image file into memory
-filename_list = glob.glob("./" + sys.argv[1] + "/*.jpg")
-print(filename_list)
-
 faceIds = [] 
-faceId_imgPath_map = dict()
-prev_filelist = {}
+imgPath_faceId_map = dict()
 
-time.sleep(10)
+img_filename_list = glob.glob(path_to_watch + "/*.jpg")
 
-for step in range(5):
-    time.sleep(3)
-    curr_filelist = dict ([(f, None) for f in glob.glob(path_to_watch + "/*.jpg")])
-    added_filelist = [f for f in curr_filelist if not f in prev_filelist]
-    prev_filelist = curr_filelist
+# check for first time
+if( os.path.exists( imgPath_faceId_map_filename ) ):
+    with open( imgPath_faceId_map_filename, "r" ) as f:
+        reader = csv.reader( f, delimiter = " " )
+        for row in reader:
+            imgPath_faceId_map[row[0]] = row[1]
 
-    for filename in added_filelist:
+    # append existed faceId 
+    faceIds += imgPath_faceId_map.keys()
+
+if img_filename_list:
+    for img_filename in img_filename_list:
         time.sleep(1)
-        with open( filename, 'rb' ) as f:
+        with open( img_filename, 'rb' ) as f:
             data = f.read()
 
         result = processRequest( dect_url, None, data, dect_headers, dect_params )
         if result: # check if result is empty
-            faceId_imgPath_map[result[0]['faceId']] = filename
+            imgPath_faceId_map[result[0]['faceId']] = img_filename
             faceIds.append(result[0]['faceId'])
         else:
-            sys.stderr.write(filename + "detection request return error!!\n")
+            sys.stderr.write(img_filename + "detection request return error!!\n")
 
-    # if there are new file, do grouping
-    if added_filelist:
-        grp_json = dict()
-        grp_json["faceIds"] = faceIds
+    grp_json = dict()
+    grp_json["faceIds"] = faceIds
 
-        grp_result = processRequest( grp_url, grp_json, None, grp_headers, None )
+    grp_result = processRequest( grp_url, grp_json, None, grp_headers, None )
 
-        with open(group_list_filename, "w") as f:
+    with open( group_list_filename, "w" ) as f:
+        writer = csv.writer( f, delimiter = " " )
 
-            for idx, grp in enumerate(grp_result["groups"]):
-                for faceId in grp:
-                    f.write( "%d %s\n" % (idx, faceId_imgPath_map[faceId]) )
-                    #print( "%d %s" % (idx, faceId_imgPath_map[faceId]) )
+        for idx, grp in enumerate( grp_result["groups"] ):
+            for faceId in grp:
+                writer.writerow( [idx, imgPath_faceId_map[faceId] ] )
+                #print( "%d %s" % (idx, imgPath_faceId_map[faceId]) )
 
-            messy_idx = len(grp_result["groups"])
-            for faceId in grp_result["messyGroup"]:
-                    f.write( "%d %s\n" % (messy_idx, faceId_imgPath_map[faceId]) )
+        messy_idx = len( grp_result["groups"] )
+        for faceId in grp_result["messyGroup"]:
+                writer.writerow( [messy_idx, imgPath_faceId_map[faceId] ] )
+                #f.write( "%d %s\n" % (messy_idx, imgPath_faceId_map[faceId]) )
