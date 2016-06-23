@@ -6,13 +6,13 @@
 MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent)
 {
     main_window = new QWidget; 
-    main_window->resize(1200, 800);
+    main_window -> resize(1200, 800);
     layout = new QGridLayout;
 
     list_widget = new QListWidget;
-    list_widget->setIconSize(QSize(120,120));
-    list_widget->setFixedWidth(400);
-    layout->addWidget(list_widget, 0, 0);
+    list_widget -> setIconSize(QSize(120,120));
+    list_widget -> setFixedWidth(400);
+    layout -> addWidget(list_widget, 0, 0);
 
     //stacked_layout = new QStackedLayout;
     //layout->addLayout(stacked_layout, 0, 1);
@@ -20,9 +20,9 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent)
     update_button = new QPushButton("Update");
     quit_button = new QPushButton("Quit");
     play_button = new QPushButton("Play");
-    layout->addWidget(update_button, 1, 0);
-    layout->addWidget(quit_button, 2, 0);
-    layout->addWidget(play_button, 1, 1);
+    layout -> addWidget(update_button, 1, 0);
+    layout -> addWidget(quit_button, 2, 0);
+    layout -> addWidget(play_button, 1, 1);
     connect(update_button, SIGNAL(clicked()), this, SLOT(on_addButton_clicked()));
     connect(quit_button, SIGNAL(clicked()), main_window, SLOT(close()) );
 
@@ -30,8 +30,8 @@ MainWindow::MainWindow(QWidget *parent) : QMainWindow(parent)
     //QObject::connect(list_widget, SIGNAL(currentRowChanged(int)), this, SLOT(playVideo(int)));
     QObject::connect(list_widget, SIGNAL(itemClicked(QListWidgetItem *)), this, SLOT(handleVideo(QListWidgetItem *)));
     QObject::connect(list_widget, SIGNAL(currentItemChanged(QListWidgetItem *, QListWidgetItem *)), this, SLOT(handleVideo(QListWidgetItem *, QListWidgetItem *)));
-    main_window->setLayout(layout);
-    main_window->show();
+    main_window -> setLayout(layout);
+    main_window -> show();
 }
  
 MainWindow::~MainWindow() {}
@@ -76,7 +76,7 @@ void MainWindow::on_addButton_clicked()
                 //player->mediaObject()->setCurrentSource(video_path);
                 //stacked_layout -> addWidget(player);
                 layout -> addWidget(player, 0, 1);
-                player->hide();
+                player -> hide();
                 QListWidgetItem *item = new QListWidgetItem(QIcon(img_vec.at(i).first), img_vec.at(i).first);
                 item->setWhatsThis(QString::number(list_widget->count()));
 
@@ -123,15 +123,15 @@ void MainWindow::handleVideo(QListWidgetItem *curr, QListWidgetItem *prev)
     // check if it is the first time to call this function
     // if true, the prev will be null
     if(prev) {
-        qDebug() << prev->whatsThis().toInt();
+        qDebug() << prev -> whatsThis().toInt();
 
-        MyItem *prev_item = myitem_vec.at(prev->whatsThis().toInt());
-        MyItem *curr_item = myitem_vec.at(curr->whatsThis().toInt());
+        MyItem *prev_item = myitem_vec.at(prev -> whatsThis().toInt());
+        MyItem *curr_item = myitem_vec.at(curr -> whatsThis().toInt());
 
         //prev_item->player->seek(prev_item->img_time);
-        qDebug() << "prev:" << prev_item->img_time << endl;
+        qDebug() << "prev:" << prev_item -> img_time << endl;
         if( prev_item -> player != curr_item -> player ) {
-            prev_item->player->pause();
+            prev_item -> player -> pause();
             prev_item -> player -> hide();
             curr_item -> player -> show();
         }
