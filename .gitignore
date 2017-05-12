@@ -1,7 +1,0 @@
-*.o
-.*
-!/.gitignore
-*.png
-*.mp4
-data
-moc*
