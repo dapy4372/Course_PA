@@ -1,0 +1,6 @@
+preLabelFilename:./raw/cross_14_bag_4
+maxAllow:2
+outputFilename:./final_results/cross_14_bag_4_maxallow_3.csv
+twoMap:48_39.map
+threeMap:48_idx_chr.map_b
+smoothFilename:/tmp/tmp1.csv
